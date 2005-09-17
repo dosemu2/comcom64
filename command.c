@@ -46,8 +46,11 @@
 
 #include <dir.h>
 #include <dos.h>
+#include <time.h>
+#include <utime.h>
 #include <conio.h>
 #include <ctype.h>
+#include <float.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +59,34 @@
 #include <sys/stat.h>
 
 #ifdef __MINGW32__
-#define MAXPATH MAX_PATH
+#define cprintf(...) _cprintf(__VA_ARGS__)
+#define cputs(s) _cputs(s)
+#define futime(a,b) _futime(a,b)
+#define _setcursortype(t)
+#define clreol()
+#define clrscr()
+#define delay(t)
+#define getkey(k) keyb_get_rawcode(k)
+#define _dos_setdrive(d,p)
+#define _dos_getdrive(p)
+
+
+/* Additional access() checks */
+#define D_OK	0x10
+/* Cursor shape */
+#define _NOCURSOR      0
+#define _SOLIDCURSOR   1
+#define _NORMALCURSOR  2
+#define FA_HIDDEN      2
+#define FA_SYSTEM      4
+#define FA_DIREC       16
+#define MAXINT  (0x7fffffff)
+#define MAXPATH  MAX_PATH
+#define MAXDRIVE 3
+#define MAXDIR	 256
+#define MAXFILE  256
+#define MAXEXT	 255
+
 #elif __DJGPP__
 #include <values.h>
 #endif
@@ -157,7 +187,9 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
 */
 static void parse_cmd_line(void);
 static void perform_external_cmd(int call);
+#ifndef __MINGW32__
 static void perform_set(void);
+#endif
 static void perform_unimplemented_cmd(void);
 
 /***
@@ -295,18 +327,18 @@ static void output_prompt(void)
         case '$': //    $ (dollar sign)
           putch('$');
           break;
-        case 'T': //    Current time
+        case 'T': //    Current time (TODO: emulate centisecond)
           {
-          struct time t;
-          gettime(&t);
-          cprintf("%2d:%02d:%02d.%02d", t.ti_hour, t.ti_min, t.ti_sec, t.ti_hund);
+          time_t t = time(NULL);
+          struct tm *loctime = localtime (&t);
+          cprintf("%2d:%02d:%02d", loctime->tm_hour, loctime->tm_min, loctime->tm_sec);
           break;
           }
         case 'D': //    Current date
           {
-          struct date d;
-          getdate(&d);
-          cprintf("%02d-%02d-%04d", d.da_mon, d.da_day, d.da_year);
+          time_t t = time(NULL);
+          struct tm *loctime = localtime (&t);
+          cprintf("%02d-%02d-%04d", loctime->tm_mon, loctime->tm_mday, loctime->tm_year+1900);
           break;
           }
         case 'P': //   Current drive and path
@@ -453,7 +485,11 @@ static unsigned short keyb_get_rawcode(void)
 
 static unsigned short keyb_get_shift_states(void)
 {
+#ifdef __MINGW32__
+  return 0;
+#else
   return bioskey(GET_EXTENDED_SHIFT_STATES);
+#endif
 }
 
 #define LEFT  (0xFFFFFFFF)
@@ -768,7 +804,11 @@ static int ensure_dir_existence(char *dir)
         printf("Creating directory - %s\\\n", dir_path);
       else
         *c = '\0';
+#ifdef __MINGW32__
+      if (mkdir(dir_path) != 0 && c == NULL)
+#else
       if (mkdir(dir_path, S_IWUSR) != 0 && c == NULL)
+#endif
         {
         cprintf("Unable to create directory - %s\\\r\n", dir_path);
         return -1;
@@ -786,7 +826,12 @@ static int copy_single_file(char *source_file, char *dest_file, int transfer_typ
   FILE *dest_stream;
   char transfer_buffer[32768];
   size_t byte_count;
+#ifdef __MINGW32__
+  struct stat source_st;
+  struct _utimbuf dest_ut;
+#else
   struct ftime file_time;
+#endif
 
   if (stricmp(source_file, dest_file) == 0)
     {
@@ -822,11 +867,21 @@ static int copy_single_file(char *source_file, char *dest_file, int transfer_typ
   while (byte_count > 0);
 
   /* Copy date and time */
+#ifdef __MINGW32__
+  if (fstat(fileno(source_stream), &source_st) != 0)
+    goto copy_error_close;
+  fflush(dest_stream);
+  dest_ut.actime = source_st.st_atime;
+  dest_ut.modtime = source_st.st_mtime;
+  if (futime(fileno(dest_stream), &dest_ut) != 0)
+    goto copy_error_close;
+#else
   if (getftime(fileno(source_stream), &file_time) != 0)
     goto copy_error_close;
   fflush(dest_stream);
   if (setftime(fileno(dest_stream), &file_time) != 0)
     goto copy_error_close;
+#endif
 
   /* Close source and dest files */
   fclose(source_stream);
@@ -858,7 +913,7 @@ static int verify_file(char *master_file, char *verify_file)
   char vtransfer_buffer[32768];
   int b;
   size_t mbyte_count, vbyte_count;
-  struct ftime mfile_time, vfile_time;
+  struct stat mfile_st, vfile_st;
 
 
   /* Open files */
@@ -891,11 +946,11 @@ static int verify_file(char *master_file, char *verify_file)
   while (mbyte_count > 0);
 
   /* verify date and time */
-  if (getftime(fileno(mstream), &mfile_time) != 0)
+  if (fstat(fileno(mstream), &mfile_st) != 0)
     goto verify_error_close;
-  if (getftime(fileno(vstream), &vfile_time) != 0)
+  if (fstat(fileno(vstream), &vfile_st) != 0)
     goto verify_error_close;
-  if (memcmp(&mfile_time, &vfile_time, sizeof(struct ftime)) != 0)
+  if (mfile_st.st_atime != vfile_st.st_atime || mfile_st.st_mtime != vfile_st.st_mtime)
     goto verify_error_close;
 
   /* Close source and dest files */
@@ -915,6 +970,7 @@ verify_error:
   return -1;
   }
 
+#ifndef __MINGW32__
 static void general_file_transfer(int transfer_type)
   {
   int xfer_count = 0;
@@ -1487,6 +1543,7 @@ static void perform_call(void)
   advance_cmd_arg();
   perform_external_cmd(TRUE);
   }
+#endif
 
 static void perform_cd(void)
   {
@@ -1577,6 +1634,7 @@ static void perform_choice(void)
   return;
   }
 
+#ifndef __MINGW32__
 static void perform_copy(void)
   {
   general_file_transfer(FILE_XFER_COPY);
@@ -1586,18 +1644,18 @@ static void perform_xcopy(void)
   {
   general_file_transfer(FILE_XFER_XCOPY);
   }
+#endif
 
 static void perform_date(void)
   {
-  struct dosdate_t date;
+  time_t t = time(NULL);
+  struct tm *loctime = localtime (&t);
   const char *day_of_week[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-  _dos_getdate(&date);
-  printf("Current date is %s %02d-%02d-%04d\n", day_of_week[(int)date.dayofweek],
-                                               (int)date.month,
-                                               (int)date.day,
-                                               (int)date.year);
+  printf("Current date is %s %02d-%02d-%04d\n", day_of_week[loctime->tm_wday],
+                             loctime->tm_mon, loctime->tm_mday, loctime->tm_year+1900);
   }
 
+#ifndef __MINGW32__
 static void perform_delete(void)
   {
   struct ffblk ff;
@@ -2010,6 +2068,7 @@ static void perform_dir(void)
   else
     printf("%15lli MiB free\n", avail / 1048576);
   }
+#endif
 
 static void perform_echo(void)
   {
@@ -2045,6 +2104,11 @@ static void perform_exit(void)
     }
   }
 
+#ifdef __MINGW32__
+void perform_external_cmd(int call)
+  {
+  }
+#else
 void perform_external_cmd(int call)
   {
   struct ffblk ff;
@@ -2201,6 +2265,7 @@ StackOverflow:
   reset_batfile_call_stack();
   return;
   }
+#endif
 
 static void perform_goto(void)
   {
@@ -2227,6 +2292,7 @@ static void perform_if(void)
     advance_cmd_arg();
     }
 
+#ifndef __MINGW32__
   if (stricmp(cmd_arg, "exist") == 0)  // conditional is "exist <filename>"
     {
     char *s;
@@ -2243,7 +2309,9 @@ static void perform_if(void)
         findfirst(cmd_arg, &ff, 0) == 0)
       condition_fulfilled = TRUE;
     }
-  else if (strnicmp(cmd_args, "errorlevel", 10) == 0) //conditional is "errolevel x"
+  else
+#endif
+  if (strnicmp(cmd_args, "errorlevel", 10) == 0) //conditional is "errolevel x"
     {
     char *s;
     unsigned ecomp;
@@ -2349,7 +2417,11 @@ static void perform_md(void)
     advance_cmd_arg();
   if (*cmd_arg)
     {
+#ifdef __MINGW32__
+    if (mkdir(cmd_arg) != 0)
+#else
     if (mkdir(cmd_arg, S_IWUSR) != 0)
+#endif
       {
       cprintf("Could not create directory - %s\r\n", cmd_arg);
       reset_batfile_call_stack();
@@ -2367,15 +2439,18 @@ static void perform_more(void)
   perform_unimplemented_cmd();
   }
 
+#ifndef __MINGW32__
 static void perform_move(void)
   {
   general_file_transfer(FILE_XFER_MOVE);
   }
+#endif
 
 static void perform_null_cmd(void)
   {
   }
 
+#ifndef __MINGW32__
 static void perform_path(void)
   {
   if (*cmd_args == '\0')
@@ -2394,6 +2469,7 @@ static void perform_path(void)
     perform_set();
     }
   }
+#endif
 
 static void perform_pause(void)
   {
@@ -2401,12 +2477,14 @@ static void perform_pause(void)
   getkey();
   }
 
+#ifndef __MINGW32__
 static void perform_prompt(void)
   {
   memmove(cmd_args+7, cmd_args, strlen(cmd_args)+1);
   strncpy(cmd_args, "PROMPT=", 7);
   perform_set();
   }
+#endif
 
 static void perform_rd(void)
   {
@@ -2427,6 +2505,7 @@ static void perform_rd(void)
     }
   }
 
+#ifndef __MINGW32__
 static void perform_rename(void)
   {
   int first, zfill;
@@ -2597,15 +2676,16 @@ void perform_set(void)
       }
     }
   }
+#endif
 
 static void perform_time(void)
   {
-  struct dostime_t dtime;
+  time_t t = time(NULL);
+  struct tm *loctime = localtime (&t);
   char ampm;
   int hour;
 
-  _dos_gettime(&dtime);
-  hour = dtime.hour;
+  hour = loctime->tm_hour;
   if (hour < 12)
     ampm = 'a';
   else
@@ -2616,7 +2696,7 @@ static void perform_time(void)
     hour = 12;
 
   printf("Current time is %2d:%02d:%02d.%02d%c\n",
-         hour, dtime.minute, dtime.second, dtime.hsecond, ampm);
+         hour, loctime->tm_min, loctime->tm_sec, 0, ampm);
 
   }
 
@@ -2679,36 +2759,52 @@ struct built_in_cmd
 
 struct built_in_cmd cmd_table[] =
   {
+#ifndef __MINGW32__
     {"attrib", perform_attrib},
     {"call", perform_call},
+#endif
     {"cd", perform_cd},
     {"chdir", perform_cd},
     {"choice", perform_choice},
+#ifndef __MINGW32__
     {"cls", clrscr},
     {"copy", perform_copy},
+#endif
     {"date", perform_date},
+#ifndef __MINGW32__
     {"del", perform_delete},
     {"deltree", perform_deltree},
     {"erase", perform_delete},
     {"dir", perform_dir},
+#endif
     {"echo", perform_echo},
     {"exit", perform_exit},
     {"goto", perform_goto},
     {"md", perform_md},
     {"mkdir", perform_md},
+#ifndef __MINGW32__
     {"move", perform_move},
+#endif
     {"more", perform_more},
+#ifndef __MINGW32__
     {"path", perform_path},
+#endif
     {"pause", perform_pause},
+#ifndef __MINGW32__
     {"prompt", perform_prompt},
+#endif
     {"rd", perform_rd},
     {"rmdir", perform_rd},
+#ifndef __MINGW32__
     {"rename", perform_rename},
     {"ren", perform_rename},
     {"set", perform_set},
+#endif
     {"time", perform_time},
     {"type", perform_type},
+#ifndef __MINGW32__
     {"xcopy", perform_xcopy}
+#endif
   };
 
 void parse_cmd_line(void)
