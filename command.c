@@ -58,6 +58,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "cmdbuf.h"
+
 #ifdef __MINGW32__
 #define cprintf(...) _cprintf(__VA_ARGS__)
 #define cputs(s) _cputs(s)
@@ -69,8 +71,6 @@
 #define getkey(k) keyb_get_rawcode(k)
 #define _dos_setdrive(d,p)
 #define _dos_getdrive(p)
-
-
 /* Additional access() checks */
 #define D_OK	0x10
 /* Cursor shape */
@@ -88,7 +88,9 @@
 #define MAXEXT	 255
 
 #elif __DJGPP__
+#include <bios.h>
 #include <values.h>
+#include <sys/exceptn.h>
 #endif
 
 /*
@@ -492,92 +494,9 @@ static unsigned short keyb_get_shift_states(void)
 #endif
 }
 
-#define LEFT  (0xFFFFFFFF)
-#define RIGHT (0x00000001)
-static unsigned int tail = 0;
-static unsigned int cur = 0;
-static void cmdbuf_move(char *cmd_buf, int direction)
-{
-  switch (direction)
-  {
-    case LEFT:
-      if (cur != 0) {
-        putch(KEY_ASCII(KEY_BACKSPACE));
-        cur--;
-      }
-      break;
-    case RIGHT:
-      if (cur < tail) {
-        putch(cmd_buf[cur]);
-        cur++;
-      }
-      break;
-    default:
-      break;
-  }
-}
-
-static void cmdbuf_delch(char *cmd_buf)
-{
-  if (cur < tail) {
-    unsigned int i;
-    cmd_buf[cur] = 0;
-    cmd_buf[tail] = 0;
-
-    /* Move the left string to the current position */
-    for (i = cur; i < tail; i++)
-    {
-      putch(cmd_buf[i+1]);
-      cmd_buf[i] = cmd_buf[i+1];
-    }
-    
-    /* Put cursor back to the current position */
-    for (i = cur; i < tail; i++)
-      putch(KEY_ASCII(KEY_BACKSPACE));
-
-    /* Subtract the string 1 */
-    tail--;
-  }
-}
-
-
-static void cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag)
-{
-  unsigned int i;
-
-  if (cur < buf_size) {
-    /* Reflect the insert method */
-    if (flag&KEYB_FLAG_INSERT) {
-      for (i = tail; i > cur; i--)
-        cmd_buf[i] = cmd_buf[i-1];
-    }
-    /* Put into cmdline buffer */
-    cmd_buf[cur++] = ch;
-    if ((flag&KEYB_FLAG_INSERT && tail < buf_size) || cur > tail)
-      tail++;
-    /* Update the string on screen */
-    for (i = cur-1; i < tail; i++)
-      putch(cmd_buf[i]);
-    
-    /* Put cursor back to the current position */
-    for (i = cur; i < tail; i++)
-      putch(KEY_ASCII(KEY_BACKSPACE));
-  }
-}
-
-
-static char *cmdbuf_gets(char *cmd_buf)
-{
-  cmd_buf[tail] = 0;
-  /* Reset the cmdbuf */
-  cur = tail = 0;
-  return cmd_buf;
-}
-
-
 static void prompt_for_and_get_cmd(void)
   {
-  char conbuf[MAX_CMD_BUFLEN+1];
+  unsigned char conbuf[MAX_CMD_BUFLEN+1];
   int flag = 0, key = 0;
   output_prompt();
   conbuf[0] = MAX_CMD_BUFLEN-1;
@@ -640,8 +559,8 @@ static void prompt_for_and_get_cmd(void)
     }
   } while (key != KEY_ENTER);
 
-  conbuf[1] = tail; /* Get the size of typed string */
-  strncpy(cmd_line, cmdbuf_gets(conbuf+2), conbuf[1]);
+  conbuf[1] = cmdbuf_get_tail(); /* Get the size of typed string */
+  strncpy(cmd_line, (char *)cmdbuf_gets(conbuf+2), conbuf[1]);
 
   cmd_line[conbuf[1]] = '\0';
   parse_cmd_line();
@@ -1569,7 +1488,7 @@ static void perform_cd(void)
 
 static void perform_change_drive(void)
   {
-  int drive_set, cur_drive, dummy;
+  unsigned int drive_set, cur_drive, dummy;
   drive_set = toupper(cmd[0])-'A'+1;
   _dos_setdrive(drive_set, &dummy);
   _dos_getdrive(&cur_drive);
@@ -1912,7 +1831,7 @@ static void perform_dir(void)
   unsigned attrib = FA_DIREC+FA_RDONLY+FA_ARCH+FA_SYSTEM+FA_HIDDEN, first, hour;
   struct dfree df;
   unsigned long filecount = 0, dircount = 0, bytecount = 0;
-  char dirspec[MAXPATH], *ft, ampm;
+  char dirspec[MAXPATH], *ft;
   char volspec[7] = "X:\\*.*";
   char full_filespec[MAXPATH];
   char filespec[MAXPATH] = "";
@@ -3151,7 +3070,7 @@ int main(int argc, char **argv)
     // check for permanent shell
     if (stricmp(argv[a], "/P") == 0)
       {
-      int drive;
+      unsigned int drive;
       shell_mode = SHELL_PERMANENT;
       strcpy(bat_file_path[0], "X:\\AUTOEXEC.BAT");  // trigger execution of autoexec.bat
       _dos_getdrive(&drive);
