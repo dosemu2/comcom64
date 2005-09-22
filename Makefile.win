@@ -1,0 +1,28 @@
+# Project: FreeDOS-32 command
+# Makefile for MingW32
+
+CPP  = g++.exe
+CC   = gcc.exe
+RES  = 
+OBJ  = command.o cmdbuf.o $(RES)
+LIBS = -s 
+INCS = 
+CXXINCS = 
+BIN  = command.exe
+CFLAGS = $(INCS) -Wall -fexpensive-optimizations -O3
+RM = rm -f
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	${RM} $(OBJ)
+	${RM} $(BIN)
+
+$(BIN): $(OBJ)
+	$(CC) $(OBJ) -o $(BIN) $(LIBS)
+
+# Common rules
+%.o : %.c
+	$(REDIR) $(CC) $(CFLAGS) -c $<

@@ -15,7 +15,7 @@
 *       1) Install DJGPP on your development computer.
 *       2) Install FreeDos on your target FreeDos computer.
 *       3a) Compile the program with the accompanying make file.
-*           type:          make -f command.mak
+*           type: make -f Makefile
 *       3b) OR, use rhide to build the program with the accompanying
 *           project file (command.gpr).
 *       4) Rename the resultant program from COMMAND.EXE to COMMAND.COM.
@@ -40,8 +40,8 @@
 *
 ***/
 
-/* WARNING: This is not the original version.
- * Slightly modified for FreeDOS-32 by Salvo Isaja and Hanzac Chen
+/* WARNING:	This is not the original version.
+ *			modified for FreeDOS-32 by Salvo Isaja and Hanzac Chen
  */
 
 #include <dir.h>
@@ -50,47 +50,265 @@
 #include <utime.h>
 #include <conio.h>
 #include <ctype.h>
+#include <errno.h>
 #include <float.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+#include <stdbool.h>
 #include <sys/stat.h>
 
 #include "cmdbuf.h"
 
 #ifdef __MINGW32__
-#define cprintf(...) _cprintf(__VA_ARGS__)
-#define cputs(s) _cputs(s)
+#include <direct.h>
+#include <windows.h>
 #define futime(a,b) _futime(a,b)
-#define _setcursortype(t)
-#define clreol()
-#define clrscr()
-#define delay(t)
-#define getkey(k) keyb_get_rawcode(k)
-#define _dos_setdrive(d,p)
-#define _dos_getdrive(p)
-/* Additional access() checks */
-#define D_OK	0x10
+#define setenv(a,b,c) SetEnvironmentVariable(a,b)
+#define _fixpath(a,b) _fullpath(b,a,MAX_PATH)
+#define fnsplit(p,drive,dir,n,e) _splitpath(p,drive,dir,n,e)
+#define fnmerge(p,drive,dir,n,e) _makepath(p,drive,dir,n,e)
+
 /* Cursor shape */
 #define _NOCURSOR      0
 #define _SOLIDCURSOR   1
 #define _NORMALCURSOR  2
+/* Conio utilites */
+#define cprintf(...) _cprintf(__VA_ARGS__)
+#define cputs(s) _cputs(s)
+static CONSOLE_SCREEN_BUFFER_INFO info;
+static int __conio_x = 0;
+static int __conio_y = 0;
+static int __conio_top = 0;
+static int __conio_left = 0;
+static int __conio_width = 80;
+static int __conio_height = 25;
+static WORD __conio_attrib = 0x07;
+static void __fill_conio_info (void)
+{
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
+    __conio_left = info.srWindow.Left;
+    __conio_top = info.srWindow.Top;
+    __conio_x = info.dwCursorPosition.X - __conio_left + 1;
+    __conio_y = info.dwCursorPosition.Y - __conio_top  + 1;
+    __conio_width = info.srWindow.Right - info.srWindow.Left + 1;
+    __conio_height = info.srWindow.Bottom - info.srWindow.Top + 1;
+    __conio_attrib = info.wAttributes;
+}
+static inline void gotoxy(int x, int y)
+{
+  COORD c;
+  c.X = __conio_left + x - 1;
+  c.Y = __conio_top  + y - 1;
+  SetConsoleCursorPosition (GetStdHandle(STD_OUTPUT_HANDLE), c);
+}
+static inline void clrscr (void)
+{
+    DWORD written, i;
+    __fill_conio_info();
+    for (i = __conio_top; i < __conio_top + __conio_height; i++) {
+        FillConsoleOutputAttribute (GetStdHandle(STD_OUTPUT_HANDLE), __conio_attrib, __conio_width, (COORD) {__conio_left, i}, &written);
+        FillConsoleOutputCharacter (GetStdHandle(STD_OUTPUT_HANDLE), ' ', __conio_width, (COORD) {__conio_left, i}, &written);
+    }
+    gotoxy (1, 1);
+}
+static inline void clreol (void)
+{
+    COORD coord;
+    DWORD written;
+    __fill_conio_info();
+    FillConsoleOutputCharacter (GetStdHandle(STD_OUTPUT_HANDLE), ' ', __conio_width - __conio_x + 1, coord, &written);
+    gotoxy (__conio_x, __conio_y);
+}
+static inline void _setcursortype (int type)
+{
+    CONSOLE_CURSOR_INFO cursor_info;
+    cursor_info.bVisible = TRUE;
+    switch (type) {
+		case _NOCURSOR:
+            cursor_info.bVisible = FALSE;
+			break;
+		case _SOLIDCURSOR:
+            cursor_info.dwSize = 100;
+            break;
+		default:
+            cursor_info.dwSize = 1;
+			break;
+	}
+    SetConsoleCursorInfo (GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
+}
+#define delay(t) Sleep(t/1000)
+/* Additional access() checks */
+#define D_OK	0x10
+
+#define FA_RDONLY      1
 #define FA_HIDDEN      2
 #define FA_SYSTEM      4
+#define FA_LABEL       8
 #define FA_DIREC       16
+#define FA_ARCH        32
 #define MAXINT  (0x7fffffff)
 #define MAXPATH  MAX_PATH
 #define MAXDRIVE 3
 #define MAXDIR	 256
 #define MAXFILE  256
 #define MAXEXT	 255
+/* File find */
+typedef struct _finddata_t finddata_t;
+static inline int findfirst_f(const char *pathname, finddata_t *ff, int attrib, long *handle)
+{
+	long h;
+	if (handle != NULL)
+		*handle = h = _findfirst(pathname, ff);
+	else
+		h = _findfirst(pathname, ff);
+    if (h != -1)
+		return 0;
+	else
+		return -1;
+}
+static inline int findnext_f(finddata_t *ff, long handle)
+{
+    return _findnext(handle, ff);
+}
+static inline int findclose_f(long handle)
+{
+	return _findclose(handle);
+}
+#define FINDDATA_T_FILENAME(f) f.name
+#define FINDDATA_T_ATTRIB(f) f.attrib
+#define FINDDATA_T_SIZE(f) f.size
+#define FINDDATA_T_WDATE_YEAR(f) localtime(&f.time_write)->tm_year+1900
+#define FINDDATA_T_WDATE_MON(f) localtime(&f.time_write)->tm_mon+1
+#define FINDDATA_T_WDATE_DAY(f) localtime(&f.time_write)->tm_mday
+#define FINDDATA_T_WTIME_HOUR(f) localtime(&f.time_write)->tm_hour
+#define FINDDATA_T_WTIME_MIN(f) localtime(&f.time_write)->tm_min
+/* File attributes */
+static inline unsigned int setfileattr(const char *filename, unsigned int attr)
+{
+    unsigned int ret = 0;
+    DWORD win32_attr = 0;
+
+    win32_attr |= attr&_A_RDONLY ? FILE_ATTRIBUTE_READONLY : 0;
+    win32_attr |= attr&_A_HIDDEN ? FILE_ATTRIBUTE_HIDDEN : 0;
+    win32_attr |= attr&_A_SYSTEM ? FILE_ATTRIBUTE_SYSTEM : 0;
+    win32_attr |= attr&_A_SUBDIR ? FILE_ATTRIBUTE_DIRECTORY : 0;
+    win32_attr |= attr&_A_ARCH ? FILE_ATTRIBUTE_ARCHIVE : 0;
+    if (!SetFileAttributes(filename, win32_attr)) {
+        errno = ENOENT;
+        ret = 2; /* File not found */
+    }
+    return ret;
+}
+static inline unsigned int getfileattr(const char *filename, unsigned int *p_attr)
+{
+    unsigned int ret = 0;
+    DWORD win32_attr = GetFileAttributes(filename);
+
+    if (win32_attr != INVALID_FILE_ATTRIBUTES) {
+        if (p_attr != NULL) {
+            *p_attr = 0;
+            /* *p_attr |= attr&0 ? _A_VOLID : 0
+               *p_attr |= attr&FILE_ATTRIBUTE_NORMAL ? _A_NORMAL : 0; */
+            *p_attr |= win32_attr&FILE_ATTRIBUTE_READONLY ? _A_RDONLY : 0;
+            *p_attr |= win32_attr&FILE_ATTRIBUTE_HIDDEN ? _A_HIDDEN : 0;
+            *p_attr |= win32_attr&FILE_ATTRIBUTE_SYSTEM ? _A_SYSTEM : 0;
+            *p_attr |= win32_attr&FILE_ATTRIBUTE_DIRECTORY ? _A_SUBDIR : 0;
+            *p_attr |= win32_attr&FILE_ATTRIBUTE_ARCHIVE ? _A_ARCH : 0;
+        }
+    } else {
+        errno = ENOENT;
+        ret = 2; /* File not found */
+    }
+
+    return ret;
+}
+static inline int file_access(const char *filename, int flags)
+{
+    if (flags & D_OK) {
+        unsigned int attr;
+        getfileattr(filename, &attr);
+        if (attr & _A_SUBDIR) {
+            return 0;
+        } else {
+            errno = EACCES;
+            return -1; /* not a directory */
+        }
+    }
+    return access(filename, flags);
+}
+/* Disk free */
+static inline void setdrive(unsigned int drive, unsigned int *p_drives)
+{
+    _chdrive(drive);
+}
+static inline void getdrive(unsigned int *p_drive)
+{
+    if (p_drive != NULL)
+        *p_drive = _getdrive();
+}
+#define getdfree(d,p) _getdiskfree(d,p)
+typedef struct _diskfree_t diskfree_t;
+#define DISKFREE_T_AVAIL(d) d.avail_clusters
+#define DISKFREE_T_TOTAL(d) d.total_clusters
+#define DISKFREE_T_BSEC(d) d.bytes_per_sector
+#define DISKFREE_T_SCLUS(d) d.sectors_per_cluster
 
 #elif __DJGPP__
 #include <bios.h>
 #include <values.h>
 #include <sys/exceptn.h>
+/* File find */
+typedef struct ffblk finddata_t;
+inline int findfirst_f(const char *pathname, finddata_t *ff, int attrib, long *handle)
+{
+    return findfirst(pathname, ff, attrib);
+}
+inline int findnext_f(finddata_t *ff, long handle)
+{
+    return findnext(ff);
+}
+inline int findclose_f(long handle)
+{
+    return 0;
+}
+#define FINDDATA_T_FILENAME(f) f.ff_name
+#define FINDDATA_T_ATTRIB(f) f.ff_attrib
+#define FINDDATA_T_SIZE(f) f.ff_fsize
+#define FINDDATA_T_WDATE_YEAR(f) ((f.ff_fdate>>9)&0x7F)+1980
+#define FINDDATA_T_WDATE_MON(f) (f.ff_fdate>>5)&0xF
+#define FINDDATA_T_WDATE_DAY(f) (f.ff_fdate)&0x1F
+#define FINDDATA_T_WTIME_HOUR(f) (f.ff_ftime>>11)&0x1F
+#define FINDDATA_T_WTIME_MIN(f) (f.ff_ftime>>5)&0x3F
+/* File attributes */
+static inline unsigned int setfileattr(const char *filename, unsigned int attr)
+{
+    return  _dos_setfileattr(filename, attr);
+}
+static inline unsigned int getfileattr(const char *filename, unsigned int *p_attr)
+{
+    return  _dos_getfileattr(filename, p_attr);
+}
+static inline int file_access(const char *filename, int flags)
+{
+    return access(filename, flags);
+}
+/* Disk free */
+static inline void setdrive(unsigned int drive, unsigned int *p_drives)
+{
+    _dos_setdrive(drive, p_drives);
+}
+static inline void getdrive(unsigned int *p_drive)
+{
+    _dos_getdrive(p_drive);
+}
+typedef struct dfree diskfree_t;
+#define DISKFREE_T_AVAIL(d) d.df_avail
+#define DISKFREE_T_TOTAL(d) d.df_total
+#define DISKFREE_T_BSEC(d) d.df_bsec
+#define DISKFREE_T_SCLUS(d) d.df_sclus
 #endif
 
 /*
@@ -110,13 +328,6 @@ int _crt0_startup_flags =
 char **__crt0_glob_function(char *_argument UNUSED) {return NULL;} // prevent wildcard expansion of arguments of main()
 void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading of environment file
 #endif
-
-
-/*
-*   Define true and false
-*/
-#define FALSE  (0)
-#define TRUE   (!FALSE)
 
 /*
 *   Command.com shell modes
@@ -143,7 +354,7 @@ static char goto_label[MAX_CMD_BUFLEN] = "";
 */
 #define MAX_STACK_LEVEL        20 // Max number of batch file call stack levels
 #define MAX_BAT_ARGS           9  // Max number of batch file arguments
-static int need_to_crlf_at_next_prompt = TRUE;
+static int need_to_crlf_at_next_prompt = true;
 static int stack_level = 0;
 static int echo_on[MAX_STACK_LEVEL];
 static char bat_file_path[MAX_STACK_LEVEL][FILENAME_MAX];  // when this string is not "" it triggers batch file execution
@@ -189,9 +400,7 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
 */
 static void parse_cmd_line(void);
 static void perform_external_cmd(int call);
-#ifndef __MINGW32__
 static void perform_set(void);
-#endif
 static void perform_unimplemented_cmd(void);
 
 /***
@@ -223,7 +432,7 @@ static void conv_unix_path_to_ms_dos(char *path)
     while (*p != '\0')
       {
       if (*p == '/') *p = '\\'; // change slashes to backslashes
-      *p = toupper(*p);         // change to uppercase
+      /* *p = toupper(*p); change to uppercase */
       p++;
       }
     }
@@ -232,49 +441,49 @@ static void conv_unix_path_to_ms_dos(char *path)
 static int is_drive_spec(char *s)    // check for form "A:"
   {
   if (!isalpha(s[0]))
-    return FALSE;
+    return false;
   if (s[1] != ':')
-    return FALSE;
+    return false;
   if (s[2] != '\0')
-    return FALSE;
-  return TRUE;
+    return false;
+  return true;
   }
 
 static int is_drive_spec_with_slash(char *s)  // check for form "C:\"
   {
   if (!isalpha(s[0]))
-    return FALSE;
+    return false;
   if (s[1] != ':')
-    return FALSE;
+    return false;
   if (s[2] != '\\')
-    return FALSE;
+    return false;
   if (s[3] != '\0')
-    return FALSE;
-  return TRUE;
+    return false;
+  return true;
   }
 
 static int has_trailing_slash(char *s)
   {
   if (*s == '\0')
-    return FALSE;
+    return false;
   s = strchr(s,'\0')-1;
   if (*s == '\\' || *s == '/')
-    return TRUE;
-  return FALSE;
+    return true;
+  return false;
   }
 
 static int has_wildcard(char *s)
   {
   if (strchr(s, '*') != NULL)
-    return TRUE;
+    return true;
   if (strchr(s, '?') != NULL)
-    return TRUE;
-  return FALSE;
+    return true;
+  return false;
   }
 
 static void reset_batfile_call_stack(void)
   {
-  static int first_time = TRUE;
+  static int first_time = true;
   int ba;
 
   if (!first_time)
@@ -285,7 +494,7 @@ static void reset_batfile_call_stack(void)
         bat_file_path[stack_level], bat_file_line_number[stack_level]);
       }
     }
-  first_time = FALSE;
+  first_time = false;
   // initialize stack
   for (stack_level = 0; stack_level < MAX_STACK_LEVEL; stack_level++)
     {
@@ -293,7 +502,7 @@ static void reset_batfile_call_stack(void)
     for (ba = 0; ba < MAX_BAT_ARGS; ba++)
       bat_arg[stack_level][ba][0] = '\0';
     bat_file_line_number[stack_level] = 0;
-    echo_on[stack_level] = TRUE;
+    echo_on[stack_level] = true;
     }
   stack_level = 0;
   }
@@ -306,7 +515,7 @@ static void output_prompt(void)
   if (need_to_crlf_at_next_prompt)
     {
     cputs("\r\n");
-    need_to_crlf_at_next_prompt = FALSE;
+    need_to_crlf_at_next_prompt = false;
     }
 
   if (promptvar == NULL)
@@ -340,7 +549,7 @@ static void output_prompt(void)
           {
           time_t t = time(NULL);
           struct tm *loctime = localtime (&t);
-          cprintf("%02d-%02d-%04d", loctime->tm_mon, loctime->tm_mday, loctime->tm_year+1900);
+          cprintf("%02d-%02d-%04d", loctime->tm_mon+1, loctime->tm_mday, loctime->tm_year+1900);
           break;
           }
         case 'P': //   Current drive and path
@@ -476,22 +685,23 @@ NoArgs:
 #define KEY_HOME         KEY_EXTM(0x47E0)
 #define KEY_LEFT         KEY_EXTM(0x4BE0)
 #define KEY_RIGHT        KEY_EXTM(0x4DE0)
+
+static unsigned short keyb_shift_states;
 static unsigned short keyb_get_rawcode(void)
 {
   unsigned short c = getch();
 
-  if (c == 0x00)
+  if (c == 0x00 || c == 0xE0)
     c = getch()<<8;
+
+  if (c == KEY_INSERT)
+    keyb_shift_states ^= KEYB_FLAG_INSERT;
+
   return c;
 }
-
 static unsigned short keyb_get_shift_states(void)
 {
-#ifdef __MINGW32__
-  return 0;
-#else
-  return bioskey(GET_EXTENDED_SHIFT_STATES);
-#endif
+  return keyb_shift_states;
 }
 
 static void prompt_for_and_get_cmd(void)
@@ -573,7 +783,7 @@ static int get_choice(char *choices)
   strupr(choices);
   do
     {
-    key = getkey();
+    key = getch();
     if (key == 0)
       continue;
     } while (strchr(choices, toupper(key)) == NULL);
@@ -696,7 +906,7 @@ FileDone:
   for (ba = 0; ba < MAX_BAT_ARGS; ba++)
     bat_arg[stack_level][ba][0] = '\0';
   bat_file_line_number[stack_level] = 0;
-  echo_on[stack_level] = TRUE;
+  echo_on[stack_level] = true;
   if (stack_level > 0)
     stack_level--;
 RoutineDone:
@@ -713,7 +923,7 @@ static int ensure_dir_existence(char *dir)
   if (*(strchr(dir_path, '\0')-1) == '\\')     // take away ending backslash
     *(strchr(dir_path, '\0')-1) = '\0';
 
-  if (access(dir_path, D_OK) != 0)
+  if (file_access(dir_path, D_OK) != 0)
     {
     c = strchr(dir_path, '\\');
     while (c != NULL)
@@ -889,17 +1099,17 @@ verify_error:
   return -1;
   }
 
-#ifndef __MINGW32__
 static void general_file_transfer(int transfer_type)
   {
   int xfer_count = 0;
   int ffrc;
-  int traverse_subdirs = FALSE;
-  int copy_empty_subdirs = FALSE;
-  int xcopy_dont_ask_fd_question = FALSE;
+  long ffhandle;
+  int traverse_subdirs = false;
+  int copy_empty_subdirs = false;
+  int xcopy_dont_ask_fd_question = false;
   int do_file_verify;
   int s, subdir_level = 0;
-  struct ffblk ff[MAX_SUBDIR_LEVEL];
+  finddata_t ff[MAX_SUBDIR_LEVEL];
   char dir_name[MAX_SUBDIR_LEVEL][MAXPATH];
   int visitation_mode[MAX_SUBDIR_LEVEL]; // 4 = findfirst source_filespec for files;
                                          // 3 = findnext source_filespec for files;
@@ -916,9 +1126,9 @@ static void general_file_transfer(int transfer_type)
   char full_dest_dirspec[MAXPATH];
 
   if (transfer_type == FILE_XFER_MOVE)
-    do_file_verify = TRUE;
+    do_file_verify = true;
   else
-    do_file_verify = FALSE;
+    do_file_verify = false;
 
   while (*cmd_arg != '\0')
     {
@@ -949,7 +1159,7 @@ static void general_file_transfer(int transfer_type)
         {
         if (transfer_type == FILE_XFER_COPY ||
             transfer_type == FILE_XFER_XCOPY)
-          do_file_verify = TRUE;
+          do_file_verify = true;
         else
           goto InvalidSwitch;
         }
@@ -958,11 +1168,11 @@ static void general_file_transfer(int transfer_type)
         if (transfer_type == FILE_XFER_XCOPY)
           {
           if (stricmp(cmd_switch,"/s") == 0)
-            traverse_subdirs = TRUE;
+            traverse_subdirs = true;
           else if (stricmp(cmd_switch,"/e") == 0)
-            copy_empty_subdirs = TRUE;
+            copy_empty_subdirs = true;
           else if (stricmp(cmd_switch,"/i") == 0)
-            xcopy_dont_ask_fd_question = TRUE;
+            xcopy_dont_ask_fd_question = true;
           else
             goto InvalidSwitch;
           }
@@ -991,7 +1201,7 @@ static void general_file_transfer(int transfer_type)
   else
     {
     // see if source exists and is a directory; if so, attach a file spec
-    if (access(source_path, D_OK) == 0)
+    if (file_access(source_path, D_OK) == 0)
       strcat(source_path, "\\*.*");
     }
 
@@ -1012,7 +1222,7 @@ static void general_file_transfer(int transfer_type)
   else
     {
     // see if dest exists and is a directory; if so, attach a file spec
-    if (access(dest_path, D_OK) == 0)
+    if (file_access(dest_path, D_OK) == 0)
       strcat(dest_path, "\\*.*");
     else  // else -- if dest does not exist or is not a directory...
       {
@@ -1079,7 +1289,7 @@ static void general_file_transfer(int transfer_type)
       strcpy(dest_dirspec, dest_path);
       *(strrchr(source_dirspec, '\\')) = '\0'; // get rid of trailing backslash
       *(strrchr(dest_dirspec, '\\')) = '\0'; // get rid of trailing backslash
-      dest_dir_exists = (access(dest_dirspec, D_OK) == 0);
+      dest_dir_exists = (file_access(dest_dirspec, D_OK) == 0);
       sbs = strrchr(source_dirspec, '\\');
       *sbs = '\0'; // chop off source dir name, leaving source tree
       dbs = strrchr(dest_dirspec, '\\');
@@ -1091,7 +1301,7 @@ static void general_file_transfer(int transfer_type)
           {
           *sbs = '\\'; // put the backslash back
           *dbs = '\\'; // put the backslash back
-          if (_rename(source_dirspec, dest_dirspec) == 0)
+          if (rename(source_dirspec, dest_dirspec) == 0)
             {
             printf("%s renamed to %s\n", source_dirspec, dbs+1);
             return;
@@ -1121,14 +1331,14 @@ static void general_file_transfer(int transfer_type)
         strcat(full_source_filespec, "*.*");
         attrib = 0+FA_DIREC+FA_HIDDEN+FA_SYSTEM;
         }
-      ffrc = findfirst(full_source_filespec, &(ff[subdir_level]), attrib);
+      ffrc = findfirst_f(full_source_filespec, &(ff[subdir_level]), attrib, &ffhandle);
       visitation_mode[subdir_level]--;
       }
     else
-      ffrc = findnext(&(ff[subdir_level]));
+      ffrc = findnext_f(&(ff[subdir_level]), ffhandle);
     if (ffrc == 0)
       {
-      conv_unix_path_to_ms_dos(ff[subdir_level].ff_name);
+      conv_unix_path_to_ms_dos(FINDDATA_T_FILENAME(ff[subdir_level]));
       strcpy(full_source_filespec, source_path);
       strcpy(full_dest_filespec, dest_path);
       strcpy(full_dest_dirspec, dest_path);
@@ -1138,36 +1348,36 @@ static void general_file_transfer(int transfer_type)
         strcat(full_dest_filespec, dir_name[s]);
         strcat(full_dest_dirspec, dir_name[s]);
         }
-      strcat(full_source_filespec, ff[subdir_level].ff_name);
+      strcat(full_source_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
       if (strcmp(dest_filespec, "*.*") == 0)
-        strcat(full_dest_filespec, ff[subdir_level].ff_name);
+        strcat(full_dest_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
       else
         strcat(full_dest_filespec, dest_filespec);
   
-      if ((ff[subdir_level].ff_attrib&FA_DIREC) != 0)
+      if ((FINDDATA_T_ATTRIB(ff[subdir_level])&FA_DIREC) != 0)
         {
         if (visitation_mode[subdir_level] <= 2 &&
             traverse_subdirs &&
-            strcmp(ff[subdir_level].ff_name,".") != 0 &&
-            strcmp(ff[subdir_level].ff_name,"..") != 0)
+            strcmp(FINDDATA_T_FILENAME(ff[subdir_level]),".") != 0 &&
+            strcmp(FINDDATA_T_FILENAME(ff[subdir_level]),"..") != 0)
           {
           subdir_level++;
           if (subdir_level >= MAX_SUBDIR_LEVEL)
             {
             cputs("Directory tree is too deep\r\n");
             reset_batfile_call_stack();
-            return;
+            goto ExitOperation;
             }
           if (copy_empty_subdirs)
             {
             if (ensure_dir_existence(full_dest_filespec) != 0)
               {
               reset_batfile_call_stack();
-              return;
+              goto ExitOperation;
               }
             }
           visitation_mode[subdir_level] = 4;
-          strcpy(dir_name[subdir_level], ff[subdir_level-1].ff_name);
+          strcpy(dir_name[subdir_level], FINDDATA_T_FILENAME(ff[subdir_level-1]));
           strcat(dir_name[subdir_level], "\\");
           }
         }
@@ -1181,21 +1391,21 @@ static void general_file_transfer(int transfer_type)
             if (ensure_dir_existence(full_dest_dirspec) != 0)
               {
               reset_batfile_call_stack();
-              return;
+              goto ExitOperation;
               }
             }
           if (copy_single_file(full_source_filespec,
                                full_dest_filespec, transfer_type) != 0)
             {
             reset_batfile_call_stack();
-            return;
+            goto ExitOperation;
             }
           if (do_file_verify)
             {
             if (verify_file(full_source_filespec, full_dest_filespec) != 0)
               {
               reset_batfile_call_stack();
-              return;
+              goto ExitOperation;
               }
             }
           if (transfer_type == FILE_XFER_MOVE)
@@ -1205,11 +1415,11 @@ static void general_file_transfer(int transfer_type)
               remove(full_dest_filespec);
               cprintf("Unable to move file - %s\r\n", full_source_filespec);
               reset_batfile_call_stack();
-              return;
+              goto ExitOperation;
               }
             }
           printf("%s %s to %s\n",
-            ff[subdir_level].ff_name,
+            FINDDATA_T_FILENAME(ff[subdir_level]),
             transfer_type == FILE_XFER_MOVE?"moved":"copied",
             strcmp(dest_filespec, "*.*")==0?full_dest_dirspec:full_dest_filespec);
           xfer_count++;
@@ -1235,6 +1445,7 @@ static void general_file_transfer(int transfer_type)
     else
       printf("%9d file(s) copied\n", xfer_count);
     }
+ExitOperation:
   return;
 
 InvalidSwitch:
@@ -1250,7 +1461,7 @@ static int get_set_file_attribute(char *full_path_filespec, unsigned req_attrib,
 
   if (attrib_mask == 0)
     {
-    if (_dos_getfileattr(full_path_filespec, &actual_attrib) != 0)
+    if (getfileattr(full_path_filespec, &actual_attrib) != 0)
       {
       cprintf("Cannot read attribute - %s\r\n", full_path_filespec);
       return -1;
@@ -1258,11 +1469,11 @@ static int get_set_file_attribute(char *full_path_filespec, unsigned req_attrib,
     }
   else
     {
-    if (_dos_getfileattr(full_path_filespec, &actual_attrib) != 0)
+    if (getfileattr(full_path_filespec, &actual_attrib) != 0)
       actual_attrib = 0;
     actual_attrib &= (~attrib_mask);
     actual_attrib |= (req_attrib & attrib_mask);
-    if (_dos_setfileattr(full_path_filespec, actual_attrib) != 0)
+    if (setfileattr(full_path_filespec, actual_attrib) != 0)
       goto CantSetAttr;
     printf("Attribute set to ");
     }
@@ -1286,11 +1497,12 @@ CantSetAttr:
 
 static void perform_attrib(void)
   {
-  int file_count = 0;
+  long ffhandle;
   int ffrc;
-  int traverse_subdirs = FALSE;
+  int file_count = 0;
+  int traverse_subdirs = false;
   int s, subdir_level = 0;
-  struct ffblk ff[MAX_SUBDIR_LEVEL];
+  finddata_t ff[MAX_SUBDIR_LEVEL];
   char dir_name[MAX_SUBDIR_LEVEL][MAXPATH];
   int visitation_mode[MAX_SUBDIR_LEVEL]; // 4 = findfirst source_filespec for files;
                                          // 3 = findnext source_filespec for files;
@@ -1340,7 +1552,7 @@ static void perform_attrib(void)
     else
       {
       if (stricmp(cmd_switch,"/s") == 0)
-        traverse_subdirs = TRUE;
+        traverse_subdirs = true;
       else
         {
         cprintf("Invalid switch - %s\r\n", cmd_switch);
@@ -1361,7 +1573,7 @@ static void perform_attrib(void)
   else
     {
     // see if path exists and is a directory; if so, attach a file spec
-    if (access(path, D_OK) == 0)
+    if (file_access(path, D_OK) == 0)
       strcat(path, "\\*.*");
     }
 
@@ -1395,25 +1607,25 @@ static void perform_attrib(void)
         strcat(full_path_filespec, "*.*");
         search_attrib = FA_DIREC+FA_RDONLY+FA_ARCH+FA_SYSTEM+FA_HIDDEN;
         }
-      ffrc = findfirst(full_path_filespec, &(ff[subdir_level]), search_attrib);
+      ffrc = findfirst_f(full_path_filespec, &(ff[subdir_level]), search_attrib, &ffhandle);
       visitation_mode[subdir_level]--;
       }
     else
-      ffrc = findnext(&(ff[subdir_level]));
+      ffrc = findnext_f(&(ff[subdir_level]), ffhandle);
     if (ffrc == 0)
       {
-      conv_unix_path_to_ms_dos(ff[subdir_level].ff_name);
+      conv_unix_path_to_ms_dos(FINDDATA_T_FILENAME(ff[subdir_level]));
       strcpy(full_path_filespec, path);
       for (s = 0; s <= subdir_level; s++)
         strcat(full_path_filespec, dir_name[s]);
-      strcat(full_path_filespec, ff[subdir_level].ff_name);
+      strcat(full_path_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
   
-      if ((ff[subdir_level].ff_attrib&FA_DIREC) != 0)
+      if ((FINDDATA_T_ATTRIB(ff[subdir_level])&FA_DIREC) != 0)
         {
         if (visitation_mode[subdir_level] <= 2 &&
             traverse_subdirs &&
-            strcmp(ff[subdir_level].ff_name,".") != 0 &&
-            strcmp(ff[subdir_level].ff_name,"..") != 0)
+            strcmp(FINDDATA_T_FILENAME(ff[subdir_level]),".") != 0 &&
+            strcmp(FINDDATA_T_FILENAME(ff[subdir_level]),"..") != 0)
           {
           subdir_level++;
           if (subdir_level >= MAX_SUBDIR_LEVEL)
@@ -1423,7 +1635,7 @@ static void perform_attrib(void)
             return;
             }
           visitation_mode[subdir_level] = 4;
-          strcpy(dir_name[subdir_level], ff[subdir_level-1].ff_name);
+          strcpy(dir_name[subdir_level], FINDDATA_T_FILENAME(ff[subdir_level-1]));
           strcat(dir_name[subdir_level], "\\");
           }
         }
@@ -1460,9 +1672,8 @@ static void perform_call(void)
     advance_cmd_arg();
   strcpy(cmd, cmd_arg);
   advance_cmd_arg();
-  perform_external_cmd(TRUE);
+  perform_external_cmd(true);
   }
-#endif
 
 static void perform_cd(void)
   {
@@ -1490,8 +1701,8 @@ static void perform_change_drive(void)
   {
   unsigned int drive_set, cur_drive, dummy;
   drive_set = toupper(cmd[0])-'A'+1;
-  _dos_setdrive(drive_set, &dummy);
-  _dos_getdrive(&cur_drive);
+  setdrive(drive_set, &dummy);
+  getdrive(&cur_drive);
   if (cur_drive != drive_set)
     {
     cprintf("Invalid drive specification - %s\r\n", cmd);
@@ -1503,7 +1714,7 @@ static void perform_choice(void)
   {
   char *choices = "YN";  // Y,N are the default choices
   char *text = "";
-  int supress_prompt = FALSE;
+  int supress_prompt = false;
   int choice;
 
   while (*cmd_arg != '\0')
@@ -1518,7 +1729,7 @@ static void perform_choice(void)
       if (strnicmp(cmd_switch,"/c:", 3) == 0 && strlen(cmd_switch) > 3)
         choices = cmd_switch+3;
       else if (stricmp(cmd_switch,"/n") == 0)
-        supress_prompt = TRUE;
+        supress_prompt = true;
       else
         {
         cprintf("Invalid switch - %s\r\n", cmd_switch);
@@ -1532,7 +1743,7 @@ static void perform_choice(void)
   cputs(text);
   if (!supress_prompt)
     {
-    int first = TRUE;
+    int first = true;
     char *c;
 
     putch('[');
@@ -1540,7 +1751,7 @@ static void perform_choice(void)
     while (*c != '\0')
       {
       if (first)
-        first = FALSE;
+        first = false;
       else
         putch(',');
       putch(toupper(*c));
@@ -1553,7 +1764,6 @@ static void perform_choice(void)
   return;
   }
 
-#ifndef __MINGW32__
 static void perform_copy(void)
   {
   general_file_transfer(FILE_XFER_COPY);
@@ -1563,7 +1773,6 @@ static void perform_xcopy(void)
   {
   general_file_transfer(FILE_XFER_XCOPY);
   }
-#endif
 
 static void perform_date(void)
   {
@@ -1571,13 +1780,12 @@ static void perform_date(void)
   struct tm *loctime = localtime (&t);
   const char *day_of_week[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
   printf("Current date is %s %02d-%02d-%04d\n", day_of_week[loctime->tm_wday],
-                             loctime->tm_mon, loctime->tm_mday, loctime->tm_year+1900);
+                             loctime->tm_mon+1, loctime->tm_mday, loctime->tm_year+1900);
   }
 
-#ifndef __MINGW32__
 static void perform_delete(void)
   {
-  struct ffblk ff;
+  finddata_t ff;
   char filespec[MAXPATH] = "";
   char full_filespec[MAXPATH] = "";
   char drive[MAXDRIVE], dir[MAXDIR];
@@ -1601,7 +1809,7 @@ static void perform_delete(void)
     advance_cmd_arg();
     }
 
-  if (findfirst(filespec,&ff,0) != 0)
+  if (findfirst_f(filespec, &ff, 0, NULL) != 0)
     {
     printf("File(s) not found - %s\n", filespec);  // informational msg; not an error
     return;
@@ -1612,14 +1820,14 @@ static void perform_delete(void)
   conv_unix_path_to_ms_dos(drive);
   conv_unix_path_to_ms_dos(dir);
 
-  while (findfirst(full_filespec,&ff,0)==0)
+  while (findfirst_f(full_filespec, &ff, 0, NULL) == 0)
     {
     char individual_filespec[MAXPATH];
 
-    conv_unix_path_to_ms_dos(ff.ff_name);
+    conv_unix_path_to_ms_dos(FINDDATA_T_FILENAME(ff));
     strcpy(individual_filespec, drive);
     strcat(individual_filespec, dir);
-    strcat(individual_filespec, ff.ff_name);
+    strcat(individual_filespec, FINDDATA_T_FILENAME(ff));
 
     if (remove(individual_filespec) == 0)
       printf("%s erased\n", individual_filespec);
@@ -1634,11 +1842,12 @@ static void perform_delete(void)
 
 static void perform_deltree(void)
   {
-  int file_count = 0, dir_count = 0;
+  long ffhandle;
   int ffrc;
+  int file_count = 0, dir_count = 0;
   int s, subdir_level = 0;
-  int confirm_before_delete = TRUE;
-  struct ffblk ff[MAX_SUBDIR_LEVEL];
+  int confirm_before_delete = true;
+  finddata_t ff[MAX_SUBDIR_LEVEL];
   char dir_name[MAX_SUBDIR_LEVEL][MAXPATH];
   int remove_level1_dir;
   int visitation_mode[MAX_SUBDIR_LEVEL]; // 4 = findfirst source_filespec for files;
@@ -1673,7 +1882,7 @@ static void perform_deltree(void)
     else
       {
       if (stricmp(cmd_switch,"/Y") == 0)
-        confirm_before_delete = FALSE;
+        confirm_before_delete = false;
       else
         {
         cprintf("Invalid switch - %s\r\n", cmd_switch);
@@ -1702,7 +1911,7 @@ static void perform_deltree(void)
   // visit each directory; delete files and subdirs
   visitation_mode[0] = 4;
   dir_name[0][0] = '\0';
-  remove_level1_dir = FALSE;
+  remove_level1_dir = false;
   while (subdir_level >= 0)
     {
     if (visitation_mode[subdir_level] == 4 || visitation_mode[subdir_level] == 2)
@@ -1718,24 +1927,24 @@ static void perform_deltree(void)
         search_attrib = FA_RDONLY+FA_ARCH+FA_SYSTEM+FA_HIDDEN;
       else
         search_attrib = FA_DIREC+FA_RDONLY+FA_ARCH+FA_SYSTEM+FA_HIDDEN;
-      ffrc = findfirst(full_path_filespec, &(ff[subdir_level]), search_attrib);
+      ffrc = findfirst_f(full_path_filespec, &(ff[subdir_level]), search_attrib, &ffhandle);
       visitation_mode[subdir_level]--;
       }
     else
-      ffrc = findnext(&(ff[subdir_level]));
+      ffrc = findnext_f(&(ff[subdir_level]), ffhandle);
     if (ffrc == 0)
       {
-      conv_unix_path_to_ms_dos(ff[subdir_level].ff_name);
+      conv_unix_path_to_ms_dos(FINDDATA_T_FILENAME(ff[subdir_level]));
       strcpy(full_path_filespec, path);
       for (s = 0; s <= subdir_level; s++)
         strcat(full_path_filespec, dir_name[s]);
-      strcat(full_path_filespec, ff[subdir_level].ff_name);
+      strcat(full_path_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
   
-      if ((ff[subdir_level].ff_attrib&FA_DIREC) != 0)
+      if ((FINDDATA_T_ATTRIB(ff[subdir_level])&FA_DIREC) != 0)
         {
         if (visitation_mode[subdir_level] <= 2 &&
-            strcmp(ff[subdir_level].ff_name,".") != 0 &&
-            strcmp(ff[subdir_level].ff_name,"..") != 0)
+            strcmp(FINDDATA_T_FILENAME(ff[subdir_level]),".") != 0 &&
+            strcmp(FINDDATA_T_FILENAME(ff[subdir_level]),"..") != 0)
           {
           if (subdir_level == 0)
             {
@@ -1745,7 +1954,7 @@ static void perform_deltree(void)
               remove_level1_dir = (get_choice("YN") == 'Y');
               }
             else
-              remove_level1_dir = TRUE;
+              remove_level1_dir = true;
             }
           if (subdir_level > 0 || remove_level1_dir)
             {
@@ -1757,7 +1966,7 @@ static void perform_deltree(void)
               return;
               }
             visitation_mode[subdir_level] = 4;
-            strcpy(dir_name[subdir_level], ff[subdir_level-1].ff_name);
+            strcpy(dir_name[subdir_level], FINDDATA_T_FILENAME(ff[subdir_level-1]));
             strcat(dir_name[subdir_level], "\\");
             }
           }
@@ -1825,13 +2034,15 @@ static void perform_deltree(void)
 
 static void perform_dir(void)
   {
+  long ffhandle;
+  int ffrc;
   int wide_column_countdown = -1;
-  long long avail; //was double avail; --Salvo
-  struct ffblk ff;
-  unsigned attrib = FA_DIREC+FA_RDONLY+FA_ARCH+FA_SYSTEM+FA_HIDDEN, first, hour;
-  struct dfree df;
+  unsigned long long avail; //was double avail; --Salvo
+  finddata_t ff;
+  diskfree_t df;
+  unsigned int attrib = FA_DIREC+FA_RDONLY+FA_ARCH+FA_SYSTEM+FA_HIDDEN, first;
   unsigned long filecount = 0, dircount = 0, bytecount = 0;
-  char dirspec[MAXPATH], *ft;
+  char dirspec[MAXPATH];
   char volspec[7] = "X:\\*.*";
   char full_filespec[MAXPATH];
   char filespec[MAXPATH] = "";
@@ -1867,76 +2078,50 @@ static void perform_dir(void)
   conv_unix_path_to_ms_dos(full_filespec);
 
   volspec[0] = full_filespec[0];
-  if (findfirst(volspec, &ff, FA_LABEL) == 0)
-    printf(" Volume in drive %c is %s\n", volspec[0], ff.ff_name);
+  if (findfirst_f(volspec, &ff, FA_LABEL, NULL) == 0)
+    printf(" Volume in drive %c is %s\n", volspec[0], FINDDATA_T_FILENAME(ff));
   else
     puts(" Volume has no label");
 
   fnsplit (full_filespec, NULL, dirspec, NULL, NULL);
   printf(" Directory of %c:%s\n\n", full_filespec[0], dirspec);
 
-  first = TRUE;
+  first = true;
   for (;;)
     {
     if (first)
       {
-      if (findfirst(full_filespec, &ff, attrib) != 0)
+      if ((ffrc = findfirst_f(full_filespec, &ff, attrib, &ffhandle)) != 0)
         {
         puts("File not found");  // informational message -- not an error
         return;
         }
-      first = FALSE;
+      first = false;
       }
     else
       {
-      if (findnext(&ff) != 0)
+      if ((ffrc = findnext_f(&ff, ffhandle)) != 0)
         break;
       }
-    conv_unix_path_to_ms_dos(ff.ff_name);
+    conv_unix_path_to_ms_dos(FINDDATA_T_FILENAME(ff));
     if (wide_column_countdown < 0)
       {
-      ft = strchr(ff.ff_name, '.');
-      if (ft == NULL || stricmp(ff.ff_name,".") == 0 || stricmp(ff.ff_name,"..") == 0)
-        ft = "";
+      printf("%04d-%02d-%02d ", FINDDATA_T_WDATE_YEAR(ff), FINDDATA_T_WDATE_MON(ff), FINDDATA_T_WDATE_DAY(ff));
+      printf("%02d:%02d ", FINDDATA_T_WTIME_HOUR(ff), FINDDATA_T_WTIME_MIN(ff));
+      if ((FINDDATA_T_ATTRIB(ff)&FA_DIREC) == 0)
+        printf("%13lu", FINDDATA_T_SIZE(ff));
       else
-        {
-        *ft = '\0';
-        ft++;
-        }
-      printf("%-8s %-3s ", ff.ff_name, ft);
-      if ((ff.ff_attrib&FA_DIREC) == 0)
-        printf("%13lu  ", ff.ff_fsize);
-      else
-        printf("  <DIR>        ");
-//--Salvo was:
-//      printf("%02d-%02d-%04d ", (int)(ff.ff_fdate>>5)&0xF,   // month
-//                                (int)(ff.ff_fdate)&0x1F,    // day
-//                                (int)((ff.ff_fdate>>9)&0x7F)+1980); // year
-      printf("%04d-%02d-%02d ", (int)((ff.ff_fdate>>9)&0x7F)+1980, // year
-                                (int)(ff.ff_fdate>>5)&0xF,   // month
-                                (int)(ff.ff_fdate)&0x1F);    // day
-
-      hour = (int)(ff.ff_ftime>>11)&0x1F;
-//--Salvo was:
-//      if (hour < 12)
-//        ampm = 'a';
-//      else
-//        ampm = 'p';
-//      if (hour > 12)
-//        hour -= 12;
-//      if (hour == 0)
-//        hour = 12;
-//      printf("%2d:%02d%c\n",hour,(int)(ff.ff_ftime>>5)&0x3F,ampm);
-      printf("%02d:%02d\n",hour,(int)(ff.ff_ftime>>5)&0x3F);
+        printf("<DIR>%8s", "");
+      printf(" %s\n", FINDDATA_T_FILENAME(ff));
       }
     else
       {
-      if ((ff.ff_attrib&FA_DIREC) == 0)
-        printf("%-14s", ff.ff_name);
+      if ((FINDDATA_T_ATTRIB(ff)&FA_DIREC) == 0)
+        printf("%-14s", FINDDATA_T_FILENAME(ff));
       else
         {
-        int len = strlen(ff.ff_name) + 2;
-        printf("[%s]", ff.ff_name);
+        int len = strlen(FINDDATA_T_FILENAME(ff)) + 2;
+        printf("[%s]", FINDDATA_T_FILENAME(ff));
         while (len < 14)
           {
           printf(" ");
@@ -1953,10 +2138,10 @@ static void perform_dir(void)
         printf("  ");
       }
 
-    if ((ff.ff_attrib&FA_DIREC) == 0)
+    if ((FINDDATA_T_ATTRIB(ff)&FA_DIREC) == 0)
       {
       filecount++;
-      bytecount += ff.ff_fsize;
+      bytecount += FINDDATA_T_SIZE(ff);
       }
     else
       dircount++;
@@ -1967,34 +2152,24 @@ static void perform_dir(void)
   printf("%10lu dir(s) ", dircount);
 
   getdfree(full_filespec[0]-'A'+1, &df);
-  //--Salvo: was avail = (double)((unsigned)df.df_avail) * (double)((unsigned)df.df_bsec) * (double)((unsigned)df.df_sclus);
-  avail = (long long) df.df_avail * (long long) df.df_bsec * (long long) df.df_sclus;
+  avail = DISKFREE_T_AVAIL(df)*DISKFREE_T_BSEC(df)*DISKFREE_T_SCLUS(df);
 
-// Original code below: --Salvo
-//    puts("      2 GB or more free");
-//  else if (avail < 1000000.0)
-//    printf("%15.0lf byte(s) free\n", avail);
-//  else if (avail < 1000000000.0)
-//    printf("%15.0lf KB free\n", avail / 1000.0);
-//  else
-//    printf("%15.2lf MB free\n", avail / 1000000.0);
-  if (avail == 2147155968)
-    puts("      2 GiB or more free");
-  else if (avail < 1048576)
+  if (avail < 1048576)
     printf("%15lli byte(s) free\n", avail);
   else if (avail < 1073741824)
-    printf("%15lli KiB free\n", avail / 1024);
+    printf("%15lli KB free\n", avail / 1024);
+  else if (avail < 2147155968)
+    printf("%15lli MB free\n", avail / 1024 / 1024);
   else
-    printf("%15lli MiB free\n", avail / 1048576);
+    printf("%15lli GB free\n", avail / 1024 / 1024 / 1024);
   }
-#endif
 
 static void perform_echo(void)
   {
   if (stricmp(cmd_arg, "off") == 0)
-    echo_on[stack_level] = FALSE;
+    echo_on[stack_level] = false;
   else if (stricmp(cmd_arg, "on") == 0)
-    echo_on[stack_level] = TRUE;
+    echo_on[stack_level] = true;
   else if (cmd_arg[0] == '\0')
     {
     if (echo_on[stack_level])
@@ -2013,7 +2188,7 @@ static void perform_exit(void)
   for (ba = 0; ba < MAX_BAT_ARGS; ba++)
     bat_arg[stack_level][ba][0] = '\0';
   bat_file_line_number[stack_level] = 0;
-  echo_on[stack_level] = TRUE;
+  echo_on[stack_level] = true;
   if (stack_level > 0)
     stack_level--;
   else
@@ -2023,14 +2198,10 @@ static void perform_exit(void)
     }
   }
 
-#ifdef __MINGW32__
 void perform_external_cmd(int call)
   {
-  }
-#else
-void perform_external_cmd(int call)
-  {
-  struct ffblk ff;
+  finddata_t ff;
+  long ffhandle;
   char cmd_name[MAX_CMD_BUFLEN];
   char *pathvar, pathlist[200];
   char full_cmd[MAXPATH+MAX_CMD_BUFLEN] = "";
@@ -2109,7 +2280,7 @@ void perform_external_cmd(int call)
         {
         s = strchr(full_cmd, '\0');  // save position of the nul terminator
         strcat(full_cmd, exec_ext[e]);
-        if (findfirst(full_cmd,&ff,0)==0)
+        if (findfirst_f(full_cmd, &ff, 0, &ffhandle) == 0)
           {
           exec_type = e;
           break;
@@ -2120,7 +2291,7 @@ void perform_external_cmd(int call)
         {
         if (stricmp(s, exec_ext[e]) == 0)
           {
-          if (findfirst(full_cmd,&ff,0)==0)
+          if (findfirst_f(full_cmd, &ff, 0, &ffhandle) == 0)
             {
             exec_type = e;
             break;
@@ -2165,9 +2336,13 @@ void perform_external_cmd(int call)
       strcat(full_cmd, " ");
     strcat(full_cmd, cmd_args);
     _control87(0x033f, 0xffff);
+#ifdef __DJGPP__
     __djgpp_exception_toggle();
+#endif
     error_level = system(full_cmd) & 0xff;
+#ifdef __DJGPP__
     __djgpp_exception_toggle();
+#endif
     _control87(0x033f, 0xffff);
     _clear87();
     _fpreset();
@@ -2184,7 +2359,6 @@ StackOverflow:
   reset_batfile_call_stack();
   return;
   }
-#endif
 
 static void perform_goto(void)
   {
@@ -2199,23 +2373,23 @@ static void perform_goto(void)
 
 static void perform_if(void)
   {
-  int not_flag = FALSE;
-  int condition_fulfilled = FALSE;
+  long ffhandle;
+  int not_flag = false;
+  int condition_fulfilled = false;
 
   if (cmd_arg[0] == '\0')
     goto SyntaxError;
 
   if (stricmp(cmd_arg, "not") == 0)
     {
-    not_flag = TRUE;
+    not_flag = true;
     advance_cmd_arg();
     }
 
-#ifndef __MINGW32__
   if (stricmp(cmd_arg, "exist") == 0)  // conditional is "exist <filename>"
     {
     char *s;
-    struct ffblk ff;
+    finddata_t ff;
 
     advance_cmd_arg();
     s = strrchr(cmd_arg, '\\');
@@ -2224,13 +2398,11 @@ static void perform_if(void)
       if (stricmp(s,"\\nul") == 0)
         *s = '\0';
       }
-    if (access(cmd_arg, F_OK) == 0 || access(cmd_arg, D_OK) == 0 ||
-        findfirst(cmd_arg, &ff, 0) == 0)
-      condition_fulfilled = TRUE;
+    if (file_access(cmd_arg, F_OK) == 0 || file_access(cmd_arg, D_OK) == 0 ||
+        findfirst_f(cmd_arg, &ff, 0, &ffhandle) == 0)
+      condition_fulfilled = true;
     }
-  else
-#endif
-  if (strnicmp(cmd_args, "errorlevel", 10) == 0) //conditional is "errolevel x"
+  else if (strnicmp(cmd_args, "errorlevel", 10) == 0) //conditional is "errolevel x"
     {
     char *s;
     unsigned ecomp;
@@ -2252,7 +2424,7 @@ static void perform_if(void)
           *s = 'x';
           s++;
           }
-        condition_fulfilled = TRUE;
+        condition_fulfilled = true;
         }
       }
     }
@@ -2298,7 +2470,7 @@ static void perform_if(void)
     if (len == (op2end - op2))
       {
       if (strnicmp(op1, op2, len) == 0)
-        condition_fulfilled = TRUE;
+        condition_fulfilled = true;
       }
 
     while (op1 != op2end)
@@ -2358,18 +2530,15 @@ static void perform_more(void)
   perform_unimplemented_cmd();
   }
 
-#ifndef __MINGW32__
 static void perform_move(void)
   {
   general_file_transfer(FILE_XFER_MOVE);
   }
-#endif
 
 static void perform_null_cmd(void)
   {
   }
 
-#ifndef __MINGW32__
 static void perform_path(void)
   {
   if (*cmd_args == '\0')
@@ -2388,22 +2557,19 @@ static void perform_path(void)
     perform_set();
     }
   }
-#endif
 
 static void perform_pause(void)
   {
   cputs("Press any key to continue . . .\r\n");
-  getkey();
+  getch();
   }
 
-#ifndef __MINGW32__
 static void perform_prompt(void)
   {
   memmove(cmd_args+7, cmd_args, strlen(cmd_args)+1);
   strncpy(cmd_args, "PROMPT=", 7);
   perform_set();
   }
-#endif
 
 static void perform_rd(void)
   {
@@ -2424,11 +2590,12 @@ static void perform_rd(void)
     }
   }
 
-#ifndef __MINGW32__
 static void perform_rename(void)
   {
+  long ffhandle;
+  int ffrc;
   int first, zfill;
-  struct ffblk ff;
+  finddata_t ff;
   unsigned attrib = FA_RDONLY+FA_ARCH+FA_SYSTEM;
   char from_path[MAXPATH] = "", to_path[MAXPATH] = "";
   char from_drive[MAXDRIVE], to_drive[MAXDRIVE];
@@ -2492,28 +2659,28 @@ static void perform_rename(void)
     return;
     }
 
-  first = TRUE;
+  first = true;
   for (;;)
     {
     if (first)
       {
-      if (findfirst(full_from_filespec, &ff, attrib) != 0)
+      if ((ffrc = findfirst_f(full_from_filespec, &ff, attrib, &ffhandle)) != 0)
         {
         cprintf("File not found - %s", from_path);
         reset_batfile_call_stack();
         return;
         }
-      first = FALSE;
+      first = false;
       }
     else
       {
-      if (findnext(&ff) != 0)
+      if ((ffrc = findnext_f(&ff, ffhandle)) != 0)
         break;
       }
 
     strcpy(full_from_filespec, from_drive);
     strcat(full_from_filespec, from_dir);
-    strcat(full_from_filespec, ff.ff_name);
+    strcat(full_from_filespec, FINDDATA_T_FILENAME(ff));
     conv_unix_path_to_ms_dos(full_from_filespec);
     fnsplit(full_from_filespec, NULL, NULL, from_name, from_ext);
     for (zfill = strlen(from_name); zfill < MAXFILE; zfill++)
@@ -2539,7 +2706,7 @@ static void perform_rename(void)
       {
       conv_unix_path_to_ms_dos(new_to_name);
       conv_unix_path_to_ms_dos(new_to_ext);
-      if (_rename(full_from_filespec, full_to_filespec) == 0)
+      if (rename(full_from_filespec, full_to_filespec) == 0)
         printf("%s renamed to %s%s\n", full_from_filespec, new_to_name, new_to_ext);
       else
         {
@@ -2587,7 +2754,7 @@ void perform_set(void)
       return;
       }
     strupr(var_name);
-    if (setenv(var_name, var_value, TRUE) != 0)
+    if (setenv(var_name, var_value, true) != 0)
       {
       cprintf("Error setting environment variable - %s\r\n", var_name);
       reset_batfile_call_stack();
@@ -2595,7 +2762,6 @@ void perform_set(void)
       }
     }
   }
-#endif
 
 static void perform_time(void)
   {
@@ -2678,52 +2844,36 @@ struct built_in_cmd
 
 struct built_in_cmd cmd_table[] =
   {
-#ifndef __MINGW32__
     {"attrib", perform_attrib},
     {"call", perform_call},
-#endif
     {"cd", perform_cd},
     {"chdir", perform_cd},
     {"choice", perform_choice},
-#ifndef __MINGW32__
     {"cls", clrscr},
     {"copy", perform_copy},
-#endif
     {"date", perform_date},
-#ifndef __MINGW32__
     {"del", perform_delete},
     {"deltree", perform_deltree},
     {"erase", perform_delete},
     {"dir", perform_dir},
-#endif
     {"echo", perform_echo},
     {"exit", perform_exit},
     {"goto", perform_goto},
     {"md", perform_md},
     {"mkdir", perform_md},
-#ifndef __MINGW32__
     {"move", perform_move},
-#endif
     {"more", perform_more},
-#ifndef __MINGW32__
     {"path", perform_path},
-#endif
     {"pause", perform_pause},
-#ifndef __MINGW32__
     {"prompt", perform_prompt},
-#endif
     {"rd", perform_rd},
     {"rmdir", perform_rd},
-#ifndef __MINGW32__
     {"rename", perform_rename},
     {"ren", perform_rename},
     {"set", perform_set},
-#endif
     {"time", perform_time},
     {"type", perform_type},
-#ifndef __MINGW32__
     {"xcopy", perform_xcopy}
-#endif
   };
 
 void parse_cmd_line(void)
@@ -2999,7 +3149,7 @@ static void exec_cmd(void)
 
   while (cmd[0] != '\0')
     {
-    need_to_crlf_at_next_prompt = TRUE;
+    need_to_crlf_at_next_prompt = true;
     if (stricmp(cmd, "if") == 0)
       {
       perform_if();
@@ -3023,7 +3173,7 @@ static void exec_cmd(void)
           }
         }
       if (c >= CMD_TABLE_COUNT)
-        perform_external_cmd(FALSE);
+        perform_external_cmd(false);
       }
     cmd[0] = '\0';
     }
@@ -3063,7 +3213,6 @@ int main(int argc, char **argv)
   // init bat file stack
   reset_batfile_call_stack();
 
-
   // process arguments
   for (a = 1; a < argc; a++)
     {
@@ -3073,7 +3222,7 @@ int main(int argc, char **argv)
       unsigned int drive;
       shell_mode = SHELL_PERMANENT;
       strcpy(bat_file_path[0], "X:\\AUTOEXEC.BAT");  // trigger execution of autoexec.bat
-      _dos_getdrive(&drive);
+      getdrive(&drive);
       drive += ('A' - 1);
       bat_file_path[0][0] = drive;
       // no arguments for batch file
@@ -3113,13 +3262,25 @@ int main(int argc, char **argv)
     {
     delay(1000); // delay so that the user can see the FreeDOS greeting
     clrscr();
+#ifdef __DJGPP__
     cputs("          旼컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴커\r\n"
-          "          �    The program COMMAND.COM was created using the DJGPP   �\r\n"   //  This message is required only if
+          "          �    The program COMMAND.EXE was created using the DJGPP   �\r\n"   //  This message is required only if
           "          � software development tools and relies on CWSDPMI to run. �\r\n"   //  you want to distribute the binary
           "          �       You have the right to obtain source code and       �\r\n"   //  COMMAND.COM without sources, and
           "          �        binary updates for both DJGPP and CWSDPMI.        �\r\n"   //  if you want to distribute
           "          �    These may be freely downloaded from www.delorie.com   �\r\n"   //  CWSDPMI.EXE without sources.
           "          읕컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴켸\r\n");
+#else
+#ifdef __GNUC__
+#define __CMD_COMPILER__ "GCC "
+#else
+#define __CMD_COMPILER__ "UNKNOWN "
+#endif
+    cprintf("          旼컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴커\r\n"
+            "          �    The program COMMAND.EXE was created with the compiler �\r\n"
+            "          �    %51s   �\r\n"
+            "          읕컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴켸\r\n", __CMD_COMPILER__ __VERSION__);
+#endif
     delay(1500); // delay so that the user can see the command.com greeting on
                  // permanent shell mode before autoexec.bat takes over
     }
