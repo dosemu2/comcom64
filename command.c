@@ -686,7 +686,7 @@ NoArgs:
 #define KEY_LEFT         KEY_EXTM(0x4BE0)
 #define KEY_RIGHT        KEY_EXTM(0x4DE0)
 
-static unsigned short keyb_shift_states;
+static unsigned short keyb_shift_states = KEYB_FLAG_INSERT;
 static unsigned short keyb_get_rawcode(void)
 {
   unsigned short c = getch();
