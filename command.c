@@ -273,6 +273,8 @@ static void output_prompt(void)
   if (promptvar == NULL)
     promptvar = "$p$g";
   getcwd(cur_drive_and_path, MAXPATH);
+  /* The disk letter is changed to upper-case */
+  cur_drive_and_path[0] = toupper(cur_drive_and_path[0]);
   conv_unix_path_to_ms_dos(cur_drive_and_path);
   while (*promptvar != '\0')
     {
