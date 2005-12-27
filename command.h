@@ -1,13 +1,74 @@
+/* Command shell definitions and portability between
+ * different environments ...
+ */
+
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
 
+/*
+ * Command.com shell modes
+ */
+#define SHELL_NORMAL           0  // interactive mode, user can exit
+#define SHELL_PERMANENT        1  // interactive mode, user cannot exit
+#define SHELL_SINGLE_CMD       2  // non-interactive, run one command, then exit
+#define SHELL_STARTUP_WITH_CMD 3  // run one command on startup, interactive thereafter, user can exit
 
-/* Portability between different environments, by Hanzac Chen */
+/*
+ * Command parser defines
+ */
+#define MAX_CMD_BUFLEN 128        // Define max command length
+
+/*
+ * Pipe defines
+ */
+#define STDIN_INDEX  0
+#define STDOUT_INDEX 1
+
+/*
+ * Max subdirectory level, used by /S switch within XCOPY, ATTRIB and DELTREE
+ */
+#define MAX_SUBDIR_LEVEL       15
+
+/*
+ * File transfer modes
+ */
+#define FILE_XFER_COPY         0
+#define FILE_XFER_XCOPY        1
+#define FILE_XFER_MOVE         2
+
+/*
+ * Count of the number of valid commands
+ */
+#define CMD_TABLE_COUNT        (sizeof(cmd_table) / sizeof(struct built_in_cmd))
+
+/*
+ * Temporarily and Slightly FIX the keyboard problem
+ *   by Hanzac Chen
+ */
+#define GET_ENHANCED_KEYSTROKE                0x10
+#define GET_EXTENDED_SHIFT_STATES             0x12
+#define KEYB_FLAG_INSERT    0x0080
+#define KEY_ASCII(k)    (k & 0x00FF)
+#define KEY_SCANCODE(k) (k >> 0x08 )
+#define KEY_EXTM(k)     (k & 0xFF1F)
+#define KEY_EXT          0x00E0
+#define KEY_ESC          KEY_ASCII(0x011B)
+#define KEY_ENTER        KEY_ASCII(0x1C0D)
+#define KEY_BACKSPACE    KEY_ASCII(0x0E08)
+#define KEY_INSERT       KEY_EXTM(0x52E0)
+#define KEY_DELETE       KEY_EXTM(0x53E0)
+#define KEY_HOME         KEY_EXTM(0x47E0)
+#define KEY_LEFT         KEY_EXTM(0x4BE0)
+#define KEY_RIGHT        KEY_EXTM(0x4DE0)
+
+/*
+ * Portability between different environments 
+ *   by Hanzac Chen
+ */
 #ifdef __MINGW32__
 #include <direct.h>
 #include <windows.h>
 #define futime(a,b) _futime(a,b)
-#define setenv(a,b,c) SetEnvironmentVariable(a,b)
 #define _fixpath(a,b) _fullpath(b,a,MAX_PATH)
 #define fnsplit(p,drive,dir,n,e) _splitpath(p,drive,dir,n,e)
 #define fnmerge(p,drive,dir,n,e) _makepath(p,drive,dir,n,e)
@@ -45,7 +106,7 @@ static inline void gotoxy(int x, int y)
   c.Y = __conio_top  + y - 1;
   SetConsoleCursorPosition (GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
-static inline void clrscr (void)
+static inline void clrscr(void)
 {
     DWORD written, i;
     __fill_conio_info();
@@ -55,7 +116,7 @@ static inline void clrscr (void)
     }
     gotoxy (1, 1);
 }
-static inline void clreol (void)
+static inline void clreol(void)
 {
     COORD coord;
     DWORD written;
@@ -63,7 +124,7 @@ static inline void clreol (void)
     FillConsoleOutputCharacter (GetStdHandle(STD_OUTPUT_HANDLE), ' ', __conio_width - __conio_x + 1, coord, &written);
     gotoxy (__conio_x, __conio_y);
 }
-static inline void _setcursortype (int type)
+static inline void _setcursortype(int type)
 {
     CONSOLE_CURSOR_INFO cursor_info;
     cursor_info.bVisible = TRUE;
@@ -169,7 +230,7 @@ static inline unsigned int getfileattr(const char *filename, unsigned int *p_att
 static inline int file_access(const char *filename, int flags)
 {
     if (flags & D_OK) {
-        unsigned int attr;
+        unsigned int attr = 0;
         getfileattr(filename, &attr);
         if (attr & _A_SUBDIR) {
             return 0;

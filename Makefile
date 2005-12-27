@@ -1,11 +1,10 @@
-ifndef FD32
-FD32 = ../../fd32
-endif
+# Project: FreeDOS-32 command
+# Makefile for DJGPP
 
-include $(FD32)/mk/djgpp.mk
-
+CPP  = g++
+CC   = gcc
 C_OPT = -Wall -O3 -finline-functions
-LINK_OPT = -Ttext 0x300000
+LINK_OPT = -s
 OBJS = command.o cmdbuf.o
 
 .PHONY: all clean
@@ -17,7 +16,7 @@ clean:
 	$(RM) *.o
 
 command.exe: $(OBJS)
-	$(CC) $(LINK_OPT) $(OBJS) -s -o command.exe
+	$(CC) $(LINK_OPT) $(OBJS) -o command.exe
 
 # Common rules
 %.o : %.c

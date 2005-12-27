@@ -1,13 +1,12 @@
 # Project: FreeDOS-32 command
 # Makefile for MingW32
 
-CPP  = g++.exe
-CC   = gcc.exe
+CPP  = g++
+CC   = gcc
 RES  = 
 OBJ  = command.o cmdbuf.o $(RES)
-LIBS = -s 
-INCS = 
-CXXINCS = 
+LIBS = -s
+INCS = -ID:\mingw-4.0.3\include
 BIN  = command.exe
 CFLAGS = $(INCS) -Wall -fexpensive-optimizations -O3
 RM = rm -f

@@ -64,11 +64,12 @@
 #include "command.h"
 
 /*
- *   These declarations/definitions turn off some unwanted DJGPP features
+ * These declarations/definitions turn off some unwanted DJGPP features
  */
 
 #ifdef __DJGPP__
 #include <crt0.h>
+extern char **environ;
 
 #define UNUSED __attribute__((unused))
 int _crt0_startup_flags =
@@ -81,19 +82,11 @@ char **__crt0_glob_function(char *_argument UNUSED) {return NULL;} // prevent wi
 void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading of environment file
 #endif
 
-/*
-*   Command.com shell modes
-*/
-#define SHELL_NORMAL           0  // interactive mode, user can exit
-#define SHELL_PERMANENT        1  // interactive mode, user cannot exit
-#define SHELL_SINGLE_CMD       2  // non-interactive, run one command, then exit
-#define SHELL_STARTUP_WITH_CMD 3  // run one command on startup, interactive thereafter, user can exit
 static int shell_mode = SHELL_NORMAL;
 
 /*
-*   Command parser defines/variables
-*/
-#define MAX_CMD_BUFLEN 128        // Define max command length
+ * Command parser defines/variables
+ */
 static char cmd_line[MAX_CMD_BUFLEN] = ""; // when this string is not "" it triggers command execution
 static char cmd[MAX_CMD_BUFLEN] = "";
 static char cmd_arg[MAX_CMD_BUFLEN] = "";
@@ -102,8 +95,16 @@ static char cmd_args[MAX_CMD_BUFLEN] = "";
 static char goto_label[MAX_CMD_BUFLEN] = "";
 
 /*
-*   Command interpreter/executor defines/variables
-*/
+ * Pipe variables and defines
+ */
+static char pipe_file[2][MAX_CMD_BUFLEN] = {"",""};
+static int pipe_file_redir_count[2];
+static char pipe_to_cmd[MAX_CMD_BUFLEN] = "";
+static int pipe_to_cmd_redir_count;
+
+/*
+ * Command interpreter/executor defines/variables
+ */
 #define MAX_STACK_LEVEL        20 // Max number of batch file call stack levels
 #define MAX_BAT_ARGS           9  // Max number of batch file arguments
 static int need_to_crlf_at_next_prompt = true;
@@ -115,44 +116,17 @@ static int bat_file_line_number[MAX_STACK_LEVEL];
 static unsigned error_level = 0;  // Program execution return code
 
 /*
-*   Pipe variables and defines
-*/
-#define STDIN_INDEX  0
-#define STDOUT_INDEX 1
-static char pipe_file[2][MAX_CMD_BUFLEN] = {"",""};
-static int pipe_file_redir_count[2];
-static char pipe_to_cmd[MAX_CMD_BUFLEN] = "";
-static int pipe_to_cmd_redir_count;
-
-/*
-*   Max subdirectory level, used by /S switch within XCOPY, ATTRIB and DELTREE
-*/
-#define MAX_SUBDIR_LEVEL     15
-
-/*
-*   File transfer modes
-*/
-#define FILE_XFER_COPY         0
-#define FILE_XFER_XCOPY        1
-#define FILE_XFER_MOVE         2
-
-/*
-*   Count of the number of valid commands
-*/
-#define CMD_TABLE_COUNT        (sizeof(cmd_table) / sizeof(cmd_table[0]))
-
-/*
-*   File attribute constants
-*/
+ * File attribute constants
+ */
 static const char attrib_letters[4] = {'R', 'A', 'S', 'H'};
 static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDDEN};
 
 /*
-*   Some private prototypes
-*/
+ * Some private prototypes
+ */
 static void parse_cmd_line(void);
 static void perform_external_cmd(int call);
-static void perform_set(void);
+static void perform_set(void *data);
 static void perform_unimplemented_cmd(void);
 
 /***
@@ -422,23 +396,6 @@ NoArgs:
   cmd_args[0] = '\0';
   return;
   }
-
-/* ~Hanzac: Temporarily and Slightly FIX the keyboard problem */
-#define GET_ENHANCED_KEYSTROKE                0x10
-#define GET_EXTENDED_SHIFT_STATES             0x12
-#define KEYB_FLAG_INSERT    0x0080
-#define KEY_ASCII(k)    (k & 0x00FF)
-#define KEY_SCANCODE(k) (k >> 0x08 )
-#define KEY_EXTM(k)     (k & 0xFF1F)
-#define KEY_EXT          0x00E0
-#define KEY_ESC          KEY_ASCII(0x011B)
-#define KEY_ENTER        KEY_ASCII(0x1C0D)
-#define KEY_BACKSPACE    KEY_ASCII(0x0E08)
-#define KEY_INSERT       KEY_EXTM(0x52E0)
-#define KEY_DELETE       KEY_EXTM(0x53E0)
-#define KEY_HOME         KEY_EXTM(0x47E0)
-#define KEY_LEFT         KEY_EXTM(0x4BE0)
-#define KEY_RIGHT        KEY_EXTM(0x4DE0)
 
 static unsigned short keyb_shift_states = KEYB_FLAG_INSERT;
 static unsigned short keyb_get_rawcode(void)
@@ -857,7 +814,7 @@ static void general_file_transfer(int transfer_type)
   {
   int xfer_count = 0;
   int ffrc;
-  long ffhandle;
+  long ffhandle = 0;
   int traverse_subdirs = false;
   int copy_empty_subdirs = false;
   int xcopy_dont_ask_fd_question = false;
@@ -1249,9 +1206,9 @@ CantSetAttr:
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-static void perform_attrib(void)
+static void perform_attrib(void *data)
   {
-  long ffhandle;
+  long ffhandle = 0;
   int ffrc;
   int file_count = 0;
   int traverse_subdirs = false;
@@ -1420,7 +1377,7 @@ static void perform_attrib(void)
     printf("File(s) not found - %s%s\n", path, filespec);
   }
 
-static void perform_call(void)
+static void perform_call(void *data)
   {
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
@@ -1429,7 +1386,7 @@ static void perform_call(void)
   perform_external_cmd(true);
   }
 
-static void perform_cd(void)
+static void perform_cd(void *data)
   {
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
@@ -1464,7 +1421,7 @@ static void perform_change_drive(void)
     }
   }
 
-static void perform_choice(void)
+static void perform_choice(void *data)
   {
   char *choices = "YN";  // Y,N are the default choices
   char *text = "";
@@ -1518,17 +1475,17 @@ static void perform_choice(void)
   return;
   }
 
-static void perform_copy(void)
+static void perform_copy(void *data)
   {
   general_file_transfer(FILE_XFER_COPY);
   }
 
-static void perform_xcopy(void)
+static void perform_xcopy(void *data)
   {
   general_file_transfer(FILE_XFER_XCOPY);
   }
 
-static void perform_date(void)
+static void perform_date(void *data)
   {
   time_t t = time(NULL);
   struct tm *loctime = localtime (&t);
@@ -1537,7 +1494,7 @@ static void perform_date(void)
                              loctime->tm_mon+1, loctime->tm_mday, loctime->tm_year+1900);
   }
 
-static void perform_delete(void)
+static void perform_delete(void *data)
   {
   finddata_t ff;
   char filespec[MAXPATH] = "";
@@ -1594,9 +1551,9 @@ static void perform_delete(void)
     }
   }
 
-static void perform_deltree(void)
+static void perform_deltree(void *data)
   {
-  long ffhandle;
+  long ffhandle = 0;
   int ffrc;
   int file_count = 0, dir_count = 0;
   int s, subdir_level = 0;
@@ -1786,7 +1743,7 @@ static void perform_deltree(void)
     printf("%9d (sub)directories removed\n", dir_count);
   }
 
-static void perform_dir(void)
+static void perform_dir(void *data)
   {
   long ffhandle;
   int ffrc;
@@ -1918,7 +1875,7 @@ static void perform_dir(void)
     printf("%15lli GB free\n", avail / 1024 / 1024 / 1024);
   }
 
-static void perform_echo(void)
+static void perform_echo(void *data)
   {
   if (stricmp(cmd_arg, "off") == 0)
     echo_on[stack_level] = false;
@@ -1935,7 +1892,7 @@ static void perform_echo(void)
     puts(cmd_args);
   }
 
-static void perform_exit(void)
+static void perform_exit(void *data)
   {
   int ba;
   bat_file_path[stack_level][0] = '\0';
@@ -1952,7 +1909,7 @@ static void perform_exit(void)
     }
   }
 
-void perform_external_cmd(int call)
+static void perform_external_cmd(int call)
   {
   finddata_t ff;
   long ffhandle;
@@ -2114,7 +2071,7 @@ StackOverflow:
   return;
   }
 
-static void perform_goto(void)
+static void perform_goto(void *data)
   {
   if (bat_file_path[stack_level][0] != '\0')
     {
@@ -2256,7 +2213,7 @@ SyntaxError:
   return;
   }
 
-static void perform_md(void)
+static void perform_md(void *data)
   {
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
@@ -2279,12 +2236,12 @@ static void perform_md(void)
     }
   }
 
-static void perform_more(void)
+static void perform_more(void *data)
   {
   perform_unimplemented_cmd();
   }
 
-static void perform_move(void)
+static void perform_move(void *data)
   {
   general_file_transfer(FILE_XFER_MOVE);
   }
@@ -2293,7 +2250,7 @@ static void perform_null_cmd(void)
   {
   }
 
-static void perform_path(void)
+static void perform_path(void *data)
   {
   if (*cmd_args == '\0')
     {
@@ -2308,24 +2265,24 @@ static void perform_path(void)
     {
     memmove(cmd_args+5, cmd_args, strlen(cmd_args)+1);
     strncpy(cmd_args, "PATH=", 5);
-    perform_set();
+    perform_set(NULL);
     }
   }
 
-static void perform_pause(void)
+static void perform_pause(void *data)
   {
   cputs("Press any key to continue . . .\r\n");
   getch();
   }
 
-static void perform_prompt(void)
+static void perform_prompt(void *data)
   {
   memmove(cmd_args+7, cmd_args, strlen(cmd_args)+1);
   strncpy(cmd_args, "PROMPT=", 7);
-  perform_set();
+  perform_set(data);
   }
 
-static void perform_rd(void)
+static void perform_rd(void *data)
   {
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
@@ -2344,7 +2301,7 @@ static void perform_rd(void)
     }
   }
 
-static void perform_rename(void)
+static void perform_rename(void *data)
   {
   long ffhandle;
   int ffrc;
@@ -2472,35 +2429,18 @@ static void perform_rename(void)
     }
   }
 
-void perform_set(void)
+static void perform_set(void *data)
   {
-  char *var_name, *var_value, *eq;
+  char *var_name;
   if (*cmd_args == '\0')
     {
-    perform_unimplemented_cmd();
-    //int i;
-    //while (environ[i])
-    //  printf("%s\n",environ[i++]);
+    int i = 0;
+    while (environ[i])
+      printf("%s\n", environ[i++]);
     }
   else
     {
     var_name = cmd_args;
-    eq = strchr(cmd_args, '=');
-    if (eq == NULL)
-      {
-      cputs("Syntax error\r\n");
-      reset_batfile_call_stack();
-      return;
-      }
-    var_value = eq+1;
-    *eq = '\0';
-    while (eq > var_name)
-      {
-      eq--;
-      if (*eq != ' ' && *eq != '\t')
-        break;
-      *eq = '\0';
-      }
     if (strlen(var_name) == 0)
       {
       cputs("Syntax error\r\n");
@@ -2508,7 +2448,7 @@ void perform_set(void)
       return;
       }
     strupr(var_name);
-    if (setenv(var_name, var_value, true) != 0)
+    if (putenv(var_name) != 0)
       {
       cprintf("Error setting environment variable - %s\r\n", var_name);
       reset_batfile_call_stack();
@@ -2517,7 +2457,7 @@ void perform_set(void)
     }
   }
 
-static void perform_time(void)
+static void perform_time(void *data)
   {
   time_t t = time(NULL);
   struct tm *loctime = localtime (&t);
@@ -2539,7 +2479,7 @@ static void perform_time(void)
 
   }
 
-static void perform_type(void)
+static void perform_type(void *data)
   {
   FILE *textfile;
   char filespec[MAXPATH] = "";
@@ -2582,7 +2522,12 @@ static void perform_type(void)
     }
   }
 
-void perform_unimplemented_cmd(void)
+static void perform_cls(void *data)
+  {
+  clrscr();
+  }
+
+static void perform_unimplemented_cmd(void)
   {
   cputs("Command not implemented\r\n");
   reset_batfile_call_stack();
@@ -2593,44 +2538,45 @@ void perform_unimplemented_cmd(void)
 struct built_in_cmd
   {
   char *cmd_name;
-  void (*cmd_fn)(void);
+  void *cmd_data;
+  void (*cmd_fn)(void *data);
   };
 
-struct built_in_cmd cmd_table[] =
+static struct built_in_cmd cmd_table[] =
   {
-    {"attrib", perform_attrib},
-    {"call", perform_call},
-    {"cd", perform_cd},
-    {"chdir", perform_cd},
-    {"choice", perform_choice},
-    {"cls", clrscr},
-    {"copy", perform_copy},
-    {"date", perform_date},
-    {"del", perform_delete},
-    {"deltree", perform_deltree},
-    {"erase", perform_delete},
-    {"dir", perform_dir},
-    {"echo", perform_echo},
-    {"exit", perform_exit},
-    {"goto", perform_goto},
-    {"md", perform_md},
-    {"mkdir", perform_md},
-    {"move", perform_move},
-    {"more", perform_more},
-    {"path", perform_path},
-    {"pause", perform_pause},
-    {"prompt", perform_prompt},
-    {"rd", perform_rd},
-    {"rmdir", perform_rd},
-    {"rename", perform_rename},
-    {"ren", perform_rename},
-    {"set", perform_set},
-    {"time", perform_time},
-    {"type", perform_type},
-    {"xcopy", perform_xcopy}
+    {"attrib", NULL, perform_attrib},
+    {"call", NULL, perform_call},
+    {"cd", NULL, perform_cd},
+    {"chdir", NULL, perform_cd},
+    {"choice", NULL, perform_choice},
+    {"cls", NULL, perform_cls},
+    {"copy", NULL, perform_copy},
+    {"date", NULL, perform_date},
+    {"del", NULL, perform_delete},
+    {"deltree", NULL, perform_deltree},
+    {"erase", NULL, perform_delete},
+    {"dir", NULL, perform_dir},
+    {"echo", NULL, perform_echo},
+    {"exit", NULL, perform_exit},
+    {"goto", NULL, perform_goto},
+    {"md", NULL, perform_md},
+    {"mkdir", NULL, perform_md},
+    {"move", NULL, perform_move},
+    {"more", NULL, perform_more},
+    {"path", NULL, perform_path},
+    {"pause", NULL, perform_pause},
+    {"prompt", NULL, perform_prompt},
+    {"rd", NULL, perform_rd},
+    {"rmdir", NULL, perform_rd},
+    {"rename", NULL, perform_rename},
+    {"ren", NULL, perform_rename},
+    {"set", NULL, perform_set},
+    {"time", NULL, perform_time},
+    {"type", NULL, perform_type},
+    {"xcopy", NULL, perform_xcopy}
   };
 
-void parse_cmd_line(void)
+static void parse_cmd_line(void)
   {
   int c, cmd_len, *pipe_count_addr;
   char *extr, *dest, *saved_extr, *delim;
@@ -2922,7 +2868,7 @@ static void exec_cmd(void)
         {
         if (stricmp(cmd, cmd_table[c].cmd_name) == 0)
           {
-          (*cmd_table[c].cmd_fn)();
+          cmd_table[c].cmd_fn(cmd_table[c].cmd_data);
           break;
           }
         }
@@ -2952,9 +2898,20 @@ Exit:
   }
 
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[], char *envp[])
+
   {
   int a;
+
+  // initialize the cmd data
+  for (a = 0; a < CMD_TABLE_COUNT; a++)
+    {
+    if (stricmp("set", cmd_table[a].cmd_name) == 0)
+      {
+      cmd_table[a].cmd_data = envp;
+      break;
+      }
+    }
 
   // reset fpu
   _clear87();
@@ -3047,7 +3004,7 @@ int main(int argc, char **argv)
       if (bat_file_path[stack_level][0] == '\0')
         {
         if (shell_mode == SHELL_SINGLE_CMD)
-          perform_exit();
+          perform_exit(NULL);
         prompt_for_and_get_cmd();
         }
       else
