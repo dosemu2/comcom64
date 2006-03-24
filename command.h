@@ -161,15 +161,18 @@ static inline void _setcursortype(int type)
 typedef struct _finddata_t finddata_t;
 static inline int findfirst_f(const char *pathname, finddata_t *ff, int attrib, long *handle)
 {
-	long h;
-	if (handle != NULL)
-		*handle = h = _findfirst(pathname, ff);
-	else
-		h = _findfirst(pathname, ff);
-    if (h != -1)
-		return 0;
-	else
+	if (attrib == FA_LABEL) {
 		return -1;
+	} else {
+		long h = _findfirst(pathname, ff);
+	    if (h != -1) {
+	    	if (handle != NULL)
+				*handle = h;
+			return 0;
+		} else {
+			return -1;
+		}
+	}
 }
 static inline int findnext_f(finddata_t *ff, long handle)
 {
