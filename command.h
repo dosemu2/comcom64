@@ -14,11 +14,6 @@
 #define SHELL_STARTUP_WITH_CMD 3  // run one command on startup, interactive thereafter, user can exit
 
 /*
- * Command parser defines
- */
-#define MAX_CMD_BUFLEN 128        // Define max command length
-
-/*
  * Pipe defines
  */
 #define STDIN_INDEX  0
@@ -55,17 +50,20 @@
 #define KEY_ESC          KEY_ASCII(0x011B)
 #define KEY_ENTER        KEY_ASCII(0x1C0D)
 #define KEY_BACKSPACE    KEY_ASCII(0x0E08)
-#define KEY_INSERT       KEY_EXTM(0x52E0)
-#define KEY_DELETE       KEY_EXTM(0x53E0)
 #define KEY_HOME         KEY_EXTM(0x47E0)
+#define KEY_UP           KEY_EXTM(0x48E0)
 #define KEY_LEFT         KEY_EXTM(0x4BE0)
 #define KEY_RIGHT        KEY_EXTM(0x4DE0)
+#define KEY_DOWN         KEY_EXTM(0x50E0)
+#define KEY_INSERT       KEY_EXTM(0x52E0)
+#define KEY_DELETE       KEY_EXTM(0x53E0)
 
 /*
  * Portability between different environments 
  *   by Hanzac Chen
  */
 #ifdef __MINGW32__
+#include <errno.h>
 #include <direct.h>
 #include <windows.h>
 #define futime(a,b) _futime(a,b)

@@ -1,5 +1,5 @@
 # Project: FreeDOS-32 command
-# Makefile for DJGPP
+# Makefile for DJGPP and Mingw32
 
 CPP  = g++
 CC   = gcc

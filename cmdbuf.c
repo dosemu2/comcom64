@@ -19,7 +19,9 @@
  */
 
 #include <conio.h>
+#include <string.h>
 #include "cmdbuf.h"
+#include "command.h"
 
 #define KEYB_FLAG_INSERT    0x0080
 #define KEY_ASCII(k)    (k & 0x00FF)
@@ -28,15 +30,49 @@
 static unsigned int tail = 0;
 static unsigned int cur = 0;
 
+#define MAX_CMDQUEUE_LEN 0x10
+static char cmdqueue[MAX_CMDQUEUE_LEN][MAX_CMD_BUFLEN];
+static unsigned int cmdqueue_count = 0;
+static unsigned int cmdqueue_index = 0;
+
 unsigned int cmdbuf_get_tail(void)
 {
 	return tail;
 }
 
-void cmdbuf_move(unsigned char *cmd_buf, int direction)
+static void _cmdbuf_clr_line(char *cmd_buf)
 {
+	unsigned int i, n;
+	/* Clear the original command */
+	for (i = 0, n = tail; i < n; i++) {
+		putch(KEY_ASCII(KEY_BACKSPACE));
+		cur--;
+		cmdbuf_delch(cmd_buf);
+	}
+}
+
+void cmdbuf_move(char *cmd_buf, int direction)
+{
+  if (direction == UP || direction == DOWN) {
+    if (cmdqueue[cmdqueue_index][0]) {
+      _cmdbuf_clr_line(cmd_buf);
+      /* Reinput the command from the queue */
+      cputs(cmdqueue[cmdqueue_index]);
+      strcpy(cmd_buf, cmdqueue[cmdqueue_index]);
+      cur = tail = strlen(cmdqueue[cmdqueue_index]);
+    }
+  }
+
   switch (direction)
   {
+    case UP:
+      cmdqueue_index --;
+      cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
+      if (cmdqueue[cmdqueue_index][0] == '\0') {
+        cmdqueue_index ++;
+        cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
+      }
+      break;
     case LEFT:
       if (cur != 0) {
         putch(KEY_ASCII(KEY_BACKSPACE));
@@ -49,12 +85,20 @@ void cmdbuf_move(unsigned char *cmd_buf, int direction)
         cur++;
       }
       break;
+    case DOWN:
+      cmdqueue_index ++;
+      cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
+      if (cmdqueue[cmdqueue_index][0] == '\0') {
+        cmdqueue_index --;
+        cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
+      }
+      break;
     default:
       break;
   }
 }
 
-void cmdbuf_delch(unsigned char *cmd_buf)
+void cmdbuf_delch(char *cmd_buf)
 {
   if (cur < tail) {
     unsigned int i;
@@ -78,7 +122,7 @@ void cmdbuf_delch(unsigned char *cmd_buf)
 }
 
 
-void cmdbuf_putch(unsigned char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag)
+void cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag)
 {
   unsigned int i;
 
@@ -103,10 +147,17 @@ void cmdbuf_putch(unsigned char *cmd_buf, unsigned int buf_size, char ch, unsign
 }
 
 
-unsigned char *cmdbuf_gets(unsigned char *cmd_buf)
+char *cmdbuf_gets(char *cmd_buf)
 {
   cmd_buf[tail] = 0;
   /* Reset the cmdbuf */
   cur = tail = 0;
+
+  /* Enqueue the cmdbuf and save the current index */
+  strcpy(cmdqueue[cmdqueue_count], cmd_buf);
+  cmdqueue_index = cmdqueue_count;
+  cmdqueue_count++;
+  cmdqueue_count = cmdqueue_count%MAX_CMDQUEUE_LEN;
+
   return cmd_buf;
 }

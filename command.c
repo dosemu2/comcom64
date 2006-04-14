@@ -417,10 +417,11 @@ static unsigned short keyb_get_shift_states(void)
 
 static void prompt_for_and_get_cmd(void)
   {
-  unsigned char conbuf[MAX_CMD_BUFLEN+1];
-  int flag = 0, key = 0;
+  int flag = 0, key = 0, len;
+  char conbuf[MAX_CMD_BUFLEN+1];
   output_prompt();
   conbuf[0] = MAX_CMD_BUFLEN-1;
+  /* conbuf[1] is not used, reserved ... */
   /* -Salvo: was while(kbhit()) getch(); */
   
   /* while(kbhit())
@@ -466,11 +467,17 @@ static void prompt_for_and_get_cmd(void)
         else
           _setcursortype(_SOLIDCURSOR);
         break;
+      case KEY_UP:
+        cmdbuf_move(conbuf+2, UP);
+        break;
       case KEY_LEFT:
         cmdbuf_move(conbuf+2, LEFT);
         break;
       case KEY_RIGHT:
         cmdbuf_move(conbuf+2, RIGHT);
+        break;
+      case KEY_DOWN:
+        cmdbuf_move(conbuf+2, DOWN);
         break;
       default:
         if (KEY_ASCII(key) != 0x00 && KEY_ASCII(key) != 0xE0) {
@@ -480,10 +487,11 @@ static void prompt_for_and_get_cmd(void)
     }
   } while (key != KEY_ENTER);
 
-  conbuf[1] = cmdbuf_get_tail(); /* Get the size of typed string */
-  strncpy(cmd_line, (char *)cmdbuf_gets(conbuf+2), conbuf[1]);
+  len = cmdbuf_get_tail();
+  /* Get the size of typed string */
+  strncpy(cmd_line, (char *)cmdbuf_gets(conbuf+2), len);
 
-  cmd_line[conbuf[1]] = '\0';
+  cmd_line[len] = '\0';
   parse_cmd_line();
   cputs("\r\n");
   }
