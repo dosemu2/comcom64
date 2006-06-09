@@ -69,6 +69,7 @@
 
 #ifdef __DJGPP__
 #include <crt0.h>
+#include <dpmi.h>
 extern char **environ;
 
 #define UNUSED __attribute__((unused))
@@ -400,8 +401,13 @@ NoArgs:
 static unsigned short keyb_shift_states = KEYB_FLAG_INSERT;
 static unsigned short keyb_get_rawcode(void)
 {
-  unsigned short c = getch();
+  unsigned short c;
 
+#ifdef __DJGPP__
+  while(!kbhit())
+    __dpmi_yield();
+#endif
+  c = getch();
   if (c == 0x00 || c == 0xE0)
     c = getch()<<8;
 
@@ -441,7 +447,7 @@ static void prompt_for_and_get_cmd(void)
     /* Wait and get raw key code */
     key = keyb_get_rawcode();
     flag = keyb_get_shift_states();
-    
+
     if (KEY_ASCII(key) == KEY_EXT)
       key = KEY_EXTM(key);
     else if (KEY_ASCII(key) != 0)
