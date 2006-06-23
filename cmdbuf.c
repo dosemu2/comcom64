@@ -21,7 +21,10 @@
 #include <conio.h>
 #include <string.h>
 #include "cmdbuf.h"
-#include "command.h"
+
+#ifdef __MINGW32__
+#define cputs(s) _cputs(s)
+#endif
 
 #define KEYB_FLAG_INSERT    0x0080
 #define KEY_ASCII(k)    (k & 0x00FF)
