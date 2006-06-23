@@ -260,8 +260,10 @@ typedef struct _diskfree_t diskfree_t;
 #define DISKFREE_T_SCLUS(d) d.sectors_per_cluster
 
 #elif __DJGPP__
+#include <dir.h>
 #include <bios.h>
 #include <values.h>
+#include <unistd.h>
 #include <sys/exceptn.h>
 /* File find */
 typedef struct ffblk finddata_t;
