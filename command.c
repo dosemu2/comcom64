@@ -26,10 +26,6 @@
 *       7) Reboot said computer.
 *
 *   BUGS, PECULIARITIES, AND/OR UNIMPLEMENTED FEATURES
-*       - Piping between commands is not yet implemented, although
-*         you can pipe output to a file or pipe input from a file.
-*       - Some commands are recognized but are unimplemented.
-*         They are: MORE, and SET (when invoked withou args)
 *       - Some commands are incomplete: TIME, DATE
 *       - Some built-in commands should really be separate executables
 *         and not built-in. They are: CHOICE, MORE, PAUSE, XCOPY.
@@ -126,7 +122,7 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
  * Some private prototypes
  */
 static void parse_cmd_line(void);
-static void perform_external_cmd(int call);
+static void perform_external_cmd(int call, char *ext_cmd);
 static void perform_set(void *data);
 static void perform_unimplemented_cmd(void);
 
@@ -1397,7 +1393,7 @@ static void perform_call(void *data)
     advance_cmd_arg();
   strcpy(cmd, cmd_arg);
   advance_cmd_arg();
-  perform_external_cmd(true);
+  perform_external_cmd(true, cmd);
   }
 
 static void perform_cd(void *data)
@@ -1923,7 +1919,7 @@ static void perform_exit(void *data)
     }
   }
 
-static void perform_external_cmd(int call)
+static void perform_external_cmd(int call, char *ext_cmd)
   {
   finddata_t ff;
   long ffhandle;
@@ -1937,32 +1933,32 @@ static void perform_external_cmd(int call)
   char *s;
 
   // No wildcards allowed -- reject them
-  if (has_wildcard(cmd))
+  if (has_wildcard(ext_cmd))
     goto BadCommand;
 
   // Assemble a path list, and also extract the command name without the path.
   // For commands that already specify a path, the path list will consist of
   // only that path.
-  s = strrchr(cmd, '\\');
+  s = strrchr(ext_cmd, '\\');
   if (s != NULL)
     {
     s++;
-    strncpy(pathlist, cmd, s-cmd);
-    pathlist[s-cmd] = '\0';
+    strncpy(pathlist, ext_cmd, s-ext_cmd);
+    pathlist[s-ext_cmd] = '\0';
     }
   else
     {
-    s = strchr(cmd, ':');
+    s = strchr(ext_cmd, ':');
     if (s != NULL)
       {
       s++;
-      strncpy(pathlist, cmd, s-cmd);
-      pathlist[s-cmd] = '\0';
+      strncpy(pathlist, ext_cmd, s-ext_cmd);
+      pathlist[s-ext_cmd] = '\0';
       }
     else
       {
       strcpy(pathlist, ".\\;");
-      s = cmd;
+      s = ext_cmd;
       pathvar = getenv("PATH");
       if(pathvar != NULL)
         {
@@ -2075,7 +2071,7 @@ static void perform_external_cmd(int call)
   return;
 
 BadCommand:
-  cprintf("Bad command or file name - %s\r\n", cmd);
+  cprintf("Bad command or file name - %s\r\n", ext_cmd);
   //reset_batfile_call_stack();  -- even if error becuase the command is not found, don't clean up
   return;
 
@@ -2252,7 +2248,9 @@ static void perform_md(void *data)
 
 static void perform_more(void *data)
   {
-  perform_unimplemented_cmd();
+  	int c;
+    while ((c = getchar()) != EOF)
+      putchar(c);
   }
 
 static void perform_move(void *data)
@@ -2808,21 +2806,39 @@ static void exec_cmd(void)
     redir_result[pipe_index] = -1;
     }
 
+  if (pipe_to_cmd_redir_count > 0)
+    {
+      pipe(pipe_fno);
+    /* cputs("Piping between 2 commands is not supported\r\n");
+       reset_batfile_call_stack();
+       goto Exit; */
+    }
+  else // open the pipe file
+    {
+    if (pipe_file_redir_count[STDIN_INDEX] > 0)
+      pipe_fno[STDIN_INDEX] = open(pipe_file[STDIN_INDEX], O_TEXT|O_RDONLY, S_IRUSR);
+
+    if (pipe_file_redir_count[STDOUT_INDEX] > 1)
+      pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_TEXT|O_WRONLY|O_APPEND|O_CREAT, S_IWUSR); // open for append
+    else if (pipe_file_redir_count[STDOUT_INDEX] == 1)
+      pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_TEXT|O_WRONLY|O_TRUNC|O_CREAT, S_IWUSR);  // open as new file
+
+      /* check for error
+      if (pipe_fno[pipe_index] < 0 ||
+          old_std_fno[pipe_index] == -1 ||
+          redir_result[pipe_index] == -1)
+        {
+        if (pipe_index == pipe_index)
+          cprintf("Unable to pipe standard input from file - %s\r\n", pipe_file[pipe_index]);
+        else
+          cprintf("Unable to pipe standard output to file - %s\r\n", pipe_file[pipe_index]);
+        reset_batfile_call_stack();
+        goto Exit;
+        } */
+    }
+
   for (pipe_index = 0; pipe_index < 2; pipe_index++)
     {
-    // open the pipe file
-    if (pipe_file_redir_count[pipe_index] > 0)
-      {
-      if (pipe_index == STDIN_INDEX)
-        pipe_fno[pipe_index] = open(pipe_file[pipe_index], O_TEXT|O_RDONLY, 0666);  // open for read
-      else // else pipe_index is STDOUT_INDEX
-        {
-        if (pipe_file_redir_count[STDOUT_INDEX] > 1)
-          pipe_fno[pipe_index] = open(pipe_file[pipe_index], O_TEXT|O_WRONLY|O_APPEND|O_CREAT, 0666); // open for append
-        else
-          pipe_fno[pipe_index] = open(pipe_file[pipe_index], O_TEXT|O_WRONLY|O_TRUNC|O_CREAT, 0666);  // open as new file
-        }
-
       // save a reference to the old standard in/out file handle
       if (pipe_fno[pipe_index] >= 0)
         old_std_fno[pipe_index] = dup(pipe_index);
@@ -2831,34 +2847,12 @@ static void exec_cmd(void)
       if (pipe_fno[pipe_index] >= 0 && old_std_fno[pipe_index] != -1)
         redir_result[pipe_index] = dup2(pipe_fno[pipe_index], pipe_index);
 
-      // check for error
-      if (pipe_fno[pipe_index] < 0 ||
-          old_std_fno[pipe_index] == -1 ||
-          redir_result[pipe_index] == -1)
-        {
-        if (pipe_index == STDIN_INDEX)
-          cprintf("Unable to pipe standard input from file - %s\r\n", pipe_file[pipe_index]);
-        else
-          cprintf("Unable to pipe standard output to file - %s\r\n", pipe_file[pipe_index]);
-        reset_batfile_call_stack();
-        goto Exit;
-        }
-
       // close pipe file handle
       if (pipe_fno[pipe_index] >= 0)
         {
         close(pipe_fno[pipe_index]);
         pipe_fno[pipe_index] = -1;
         }
-
-      }
-    }
-
-  if (pipe_to_cmd_redir_count != 0)
-    {
-    cputs("Piping between 2 commands is not supported\r\n");
-    reset_batfile_call_stack();
-    goto Exit;
     }
 
   while (cmd[0] != '\0')
@@ -2887,27 +2881,38 @@ static void exec_cmd(void)
           }
         }
       if (c >= CMD_TABLE_COUNT)
-        perform_external_cmd(false);
+        perform_external_cmd(false, cmd);
       }
     cmd[0] = '\0';
     }
-Exit:
-  cmd_line[0] = '\0';
-  for (pipe_index = 0; pipe_index < 2; pipe_index++)
+
+  /* Recover the stdout stream */
+  if (redir_result[STDOUT_INDEX] != -1) {
+    dup2(old_std_fno[STDOUT_INDEX], STDOUT_INDEX);
+    close(old_std_fno[STDOUT_INDEX]);
+    setbuf(stdout, NULL);
+  }
+
+  if (pipe_to_cmd_redir_count > 0)
     {
-    if (redir_result[pipe_index] != -1)
-      dup2(old_std_fno[pipe_index], pipe_index);
-    if (pipe_fno[pipe_index] >= 0)
-      close(pipe_fno[pipe_index]);
-    if (old_std_fno[pipe_index] != -1)
-      close(old_std_fno[pipe_index]);
-    if (redir_result[pipe_index] != -1)
-      {
-      if (pipe_index == STDIN_INDEX)
-        setbuf(stdin, NULL);
-      else
-        setbuf(stdout, NULL);
-      }
+    for (c = 0; c < CMD_TABLE_COUNT; c++)
+        {
+        if (stricmp(pipe_to_cmd, cmd_table[c].cmd_name) == 0)
+          {
+          cmd_table[c].cmd_fn(cmd_table[c].cmd_data);
+          break;
+          }
+        }
+      if (c >= CMD_TABLE_COUNT)
+        perform_external_cmd(false, pipe_to_cmd);
+    }
+
+/* Exit: */
+  cmd_line[0] = '\0';
+  if (redir_result[STDIN_INDEX] != -1) {
+    dup2(old_std_fno[STDIN_INDEX], STDIN_INDEX);
+    close(old_std_fno[STDIN_INDEX]);
+    setbuf(stdin, NULL);
     }
   }
 
@@ -2916,17 +2921,8 @@ int main(int argc, char *argv[], char *envp[])
 
   {
   int a;
-
-  // initialize the cmd data
-  for (a = 0; a < CMD_TABLE_COUNT; a++)
-    {
-    if (stricmp("set", cmd_table[a].cmd_name) == 0)
-      {
-      cmd_table[a].cmd_data = envp;
-      break;
-      }
-    }
-
+  // initialize the cmd data ...
+ 
   // reset fpu
   _clear87();
   _fpreset();

@@ -65,7 +65,10 @@
 #ifdef __MINGW32__
 #include <errno.h>
 #include <direct.h>
+#include <unistd.h>
 #include <windows.h>
+
+#define pipe(filedes) _pipe(filedes, 0x4000, O_TEXT)
 #define futime(a,b) _futime(a,b)
 #define _fixpath(a,b) _fullpath(b,a,MAX_PATH)
 #define fnsplit(p,drive,dir,n,e) _splitpath(p,drive,dir,n,e)
