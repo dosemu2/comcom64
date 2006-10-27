@@ -123,7 +123,7 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
  */
 static void parse_cmd_line(void);
 static void perform_external_cmd(int call, char *ext_cmd);
-static void perform_set(void *data);
+static void perform_set(const char *arg);
 static void perform_unimplemented_cmd(void);
 
 /***
@@ -1216,7 +1216,7 @@ CantSetAttr:
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-static void perform_attrib(void *data)
+static void perform_attrib(const char *arg)
   {
   long ffhandle = 0;
   int ffrc;
@@ -1239,18 +1239,18 @@ static void perform_attrib(void *data)
   unsigned req_attrib = 0, attrib_mask = 0;
   unsigned search_attrib;
 
-  while (*cmd_arg != '\0')
+  while (*arg != '\0')
     {
     if (*cmd_switch == '\0') // if not a command switch ...
       {
-      if (strlen(cmd_arg) == 2 && (cmd_arg[0] == '+' || cmd_arg[0] == '-'))
+      if (strlen(arg) == 2 && (arg[0] == '+' || arg[0] == '-'))
         {
         for (a = 0; a < 4; a++)
           {
-          if (toupper(cmd_arg[1]) == toupper(attrib_letters[a]))
+          if (toupper(arg[1]) == toupper(attrib_letters[a]))
             {
             attrib_mask |= attrib_values[a];
-            if (cmd_arg[0] == '+')
+            if (arg[0] == '+')
               req_attrib |= attrib_values[a];
             else
               req_attrib &= (~(attrib_values[a]));
@@ -1259,7 +1259,7 @@ static void perform_attrib(void *data)
         }
       else if (*path == '\0')
         {
-        strncpy(path, cmd_arg, MAXPATH);
+        strncpy(path, arg, MAXPATH);
         path[MAXPATH-1] = '\0';
         conv_unix_path_to_ms_dos(path);
         }
@@ -1387,24 +1387,24 @@ static void perform_attrib(void *data)
     printf("File(s) not found - %s%s\n", path, filespec);
   }
 
-static void perform_call(void *data)
+static void perform_call(const char *arg)
   {
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
-  strcpy(cmd, cmd_arg);
+  strcpy(cmd, arg);
   advance_cmd_arg();
   perform_external_cmd(true, cmd);
   }
 
-static void perform_cd(void *data)
+static void perform_cd(const char *arg)
   {
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
-  if (*cmd_arg)
+  if (*arg)
     {
-    if (chdir(cmd_arg) != 0)
+    if (chdir(arg) != 0)
       {
-      cprintf("Directory does not exist - %s\r\n",cmd_arg);
+      cprintf("Directory does not exist - %s\r\n",arg);
       reset_batfile_call_stack();
       return;
       }
@@ -1431,14 +1431,14 @@ static void perform_change_drive(void)
     }
   }
 
-static void perform_choice(void *data)
+static void perform_choice(const char *arg)
   {
   char *choices = "YN";  // Y,N are the default choices
   char *text = "";
   int supress_prompt = false;
   int choice;
 
-  while (*cmd_arg != '\0')
+  while (*arg != '\0')
     {
     if (*cmd_switch == '\0') // if not a command switch ...
       {
@@ -1485,17 +1485,17 @@ static void perform_choice(void *data)
   return;
   }
 
-static void perform_copy(void *data)
+static void perform_copy(const char *arg)
   {
   general_file_transfer(FILE_XFER_COPY);
   }
 
-static void perform_xcopy(void *data)
+static void perform_xcopy(const char *arg)
   {
   general_file_transfer(FILE_XFER_XCOPY);
   }
 
-static void perform_date(void *data)
+static void perform_date(const char *arg)
   {
   time_t t = time(NULL);
   struct tm *loctime = localtime (&t);
@@ -1504,20 +1504,20 @@ static void perform_date(void *data)
                              loctime->tm_mon+1, loctime->tm_mday, loctime->tm_year+1900);
   }
 
-static void perform_delete(void *data)
+static void perform_delete(const char *arg)
   {
   finddata_t ff;
   char filespec[MAXPATH] = "";
   char full_filespec[MAXPATH] = "";
   char drive[MAXDRIVE], dir[MAXDIR];
 
-  while (*cmd_arg != '\0')
+  while (*arg != '\0')
     {
     if (*cmd_switch == '\0') // if not a command switch ...
       {
       if (*filespec == '\0')
         {
-        strncpy(filespec, cmd_arg, MAXPATH);
+        strncpy(filespec, arg, MAXPATH);
         filespec[MAXPATH-1] = '\0';
         }
       else
@@ -1561,7 +1561,7 @@ static void perform_delete(void *data)
     }
   }
 
-static void perform_deltree(void *data)
+static void perform_deltree(const char *arg)
   {
   long ffhandle = 0;
   int ffrc;
@@ -1583,13 +1583,13 @@ static void perform_deltree(void *data)
   int choice;
   unsigned search_attrib;
 
-  while (*cmd_arg != '\0')
+  while (*arg != '\0')
     {
     if (*cmd_switch == '\0') // if not a command switch ...
       {
       if (*path == '\0')
         {
-        strncpy(path, cmd_arg, MAXPATH);
+        strncpy(path, arg, MAXPATH);
         path[MAXPATH-1] = '\0';
         conv_unix_path_to_ms_dos(path);
         }
@@ -1753,7 +1753,7 @@ static void perform_deltree(void *data)
     printf("%9d (sub)directories removed\n", dir_count);
   }
 
-static void perform_dir(void *data)
+static void perform_dir(const char *arg)
   {
   long ffhandle;
   int ffrc;
@@ -1768,13 +1768,13 @@ static void perform_dir(void *data)
   char full_filespec[MAXPATH];
   char filespec[MAXPATH] = "";
 
-  while (*cmd_arg != '\0')
+  while (*arg != '\0')
     {
     if (*cmd_switch == '\0') // if not a command switch ...
       {
       if (*filespec == '\0')
         {
-        strncpy(filespec, cmd_arg, MAXPATH);
+        strncpy(filespec, arg, MAXPATH);
         filespec[MAXPATH-1] = '\0';
         conv_unix_path_to_ms_dos(filespec);
         }
@@ -1885,13 +1885,13 @@ static void perform_dir(void *data)
     printf("%15lli GB free\n", avail / 1024 / 1024 / 1024);
   }
 
-static void perform_echo(void *data)
+static void perform_echo(const char *arg)
   {
-  if (stricmp(cmd_arg, "off") == 0)
+  if (stricmp(arg, "off") == 0)
     echo_on[stack_level] = false;
-  else if (stricmp(cmd_arg, "on") == 0)
+  else if (stricmp(arg, "on") == 0)
     echo_on[stack_level] = true;
-  else if (cmd_arg[0] == '\0')
+  else if (arg[0] == '\0')
     {
     if (echo_on[stack_level])
       puts("ECHO is on");
@@ -1902,7 +1902,7 @@ static void perform_echo(void *data)
     puts(cmd_args);
   }
 
-static void perform_exit(void *data)
+static void perform_exit(const char *arg)
   {
   int ba;
   bat_file_path[stack_level][0] = '\0';
@@ -2081,11 +2081,11 @@ StackOverflow:
   return;
   }
 
-static void perform_goto(void *data)
+static void perform_goto(const char *arg)
   {
   if (bat_file_path[stack_level][0] != '\0')
     {
-    strcpy(goto_label, cmd_arg);
+    strcpy(goto_label, arg);
     bat_file_line_number[stack_level] = MAXINT;
     }
   else
@@ -2223,19 +2223,19 @@ SyntaxError:
   return;
   }
 
-static void perform_md(void *data)
+static void perform_md(const char *arg)
   {
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
-  if (*cmd_arg)
+  if (*arg)
     {
 #ifdef __MINGW32__
-    if (mkdir(cmd_arg) != 0)
+    if (mkdir(arg) != 0)
 #else
-    if (mkdir(cmd_arg, S_IWUSR) != 0)
+    if (mkdir(arg, S_IWUSR) != 0)
 #endif
       {
-      cprintf("Could not create directory - %s\r\n", cmd_arg);
+      cprintf("Could not create directory - %s\r\n", arg);
       reset_batfile_call_stack();
       }
     }
@@ -2246,14 +2246,14 @@ static void perform_md(void *data)
     }
   }
 
-static void perform_more(void *data)
+static void perform_more(const char *arg)
   {
   	int c;
     while ((c = getchar()) != EOF)
       putchar(c);
   }
 
-static void perform_move(void *data)
+static void perform_move(const char *arg)
   {
   general_file_transfer(FILE_XFER_MOVE);
   }
@@ -2262,7 +2262,7 @@ static void perform_null_cmd(void)
   {
   }
 
-static void perform_path(void *data)
+static void perform_path(const char *arg)
   {
   if (*cmd_args == '\0')
     {
@@ -2281,28 +2281,28 @@ static void perform_path(void *data)
     }
   }
 
-static void perform_pause(void *data)
+static void perform_pause(const char *arg)
   {
   cputs("Press any key to continue . . .\r\n");
   getch();
   }
 
-static void perform_prompt(void *data)
+static void perform_prompt(const char *arg)
   {
   memmove(cmd_args+7, cmd_args, strlen(cmd_args)+1);
   strncpy(cmd_args, "PROMPT=", 7);
-  perform_set(data);
+  perform_set(arg);
   }
 
-static void perform_rd(void *data)
+static void perform_rd(const char *arg)
   {
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
   if (*cmd_arg)
     {
-    if (rmdir(cmd_arg) != 0)
+    if (rmdir(arg) != 0)
       {
-      cprintf("Could not remove directory - %s\r\n", cmd_arg);
+      cprintf("Could not remove directory - %s\r\n", arg);
       reset_batfile_call_stack();
       }
     }
@@ -2313,7 +2313,7 @@ static void perform_rd(void *data)
     }
   }
 
-static void perform_rename(void *data)
+static void perform_rename(const char *arg)
   {
   long ffhandle;
   int ffrc;
@@ -2328,19 +2328,19 @@ static void perform_rename(void *data)
   char full_from_filespec[MAXPATH], full_to_filespec[MAXPATH];
   char *w;
 
-  while (*cmd_arg != '\0')
+  while (*arg != '\0')
     {
     if (*cmd_switch == '\0') // if not a command switch ...
       {
       if (*from_path == '\0')
         {
-        strncpy(from_path, cmd_arg, MAXPATH);
+        strncpy(from_path, arg, MAXPATH);
         from_path[MAXPATH-1] = '\0';
         conv_unix_path_to_ms_dos(from_path);
         }
       else if (*to_path == '\0')
         {
-        strncpy(to_path, cmd_arg, MAXPATH);
+        strncpy(to_path, arg, MAXPATH);
         to_path[MAXPATH-1] = '\0';
         conv_unix_path_to_ms_dos(to_path);
         }
@@ -2441,10 +2441,10 @@ static void perform_rename(void *data)
     }
   }
 
-static void perform_set(void *data)
+static void perform_set(const char *arg)
   {
-  char *var_name;
-  if (*cmd_args == '\0')
+  const char *var_name;
+  if (*arg == '\0')
     {
     int i = 0;
     while (environ[i])
@@ -2452,14 +2452,14 @@ static void perform_set(void *data)
     }
   else
     {
-    var_name = cmd_args;
+    var_name = arg;
     if (strlen(var_name) == 0)
       {
       cputs("Syntax error\r\n");
       reset_batfile_call_stack();
       return;
       }
-    strupr(var_name);
+    /* strupr(var_name); */
     if (putenv(var_name) != 0)
       {
       cprintf("Error setting environment variable - %s\r\n", var_name);
@@ -2469,7 +2469,7 @@ static void perform_set(void *data)
     }
   }
 
-static void perform_time(void *data)
+static void perform_time(const char *arg)
   {
   time_t t = time(NULL);
   struct tm *loctime = localtime (&t);
@@ -2491,19 +2491,19 @@ static void perform_time(void *data)
 
   }
 
-static void perform_type(void *data)
+static void perform_type(const char *arg)
   {
   FILE *textfile;
   char filespec[MAXPATH] = "";
   int c;
 
-  while (*cmd_arg != '\0')
+  while (*arg != '\0')
     {
     if (*cmd_switch == '\0') // if not a command switch ...
       {
       if (*filespec == '\0')
         {
-        strncpy(filespec, cmd_arg, MAXPATH);
+        strncpy(filespec, arg, MAXPATH);
         filespec[MAXPATH-1] = '\0';
         conv_unix_path_to_ms_dos(filespec);
         }
@@ -2534,7 +2534,7 @@ static void perform_type(void *data)
     }
   }
 
-static void perform_cls(void *data)
+static void perform_cls(const char *arg)
   {
   clrscr();
   }
@@ -2550,42 +2550,41 @@ static void perform_unimplemented_cmd(void)
 struct built_in_cmd
   {
   char *cmd_name;
-  void *cmd_data;
-  void (*cmd_fn)(void *data);
+  void (*cmd_fn)(const char *);
   };
 
 static struct built_in_cmd cmd_table[] =
   {
-    {"attrib", NULL, perform_attrib},
-    {"call", NULL, perform_call},
-    {"cd", NULL, perform_cd},
-    {"chdir", NULL, perform_cd},
-    {"choice", NULL, perform_choice},
-    {"cls", NULL, perform_cls},
-    {"copy", NULL, perform_copy},
-    {"date", NULL, perform_date},
-    {"del", NULL, perform_delete},
-    {"deltree", NULL, perform_deltree},
-    {"erase", NULL, perform_delete},
-    {"dir", NULL, perform_dir},
-    {"echo", NULL, perform_echo},
-    {"exit", NULL, perform_exit},
-    {"goto", NULL, perform_goto},
-    {"md", NULL, perform_md},
-    {"mkdir", NULL, perform_md},
-    {"move", NULL, perform_move},
-    {"more", NULL, perform_more},
-    {"path", NULL, perform_path},
-    {"pause", NULL, perform_pause},
-    {"prompt", NULL, perform_prompt},
-    {"rd", NULL, perform_rd},
-    {"rmdir", NULL, perform_rd},
-    {"rename", NULL, perform_rename},
-    {"ren", NULL, perform_rename},
-    {"set", NULL, perform_set},
-    {"time", NULL, perform_time},
-    {"type", NULL, perform_type},
-    {"xcopy", NULL, perform_xcopy}
+    {"attrib", perform_attrib},
+    {"call", perform_call},
+    {"cd", perform_cd},
+    {"chdir", perform_cd},
+    {"choice", perform_choice},
+    {"cls", perform_cls},
+    {"copy", perform_copy},
+    {"date", perform_date},
+    {"del", perform_delete},
+    {"deltree", perform_deltree},
+    {"erase", perform_delete},
+    {"dir", perform_dir},
+    {"echo", perform_echo},
+    {"exit", perform_exit},
+    {"goto", perform_goto},
+    {"md", perform_md},
+    {"mkdir", perform_md},
+    {"move", perform_move},
+    {"more", perform_more},
+    {"path", perform_path},
+    {"pause", perform_pause},
+    {"prompt", perform_prompt},
+    {"rd", perform_rd},
+    {"rmdir", perform_rd},
+    {"rename", perform_rename},
+    {"ren", perform_rename},
+    {"set", perform_set},
+    {"time", perform_time},
+    {"type", perform_type},
+    {"xcopy", perform_xcopy}
   };
 
 static void parse_cmd_line(void)
@@ -2876,7 +2875,7 @@ static void exec_cmd(void)
         {
         if (stricmp(cmd, cmd_table[c].cmd_name) == 0)
           {
-          cmd_table[c].cmd_fn(cmd_table[c].cmd_data);
+          cmd_table[c].cmd_fn(cmd_arg);
           break;
           }
         }
@@ -2899,7 +2898,7 @@ static void exec_cmd(void)
         {
         if (stricmp(pipe_to_cmd, cmd_table[c].cmd_name) == 0)
           {
-          cmd_table[c].cmd_fn(cmd_table[c].cmd_data);
+          cmd_table[c].cmd_fn(cmd_arg);
           break;
           }
         }
