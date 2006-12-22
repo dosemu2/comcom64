@@ -1,9 +1,13 @@
 /* Command shell definitions and portability between
- * different environments ...
+ * different environments, etc. by Hanzac Chen
  */
 
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
+
+#ifdef __GNUC__
+#define __CMD_COMPILER__ "GCC "
+#endif
 
 /*
  * Command.com shell modes
@@ -38,7 +42,6 @@
 
 /*
  * Temporarily and Slightly FIX the keyboard problem
- *   by Hanzac Chen
  */
 #define GET_ENHANCED_KEYSTROKE                0x10
 #define GET_EXTENDED_SHIFT_STATES             0x12
@@ -59,18 +62,12 @@
 #define KEY_DELETE       KEY_EXTM(0x53E0)
 
 /*
- * Portability between different environments 
- *   by Hanzac Chen
+ * Common definitions
  */
-#ifdef __MINGW32__
-#include <errno.h>
+#if defined(__MINGW32__) || defined(__WATCOMC__)
 #include <direct.h>
-#include <unistd.h>
-#include <windows.h>
 
-#define pipe(filedes) _pipe(filedes, 0x4000, O_TEXT)
-#define futime(a,b) _futime(a,b)
-#define _fixpath(a,b) _fullpath(b,a,MAX_PATH)
+#define _fixpath(a,b) _fullpath(b,a,_MAX_PATH)
 #define fnsplit(p,drive,dir,n,e) _splitpath(p,drive,dir,n,e)
 #define fnmerge(p,drive,dir,n,e) _makepath(p,drive,dir,n,e)
 
@@ -78,6 +75,77 @@
 #define _NOCURSOR      0
 #define _SOLIDCURSOR   1
 #define _NORMALCURSOR  2
+
+/* Additional access() checks */
+#define D_OK	0x10
+
+#define FA_RDONLY      1
+#define FA_HIDDEN      2
+#define FA_SYSTEM      4
+#define FA_LABEL       8
+#define FA_DIREC       16
+#define FA_ARCH        32
+#define MAXINT			(0x7fffffff)
+#define MAXPATH			_MAX_PATH
+#define MAXDRIVE		3
+#define MAXDIR			256
+#define MAXFILE			256
+#define MAXEXT			255
+
+/* File find */
+typedef struct _finddata_t finddata_t;
+static inline int findfirst_f(const char *pathname, finddata_t *ff, int attrib, long *handle)
+{
+	if (attrib == FA_LABEL) {
+		return -1;
+	} else {
+		long h = _findfirst(pathname, ff);
+	    if (h != -1) {
+	    	if (handle != NULL)
+				*handle = h;
+			return 0;
+		} else {
+			return -1;
+		}
+	}
+}
+static inline int findnext_f(finddata_t *ff, long handle)
+{
+    return _findnext(handle, ff);
+}
+static inline int findclose_f(long handle)
+{
+	return _findclose(handle);
+}
+#define FINDDATA_T_FILENAME(f) f.name
+#define FINDDATA_T_ATTRIB(f) f.attrib
+#define FINDDATA_T_SIZE(f) f.size
+#define FINDDATA_T_WDATE_YEAR(f) localtime(&f.time_write)->tm_year+1900
+#define FINDDATA_T_WDATE_MON(f) localtime(&f.time_write)->tm_mon+1
+#define FINDDATA_T_WDATE_DAY(f) localtime(&f.time_write)->tm_mday
+#define FINDDATA_T_WTIME_HOUR(f) localtime(&f.time_write)->tm_hour
+#define FINDDATA_T_WTIME_MIN(f) localtime(&f.time_write)->tm_min
+
+typedef struct _diskfree_t diskfree_t;
+#define DISKFREE_T_AVAIL(d) d.avail_clusters
+#define DISKFREE_T_TOTAL(d) d.total_clusters
+#define DISKFREE_T_BSEC(d) d.bytes_per_sector
+#define DISKFREE_T_SCLUS(d) d.sectors_per_cluster
+
+#define getdfree(d,p) _getdiskfree(d,p)
+
+#endif
+
+/*
+ * Different compilers
+ */
+#ifdef __MINGW32__
+#include <errno.h>
+#include <unistd.h>
+#include <windows.h>
+
+#define pipe(filedes) _pipe(filedes, 0x4000, O_TEXT)
+
 /* Conio utilites */
 #define cprintf(...) _cprintf(__VA_ARGS__)
 #define cputs(s) _cputs(s)
@@ -143,54 +211,7 @@ static inline void _setcursortype(int type)
     SetConsoleCursorInfo (GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
 }
 #define delay(t) Sleep(t/1000)
-/* Additional access() checks */
-#define D_OK	0x10
 
-#define FA_RDONLY      1
-#define FA_HIDDEN      2
-#define FA_SYSTEM      4
-#define FA_LABEL       8
-#define FA_DIREC       16
-#define FA_ARCH        32
-#define MAXINT  (0x7fffffff)
-#define MAXPATH  MAX_PATH
-#define MAXDRIVE 3
-#define MAXDIR	 256
-#define MAXFILE  256
-#define MAXEXT	 255
-/* File find */
-typedef struct _finddata_t finddata_t;
-static inline int findfirst_f(const char *pathname, finddata_t *ff, int attrib, long *handle)
-{
-	if (attrib == FA_LABEL) {
-		return -1;
-	} else {
-		long h = _findfirst(pathname, ff);
-	    if (h != -1) {
-	    	if (handle != NULL)
-				*handle = h;
-			return 0;
-		} else {
-			return -1;
-		}
-	}
-}
-static inline int findnext_f(finddata_t *ff, long handle)
-{
-    return _findnext(handle, ff);
-}
-static inline int findclose_f(long handle)
-{
-	return _findclose(handle);
-}
-#define FINDDATA_T_FILENAME(f) f.name
-#define FINDDATA_T_ATTRIB(f) f.attrib
-#define FINDDATA_T_SIZE(f) f.size
-#define FINDDATA_T_WDATE_YEAR(f) localtime(&f.time_write)->tm_year+1900
-#define FINDDATA_T_WDATE_MON(f) localtime(&f.time_write)->tm_mon+1
-#define FINDDATA_T_WDATE_DAY(f) localtime(&f.time_write)->tm_mday
-#define FINDDATA_T_WTIME_HOUR(f) localtime(&f.time_write)->tm_hour
-#define FINDDATA_T_WTIME_MIN(f) localtime(&f.time_write)->tm_min
 /* File attributes */
 static inline unsigned int setfileattr(const char *filename, unsigned int attr)
 {
@@ -245,6 +266,18 @@ static inline int file_access(const char *filename, int flags)
     }
     return access(filename, flags);
 }
+static inline int file_copytime(int desc_handle, int src_handle)
+{
+  int ret;
+  struct stat source_st;
+  struct _utimbuf dest_ut;
+  if ((ret = fstat(src_handle, &source_st)) == 0) {
+    dest_ut.actime = source_st.st_atime;
+    dest_ut.modtime = source_st.st_mtime;
+    ret = _futime(desc_handle, &dest_ut);
+  }
+  return ret;
+}
 /* Disk free */
 static inline void setdrive(unsigned int drive, unsigned int *p_drives)
 {
@@ -255,12 +288,70 @@ static inline void getdrive(unsigned int *p_drive)
     if (p_drive != NULL)
         *p_drive = _getdrive();
 }
-#define getdfree(d,p) _getdiskfree(d,p)
-typedef struct _diskfree_t diskfree_t;
-#define DISKFREE_T_AVAIL(d) d.avail_clusters
-#define DISKFREE_T_TOTAL(d) d.total_clusters
-#define DISKFREE_T_BSEC(d) d.bytes_per_sector
-#define DISKFREE_T_SCLUS(d) d.sectors_per_cluster
+
+#elif __WATCOMC__
+#ifndef __VERSION__
+#define __VERSION__ "1.6"
+#endif
+
+#ifndef __CMD_COMPILER__
+#define __CMD_COMPILER__ "WATCOMC "
+#endif
+
+int pipe( int *__phandles)
+{
+  return 0;
+}
+
+static inline void clrscr(void)
+{
+}
+static inline void clreol(void)
+{
+}
+static inline void _setcursortype(int type)
+{
+}
+
+struct ftime {
+  unsigned ft_tsec:5;	/* 0-29, double to get real seconds */
+  unsigned ft_min:6;	/* 0-59 */
+  unsigned ft_hour:5;	/* 0-23 */
+  unsigned ft_day:5;	/* 1-31 */
+  unsigned ft_month:4;	/* 1-12 */
+  unsigned ft_year:7;	/* since 1980 */
+};
+
+static inline void setdrive(unsigned int drive, unsigned int *p_drives)
+{
+    _dos_setdrive(drive, p_drives);
+}
+static inline void getdrive(unsigned int *p_drive)
+{
+    _dos_getdrive(p_drive);
+}
+
+/* File attributes */
+static inline unsigned int setfileattr(const char *filename, unsigned int attr)
+{
+    return  _dos_setfileattr(filename, attr);
+}
+static inline unsigned int getfileattr(const char *filename, unsigned int *p_attr)
+{
+    return  _dos_getfileattr(filename, p_attr);
+}
+static inline int file_access(const char *filename, int flags)
+{
+    return access(filename, flags);
+}
+static inline int file_copytime(int desc_handle, int src_handle)
+{
+  int ret;
+  unsigned short _date, _time;
+  if ((ret = _dos_getftime(src_handle, &_date, &_time)) == 0)
+    ret = _dos_setftime(desc_handle, _date, _time);
+  return ret;
+}
 
 #elif __DJGPP__
 #include <dir.h>
@@ -268,6 +359,9 @@ typedef struct _diskfree_t diskfree_t;
 #include <values.h>
 #include <unistd.h>
 #include <sys/exceptn.h>
+
+#define mkdir(dir_path) mkdir(dir_path, S_IWUSR)
+
 /* File find */
 typedef struct ffblk finddata_t;
 static inline int findfirst_f(const char *pathname, finddata_t *ff, int attrib, long *handle)
@@ -302,6 +396,14 @@ static inline unsigned int getfileattr(const char *filename, unsigned int *p_att
 static inline int file_access(const char *filename, int flags)
 {
     return access(filename, flags);
+}
+static inline int file_copytime(int desc_handle, int src_handle)
+{
+  int ret;
+  struct ftime file_time;
+  if ((ret = getftime(src_handle, &file_time)) == 0)
+    ret = setftime(desc_handle, &file_time);
+  return ret;
 }
 /* Disk free */
 static inline void setdrive(unsigned int drive, unsigned int *p_drives)

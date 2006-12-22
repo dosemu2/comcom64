@@ -40,7 +40,6 @@
  *			modified for FreeDOS-32 by Salvo Isaja and Hanzac Chen
  */
 
-#include <dir.h>
 #include <dos.h>
 #include <time.h>
 #include <utime.h>
@@ -654,11 +653,7 @@ static int ensure_dir_existence(char *dir)
         printf("Creating directory - %s\\\n", dir_path);
       else
         *c = '\0';
-#ifdef __MINGW32__
       if (mkdir(dir_path) != 0 && c == NULL)
-#else
-      if (mkdir(dir_path, S_IWUSR) != 0 && c == NULL)
-#endif
         {
         cprintf("Unable to create directory - %s\\\r\n", dir_path);
         return -1;
@@ -676,12 +671,6 @@ static int copy_single_file(char *source_file, char *dest_file, int transfer_typ
   FILE *dest_stream;
   char transfer_buffer[32768];
   size_t byte_count;
-#ifdef __MINGW32__
-  struct stat source_st;
-  struct _utimbuf dest_ut;
-#else
-  struct ftime file_time;
-#endif
 
   if (stricmp(source_file, dest_file) == 0)
     {
@@ -717,21 +706,9 @@ static int copy_single_file(char *source_file, char *dest_file, int transfer_typ
   while (byte_count > 0);
 
   /* Copy date and time */
-#ifdef __MINGW32__
-  if (fstat(fileno(source_stream), &source_st) != 0)
-    goto copy_error_close;
   fflush(dest_stream);
-  dest_ut.actime = source_st.st_atime;
-  dest_ut.modtime = source_st.st_mtime;
-  if (futime(fileno(dest_stream), &dest_ut) != 0)
+  if (file_copytime (fileno(dest_stream), fileno(source_stream)) != 0)
     goto copy_error_close;
-#else
-  if (getftime(fileno(source_stream), &file_time) != 0)
-    goto copy_error_close;
-  fflush(dest_stream);
-  if (setftime(fileno(dest_stream), &file_time) != 0)
-    goto copy_error_close;
-#endif
 
   /* Close source and dest files */
   fclose(source_stream);
@@ -2229,11 +2206,7 @@ static void perform_md(const char *arg)
     advance_cmd_arg();
   if (*arg)
     {
-#ifdef __MINGW32__
     if (mkdir(arg) != 0)
-#else
-    if (mkdir(arg, S_IWUSR) != 0)
-#endif
       {
       cprintf("Could not create directory - %s\r\n", arg);
       reset_batfile_call_stack();
@@ -2991,11 +2964,6 @@ int main(int argc, char *argv[], char *envp[])
           "          ³    These may be freely downloaded from www.delorie.com   ³\r\n"   //  CWSDPMI.EXE without sources.
           "          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ\r\n");
 #else
-#ifdef __GNUC__
-#define __CMD_COMPILER__ "GCC "
-#else
-#define __CMD_COMPILER__ "UNKNOWN "
-#endif
     cprintf("          ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿\r\n"
             "          ³    The program COMMAND.EXE was created with the compiler ³\r\n"
             "          ³    %51s   ³\r\n"
@@ -3021,5 +2989,7 @@ int main(int argc, char *argv[], char *envp[])
       }
     exec_cmd();
     }
+
+  return 0;
   }
 
