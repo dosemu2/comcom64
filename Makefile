@@ -1,10 +1,9 @@
 # Project: FreeDOS-32 command
 # Makefile for DJGPP and Mingw32
 
-CPP  = i586-pc-msdosdjgpp-g++
-CC   = i586-pc-msdosdjgpp-gcc
-C_OPT = -Wall -O3 -finline-functions
-LINK_OPT = -s
+CC = i586-pc-msdosdjgpp-gcc
+C_OPT = -Wall -O2 -finline-functions
+LINK_OPT =
 OBJS = command.o cmdbuf.o
 
 .PHONY: all clean
