@@ -123,7 +123,7 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
 static void parse_cmd_line(void);
 static void perform_external_cmd(int call, char *ext_cmd);
 static void perform_set(const char *arg);
-static void perform_unimplemented_cmd(void);
+//static void perform_unimplemented_cmd(void);
 
 /***
 *
@@ -2417,6 +2417,9 @@ static void perform_rename(const char *arg)
 static void perform_set(const char *arg)
   {
   const char *var_name;
+  char *vname;
+  int err;
+
   if (*arg == '\0')
     {
     int i = 0;
@@ -2433,7 +2436,10 @@ static void perform_set(const char *arg)
       return;
       }
     /* strupr(var_name); */
-    if (putenv(var_name) != 0)
+    vname = strdup(var_name);
+    err = putenv(vname);
+    free(vname);
+    if (err != 0)
       {
       cprintf("Error setting environment variable - %s\r\n", var_name);
       reset_batfile_call_stack();
@@ -2512,11 +2518,13 @@ static void perform_cls(const char *arg)
   clrscr();
   }
 
+#if 0
 static void perform_unimplemented_cmd(void)
   {
   cputs("Command not implemented\r\n");
   reset_batfile_call_stack();
   }
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////
 
