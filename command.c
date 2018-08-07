@@ -403,13 +403,8 @@ NoArgs:
 static unsigned short keyb_shift_states = KEYB_FLAG_INSERT;
 static unsigned short keyb_get_rawcode(void)
 {
-  unsigned short c;
+  unsigned short c = getch();
 
-#ifdef __DJGPP__
-  while(!kbhit())
-    __dpmi_yield();
-#endif
-  c = getch();
   if (c == 0x00 || c == 0xE0)
     c = getch()<<8;
 
