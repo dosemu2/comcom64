@@ -5,17 +5,18 @@ CC = i586-pc-msdosdjgpp-gcc
 C_OPT = -Wall -O2 -finline-functions
 LINK_OPT =
 OBJS = command.o cmdbuf.o
+CMD = comcom32.exe
 
 .PHONY: all clean
 
-all: command.exe
+all: $(CMD)
 
 clean:
-	$(RM) command.exe
+	$(RM) $(CMD)
 	$(RM) *.o
 
-command.exe: $(OBJS)
-	$(CC) $(LINK_OPT) $(OBJS) -o command.exe
+$(CMD): $(OBJS)
+	$(CC) $(LINK_OPT) $(OBJS) -o $(CMD)
 
 # Common rules
 %.o : %.c
