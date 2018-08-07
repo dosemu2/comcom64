@@ -1903,16 +1903,16 @@ static void perform_exit(const char *arg)
     }
   }
 
-void put_env(unsigned short env_sel)
+static void put_env(unsigned short env_sel)
 {
   int env_count;
   int env_offs = 0;
   unsigned char term[] = { 0, 1 };
-  unsigned long env_size = __dpmi_get_segment_limit(env_sel) + 1;
+  unsigned env_size = __dpmi_get_segment_limit(env_sel) + 1;
   for (env_count = 0; environ[env_count]; env_count++) {
     int l = strlen(environ[env_count]) + 1;
     if (env_offs + l >= env_size - 2) {
-      printf("ENV buffer overflow (size %lu)\n", env_size);
+      printf("ENV buffer overflow (size %u)\n", env_size);
       break;
     }
     movedata(_my_ds(), (unsigned)environ[env_count], env_sel, env_offs, l);
@@ -2956,6 +2956,37 @@ static void exec_cmd(void)
     }
   }
 
+struct MCB {
+        char id;                        /* 0 */
+        unsigned short owner_psp;       /* 1 */
+        unsigned short size;            /* 3 */
+        char align8[3];                 /* 5 */
+        char name[8];                   /* 8 */
+} __attribute__((packed));
+
+static void set_env_size(void)
+{
+  unsigned short psp = _stubinfo->psp_selector;
+  unsigned short env_sel;
+  unsigned short env_seg;
+  unsigned long env_addr;
+  unsigned short mcb_sel;
+  struct MCB mcb;
+  unsigned env_size;
+  unsigned old_env_size;
+  int err;
+
+  movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
+  err = __dpmi_get_segment_base_address(env_sel, &env_addr);
+  old_env_size = __dpmi_get_segment_limit(env_sel) + 1;
+  if (!err && !(env_addr & 0xf) && env_addr < 0x100000 && old_env_size == 0x10000) {
+    env_seg = env_addr >> 4;
+    mcb_sel = __dpmi_segment_to_descriptor(env_seg - 1);
+    movedata(mcb_sel, 0, _my_ds(), (unsigned)&mcb, sizeof(mcb));
+    env_size = mcb.size * 16;
+    __dpmi_set_segment_limit(env_sel, env_size - 1);
+  }
+}
 
 int main(int argc, char *argv[], char *envp[])
 
@@ -2973,6 +3004,8 @@ int main(int argc, char *argv[], char *envp[])
 
   // init bat file stack
   reset_batfile_call_stack();
+
+  set_env_size();
 
   // process arguments
   for (a = 1; a < argc; a++)

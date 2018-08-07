@@ -2,7 +2,7 @@
 # Makefile for DJGPP and Mingw32
 
 CC = i586-pc-msdosdjgpp-gcc
-C_OPT = -Wall -O2 -finline-functions
+C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations
 LINK_OPT =
 OBJS = command.o cmdbuf.o
 CMD = comcom32.exe
