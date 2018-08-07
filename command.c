@@ -2250,7 +2250,7 @@ static void perform_path(const char *arg)
     {
     memmove(cmd_args+5, cmd_args, strlen(cmd_args)+1);
     strncpy(cmd_args, "PATH=", 5);
-    perform_set(NULL);
+    perform_set(cmd_args);
     }
   }
 
