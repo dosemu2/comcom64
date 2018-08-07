@@ -40,6 +40,9 @@
  *			modified for FreeDOS-32 by Salvo Isaja and Hanzac Chen
  */
 
+/* DOS environment and /E support by Stas Sergeev
+ */
+
 #include <dos.h>
 #include <time.h>
 #include <utime.h>
@@ -1900,13 +1903,23 @@ static void perform_exit(const char *arg)
     }
   }
 
-struct MCB {
-        char id;                        /* 0 */
-        unsigned short owner_psp;       /* 1 */
-        unsigned short size;            /* 3 */
-        char align8[3];                 /* 5 */
-        char name[8];                   /* 8 */
-} __attribute__((packed));
+void put_env(unsigned short env_sel)
+{
+  int env_count;
+  int env_offs = 0;
+  unsigned char term[] = { 0, 1 };
+  unsigned long env_size = __dpmi_get_segment_limit(env_sel) + 1;
+  for (env_count = 0; environ[env_count]; env_count++) {
+    int l = strlen(environ[env_count]) + 1;
+    if (env_offs + l >= env_size - 2) {
+      printf("ENV buffer overflow (size %lu)\n", env_size);
+      break;
+    }
+    movedata(_my_ds(), (unsigned)environ[env_count], env_sel, env_offs, l);
+    env_offs += l;
+  }
+  movedata(_my_ds(), (unsigned)term, env_sel, env_offs, 2);
+}
 
 static void perform_external_cmd(int call, char *ext_cmd)
   {
@@ -2055,16 +2068,9 @@ static void perform_external_cmd(int call, char *ext_cmd)
     movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
     err = __dpmi_get_segment_base_address(env_sel, &env_addr);
     if (!err && !(env_addr & 0xf) && env_addr < 0x100000) {
-      extern char **_environ;
-      int env_count;
-      int env_offs = 0;
       env_seg = env_addr >> 4;
       movedata(_my_ds(), (unsigned)&env_seg, psp, 0x2c, 2);
-      for (env_count = 0; _environ[env_count]; env_count++) {
-        int l = strlen(_environ[env_count]) + 1;
-        movedata(_my_ds(), (unsigned)_environ[env_count], env_sel, env_offs, l);
-        env_offs += l;
-      }
+      put_env(env_sel);
       env_chg = 1;
     }
     _control87(0x033f, 0xffff);
@@ -2081,13 +2087,9 @@ static void perform_external_cmd(int call, char *ext_cmd)
     if (env_chg) {
       char *cp;
       char *dos_environ;
-      unsigned short mcb_sel;
-      struct MCB mcb;
-      unsigned env_size;
+      unsigned long env_size;
 
-      mcb_sel = __dpmi_segment_to_descriptor(env_seg - 1);
-      movedata(mcb_sel, 0, _my_ds(), (unsigned)&mcb, sizeof(mcb));
-      env_size = mcb.size * 16;
+      env_size = __dpmi_get_segment_limit(env_sel) + 1;
       dos_environ = alloca(env_size);
       movedata(_my_ds(), (unsigned)&env_sel, psp, 0x2c, 2);
       movedata(env_sel, 0, _my_ds(), (unsigned)dos_environ, env_size);
@@ -2987,6 +2989,21 @@ int main(int argc, char *argv[], char *envp[])
       // no arguments for batch file
       }
 
+    if (strnicmp(argv[a], "/E:", 3) == 0)
+      {
+      unsigned int env_size = atoi(argv[a] + 3) & ~0xf;
+      int seg, sel, old_sel;
+      seg = __dpmi_allocate_dos_memory(env_size >> 4, &sel);
+      if (seg != -1)
+        {
+        unsigned short psp = _stubinfo->psp_selector;
+        movedata(psp, 0x2c, _my_ds(), (unsigned)&old_sel, 2);
+        movedata(_my_ds(), (unsigned)&sel, psp, 0x2c, 2);
+        put_env(sel);
+        __dpmi_free_dos_memory(old_sel);
+        }
+      }
+
     // check for command in arguments
     if (stricmp(argv[a], "/C") == 0 || stricmp(argv[a], "/K") == 0)
       {
@@ -3059,4 +3076,3 @@ int main(int argc, char *argv[], char *envp[])
 
   return 0;
   }
-
