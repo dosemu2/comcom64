@@ -2957,7 +2957,7 @@ int main(int argc, char *argv[], char *envp[])
       parse_cmd_line();
       }
     }
-
+#if 0
   // greet the user with a required message, due to a legality with DJGPP and CWSDPMI.
   if (shell_mode == SHELL_PERMANENT)
     {
@@ -2980,6 +2980,7 @@ int main(int argc, char *argv[], char *envp[])
     delay(1500); // delay so that the user can see the command.com greeting on
                  // permanent shell mode before autoexec.bat takes over
     }
+#endif
 
   // Main command parsing/interpretation/execution loop
   for (;;)
