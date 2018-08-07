@@ -55,6 +55,10 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 
+#include <stubinfo.h>
+#include <sys/movedata.h>
+#include <sys/segments.h>
+
 #include "cmdbuf.h"
 #include "command.h"
 
@@ -1896,6 +1900,14 @@ static void perform_exit(const char *arg)
     }
   }
 
+struct MCB {
+        char id;                        /* 0 */
+        unsigned short owner_psp;       /* 1 */
+        unsigned short size;            /* 3 */
+        char align8[3];                 /* 5 */
+        char name[8];                   /* 8 */
+} __attribute__((packed));
+
 static void perform_external_cmd(int call, char *ext_cmd)
   {
   finddata_t ff;
@@ -2030,9 +2042,31 @@ static void perform_external_cmd(int call, char *ext_cmd)
     }
   else
     {
+    unsigned short psp = _stubinfo->psp_selector;
+    unsigned short env_sel;
+    unsigned short env_seg;
+    unsigned long env_addr;
+    int err;
+    int env_chg = 0;
+
     if (*cmd_args != ' ' && *cmd_args != '\t')
       strcat(full_cmd, " ");
     strcat(full_cmd, cmd_args);
+    movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
+    err = __dpmi_get_segment_base_address(env_sel, &env_addr);
+    if (!err && !(env_addr & 0xf) && env_addr < 0x100000) {
+      extern char **_environ;
+      int env_count;
+      int env_offs = 0;
+      env_seg = env_addr >> 4;
+      movedata(_my_ds(), (unsigned)&env_seg, psp, 0x2c, 2);
+      for (env_count = 0; _environ[env_count]; env_count++) {
+        int l = strlen(_environ[env_count]) + 1;
+        movedata(_my_ds(), (unsigned)_environ[env_count], env_sel, env_offs, l);
+        env_offs += l;
+      }
+      env_chg = 1;
+    }
     _control87(0x033f, 0xffff);
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
@@ -2044,6 +2078,30 @@ static void perform_external_cmd(int call, char *ext_cmd)
     _control87(0x033f, 0xffff);
     _clear87();
     _fpreset();
+    if (env_chg) {
+      char *cp;
+      char *dos_environ;
+      unsigned short mcb_sel;
+      struct MCB mcb;
+      unsigned env_size;
+
+      mcb_sel = __dpmi_segment_to_descriptor(env_seg - 1);
+      movedata(mcb_sel, 0, _my_ds(), (unsigned)&mcb, sizeof(mcb));
+      env_size = mcb.size * 16;
+      dos_environ = alloca(env_size);
+      movedata(_my_ds(), (unsigned)&env_sel, psp, 0x2c, 2);
+      movedata(env_sel, 0, _my_ds(), (unsigned)dos_environ, env_size);
+      dos_environ[env_size] = 0;
+      cp = dos_environ;
+      do {
+        if (*cp) {
+          char *env = strdup(cp);
+          putenv(env);
+          cp += strlen(env);
+        }
+        cp++; /* skip to next character */
+      } while (*cp); /* repeat until two NULs */
+    }
     }
   return;
 
