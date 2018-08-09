@@ -130,6 +130,7 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
 static void parse_cmd_line(void);
 static void perform_external_cmd(int call, char *ext_cmd);
 static void perform_set(const char *arg);
+static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
 
 /***
@@ -2124,6 +2125,11 @@ static void perform_goto(const char *arg)
     cputs("Goto not valid in immediate mode.\r\n");
   }
 
+static void perform_help(const char *arg)
+  {
+  list_cmds();
+  }
+
 static void perform_if(void)
   {
   long ffhandle;
@@ -2568,6 +2574,11 @@ static void perform_type(const char *arg)
     }
   }
 
+static void perform_ver(const char *arg)
+  {
+  printf("comcom32 v0.1\n");
+  }
+
 static void perform_cls(const char *arg)
   {
   clrscr();
@@ -2606,6 +2617,7 @@ static struct built_in_cmd cmd_table[] =
     {"echo", perform_echo},
     {"exit", perform_exit},
     {"goto", perform_goto},
+    {"help", perform_help},
     {"md", perform_md},
     {"mkdir", perform_md},
     {"move", perform_move},
@@ -2620,8 +2632,23 @@ static struct built_in_cmd cmd_table[] =
     {"set", perform_set},
     {"time", perform_time},
     {"type", perform_type},
+    {"ver", perform_ver},
     {"xcopy", perform_xcopy}
   };
+
+static void list_cmds(void)
+  {
+  int i;
+
+  printf("available commands:\n\n");
+  for (i = 0; i < CMD_TABLE_COUNT; i++) {
+    printf("%s", cmd_table[i].cmd_name);
+    if ((i & 7) == 7)
+      putchar('\n');
+    else
+      putchar('\t');
+  }
+  }
 
 static void parse_cmd_line(void)
   {
