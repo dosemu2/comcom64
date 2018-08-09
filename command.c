@@ -2974,7 +2974,7 @@ static void set_env_size(void)
   movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
   err = __dpmi_get_segment_base_address(env_sel, &env_addr);
   old_env_size = __dpmi_get_segment_limit(env_sel) + 1;
-  if (!err && !(env_addr & 0xf) && env_addr < 0x100000 && old_env_size == 0x10000) {
+  if (!err && !(env_addr & 0xf) && env_addr < 0x110000 && old_env_size == 0x10000) {
     env_seg = env_addr >> 4;
     mcb_sel = __dpmi_segment_to_descriptor(env_seg - 1);
     movedata(mcb_sel, 0, _my_ds(), (unsigned)&mcb, sizeof(mcb));
