@@ -2310,7 +2310,7 @@ static void perform_path(const char *arg)
   else
     {
     memmove(cmd_args+5, cmd_args, strlen(cmd_args)+1);
-    strncpy(cmd_args, "PATH=", 5);
+    memcpy(cmd_args, "PATH=", 5);
     perform_set(cmd_args);
     }
   }
@@ -2324,7 +2324,7 @@ static void perform_pause(const char *arg)
 static void perform_prompt(const char *arg)
   {
   memmove(cmd_args+7, cmd_args, strlen(cmd_args)+1);
-  strncpy(cmd_args, "PROMPT=", 7);
+  memcpy(cmd_args, "PROMPT=", 7);
   perform_set(arg);
   }
 
