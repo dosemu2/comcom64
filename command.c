@@ -1903,8 +1903,21 @@ static void put_env(unsigned short env_sel)
 {
   int env_count;
   int env_offs = 0;
-  unsigned char term[] = { 0, 1 };
+  char *env;
+  char *tail;
   unsigned env_size = __dpmi_get_segment_limit(env_sel) + 1;
+  int tail_sz = 3;
+
+  env = alloca(env_size + tail_sz);
+  movedata(env_sel, 0, _my_ds(), (unsigned)env, env_size);
+  memset(&env[env_size], 0, tail_sz);
+  tail = memchr(env, 1, env_size);
+  if (tail && tail[1] == '\0') {
+    tail_sz += strlen(tail + 2) + 1;
+    tail--;
+  } else {
+    tail = env + env_size;
+  }
   for (env_count = 0; environ[env_count]; env_count++) {
     int l = strlen(environ[env_count]) + 1;
     if (env_offs + l >= env_size - 2) {
@@ -1914,7 +1927,7 @@ static void put_env(unsigned short env_sel)
     movedata(_my_ds(), (unsigned)environ[env_count], env_sel, env_offs, l);
     env_offs += l;
   }
-  movedata(_my_ds(), (unsigned)term, env_sel, env_offs, 2);
+  movedata(_my_ds(), (unsigned)tail, env_sel, env_offs, tail_sz);
 }
 
 static void perform_external_cmd(int call, char *ext_cmd)
@@ -2063,7 +2076,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
     strcat(full_cmd, cmd_args);
     movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
     err = __dpmi_get_segment_base_address(env_sel, &env_addr);
-    if (!err && !(env_addr & 0xf) && env_addr < 0x100000) {
+    if (!err && !(env_addr & 0xf) && env_addr < 0x110000) {
       env_seg = env_addr >> 4;
       movedata(_my_ds(), (unsigned)&env_seg, psp, 0x2c, 2);
       put_env(env_sel);
@@ -2986,6 +2999,15 @@ struct MCB {
         char name[8];                   /* 8 */
 } __attribute__((packed));
 
+static unsigned get_env_size(void)
+{
+  unsigned short psp = _stubinfo->psp_selector;
+  unsigned short env_sel;
+
+  movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
+  return __dpmi_get_segment_limit(env_sel) + 1;
+}
+
 static void set_env_size(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
@@ -3047,15 +3069,20 @@ int main(int argc, char *argv[], char *envp[])
     if (strnicmp(argv[a], "/E:", 3) == 0)
       {
       unsigned int env_size = atoi(argv[a] + 3) & ~0xf;
+      unsigned int old_size = get_env_size();
       int seg, sel, old_sel;
-      seg = __dpmi_allocate_dos_memory(env_size >> 4, &sel);
-      if (seg != -1)
+      if (env_size > old_size)
         {
-        unsigned short psp = _stubinfo->psp_selector;
-        movedata(psp, 0x2c, _my_ds(), (unsigned)&old_sel, 2);
-        movedata(_my_ds(), (unsigned)&sel, psp, 0x2c, 2);
-        put_env(sel);
-        __dpmi_free_dos_memory(old_sel);
+        seg = __dpmi_allocate_dos_memory(env_size >> 4, &sel);
+        if (seg != -1)
+          {
+          unsigned short psp = _stubinfo->psp_selector;
+          movedata(psp, 0x2c, _my_ds(), (unsigned)&old_sel, 2);
+          movedata(_my_ds(), (unsigned)&sel, psp, 0x2c, 2);
+          movedata(old_sel, 0, sel, 0, old_size);
+          put_env(sel);
+          __dpmi_free_dos_memory(old_sel);
+          }
         }
       }
 
