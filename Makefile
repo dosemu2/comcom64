@@ -17,6 +17,7 @@ clean:
 
 $(CMD): $(OBJS)
 	$(CC) $(LINK_OPT) $(OBJS) -o $(CMD)
+	chmod -x $(CMD)
 
 # Common rules
 %.o : %.c
