@@ -3036,8 +3036,9 @@ int main(int argc, char *argv[], char *envp[])
 
   {
   int a;
+  char *cmd_path;
   // initialize the cmd data ...
- 
+
   // reset fpu
   _clear87();
   _fpreset();
@@ -3050,6 +3051,10 @@ int main(int argc, char *argv[], char *envp[])
   reset_batfile_call_stack();
 
   set_env_size();
+  cmd_path = strdup(argv[0]);
+  strupr(cmd_path);
+  setenv("COMSPEC", cmd_path, 1);
+  free(cmd_path);
 
   // process arguments
   for (a = 1; a < argc; a++)
