@@ -1971,7 +1971,7 @@ static void perform_exit(const char *arg)
   else
     {
     if (shell_mode != SHELL_PERMANENT)
-      exit(0);
+      exit(error_level);
     }
   }
 
