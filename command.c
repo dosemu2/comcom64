@@ -2144,6 +2144,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
     unsigned short env_sel;
     unsigned short env_seg;
     unsigned long env_addr;
+    char el[16];
     int err;
     int env_chg = 0;
 
@@ -2189,6 +2190,8 @@ static void perform_external_cmd(int call, char *ext_cmd)
         cp++; /* skip to next character */
       } while (*cp); /* repeat until two NULs */
     }
+    sprintf(el, "%d", error_level);
+    setenv("ERRORLEVEL", el, 1);
     }
   return;
 
