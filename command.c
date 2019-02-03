@@ -1870,7 +1870,7 @@ static void perform_dir(const char *arg)
       {
       if ((ffrc = findfirst_f(full_filespec, &ff, attrib, &ffhandle)) != 0)
         {
-        puts("File not found");  // informational message -- not an error
+        puts("File not found\r\n");  // informational message -- not an error
         return;
         }
       first = false;
@@ -2359,7 +2359,7 @@ static void perform_md(const char *arg)
     advance_cmd_arg();
   if (*arg)
     {
-    if (mkdir(arg) != 0)
+    if (file_access(arg, D_OK) != 0 && mkdir(arg) != 0)
       {
       cprintf("Could not create directory - %s\r\n", arg);
       reset_batfile_call_stack();
@@ -2515,8 +2515,8 @@ static void perform_rename(const char *arg)
       {
       if ((ffrc = findfirst_f(full_from_filespec, &ff, attrib, &ffhandle)) != 0)
         {
-        cprintf("File not found - %s", from_path);
-        reset_batfile_call_stack();
+        cprintf("File not found - %s\r\n", from_path);
+//        reset_batfile_call_stack();
         return;
         }
       first = false;
