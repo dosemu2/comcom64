@@ -2390,6 +2390,7 @@ static void perform_null_cmd(void)
 
 static void perform_path(const char *arg)
   {
+  int off = 0;
   if (*cmd_args == '\0')
     {
     char *pathvar = getenv("PATH");
@@ -2401,7 +2402,9 @@ static void perform_path(const char *arg)
     }
   else
     {
-    memmove(cmd_args+5, cmd_args, strlen(cmd_args)+1);
+    if (*cmd_args == '=')    /* support PATH= syntax */
+      off++;
+    memmove(cmd_args+5, cmd_args + off, strlen(cmd_args)+1);
     memcpy(cmd_args, "PATH=", 5);
     perform_set(cmd_args);
     }
