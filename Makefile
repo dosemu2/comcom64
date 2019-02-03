@@ -32,7 +32,7 @@ $(CMD): $(OBJS)
 
 install: $(CMD)
 	install -D -t $(DESTDIR)$(DATADIR) -m 0644 $(CMD)
-	ln -s $(CMD) $(DESTDIR)$(DATADIR)/command.com
+	ln -sf $(CMD) $(DESTDIR)$(DATADIR)/command.com
 
 $(TGZ):
 	git archive -o $(CURDIR)/$(TGZ) --prefix=$(PKG)/ HEAD
