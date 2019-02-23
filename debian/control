@@ -1,0 +1,15 @@
+Source: comcom32
+Section: contrib/otherosfs
+Priority: optional
+Maintainer: Stas Sergeev <stsp@users.sourceforge.net>
+Standards-Version: 3.9.7
+Build-Depends:
+    make,
+    debhelper (>= 9~)
+Homepage: http://www.github.com/stsp/comcom32
+
+Package: comcom32
+Architecture: i386 amd64
+Depends:
+Description: 32-bit command.com
+ comcom32 is a 32-bit command.com.

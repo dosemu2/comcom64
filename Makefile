@@ -42,3 +42,6 @@ tar: $(TGZ)
 
 rpm: $(TGZ)
 	rpmbuild --define "debug_package %{nil}" -tb $(TGZ)
+
+deb:
+	debuild -i -us -uc -b
