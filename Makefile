@@ -21,6 +21,8 @@ clean:
 	$(RM) $(CMD)
 	$(RM) *.o
 
+# hack: make objs intermediate to avoid their rebuild when binary is there
+.INTERMEDIATE: $(OBJS)
 $(CMD): $(OBJS)
 	$(CC) $(LINK_OPT) $(OBJS) -o $(CMD)
 	$(STRIP) $(CMD)

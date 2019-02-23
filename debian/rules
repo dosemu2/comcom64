@@ -5,3 +5,6 @@
 
 override_dh_auto_build:
 	./build.sh
+
+override_dh_auto_install:
+	dh_auto_install $@ -- PREFIX=/usr
