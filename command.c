@@ -503,7 +503,7 @@ static void prompt_for_and_get_cmd(void)
   conbuf[0] = MAX_CMD_BUFLEN-1;
   /* conbuf[1] is not used, reserved ... */
   /* -Salvo: was while(kbhit()) getch(); */
-  
+
   /* while(kbhit())
   {
     unsigned short c = keyb_get_rawcode();
@@ -612,7 +612,7 @@ static void get_cmd_from_bat_file(void)
     {
     /* input as much of the line as the buffer can hold */
     s = fgets(cmd_line, MAX_CMD_BUFLEN, cmd_file);
-  
+
     /* if s is null, investigate why */
     if (s == NULL)
       {
@@ -1130,7 +1130,7 @@ static void general_file_transfer(int transfer_type)
         strcat(full_dest_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
       else
         strcat(full_dest_filespec, dest_filespec);
-  
+
       if ((FINDDATA_T_ATTRIB(ff[subdir_level])&FA_DIREC) != 0)
         {
         if (visitation_mode[subdir_level] <= 2 &&
@@ -1396,7 +1396,7 @@ static void perform_attrib(const char *arg)
       for (s = 0; s <= subdir_level; s++)
         strcat(full_path_filespec, dir_name[s]);
       strcat(full_path_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
-  
+
       if ((FINDDATA_T_ATTRIB(ff[subdir_level])&FA_DIREC) != 0)
         {
         if (visitation_mode[subdir_level] <= 2 &&
@@ -1716,7 +1716,7 @@ static void perform_deltree(const char *arg)
       for (s = 0; s <= subdir_level; s++)
         strcat(full_path_filespec, dir_name[s]);
       strcat(full_path_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
-  
+
       if ((FINDDATA_T_ATTRIB(ff[subdir_level])&FA_DIREC) != 0)
         {
         if (visitation_mode[subdir_level] <= 2 &&
