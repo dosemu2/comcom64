@@ -56,16 +56,6 @@ static void _cmdbuf_clr_line(char *cmd_buf)
 
 void cmdbuf_move(char *cmd_buf, int direction)
 {
-  if (direction == UP || direction == DOWN) {
-    if (cmdqueue[cmdqueue_index][0]) {
-      _cmdbuf_clr_line(cmd_buf);
-      /* Reinput the command from the queue */
-      cputs(cmdqueue[cmdqueue_index]);
-      strcpy(cmd_buf, cmdqueue[cmdqueue_index]);
-      cur = tail = strlen(cmdqueue[cmdqueue_index]);
-    }
-  }
-
   switch (direction)
   {
     case UP:
@@ -89,15 +79,23 @@ void cmdbuf_move(char *cmd_buf, int direction)
       }
       break;
     case DOWN:
+      if (cmdqueue[cmdqueue_index][0] == '\0')
+        break;
       cmdqueue_index ++;
       cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
-      if (cmdqueue[cmdqueue_index][0] == '\0') {
-        cmdqueue_index --;
-        cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
-      }
       break;
     default:
       break;
+  }
+
+  if (direction == UP || direction == DOWN) {
+    _cmdbuf_clr_line(cmd_buf);
+    if (cmdqueue[cmdqueue_index][0]) {
+      /* Reinput the command from the queue */
+      cputs(cmdqueue[cmdqueue_index]);
+      strcpy(cmd_buf, cmdqueue[cmdqueue_index]);
+      cur = tail = strlen(cmdqueue[cmdqueue_index]);
+    }
   }
 }
 
@@ -152,15 +150,20 @@ void cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short 
 
 char *cmdbuf_gets(char *cmd_buf)
 {
+  int prev_count = (cmdqueue_count - 1) % MAX_CMDQUEUE_LEN;
   cmd_buf[tail] = 0;
   /* Reset the cmdbuf */
   cur = tail = 0;
 
-  /* Enqueue the cmdbuf and save the current index */
-  strcpy(cmdqueue[cmdqueue_count], cmd_buf);
+  if (cmd_buf[0] == '\0')
+    return cmd_buf;
+  if (strcmp(cmd_buf, cmdqueue[prev_count]) != 0) {
+    /* Enqueue the cmdbuf and save the current index */
+    strcpy(cmdqueue[cmdqueue_count], cmd_buf);
+    cmdqueue_count++;
+    cmdqueue_count = cmdqueue_count%MAX_CMDQUEUE_LEN;
+  }
   cmdqueue_index = cmdqueue_count;
-  cmdqueue_count++;
-  cmdqueue_count = cmdqueue_count%MAX_CMDQUEUE_LEN;
 
   return cmd_buf;
 }
