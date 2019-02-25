@@ -123,7 +123,7 @@ void cmdbuf_delch(char *cmd_buf)
 }
 
 
-void cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag)
+char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag)
 {
   unsigned int i;
 
@@ -138,13 +138,17 @@ void cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short 
     if ((flag&KEYB_FLAG_INSERT && tail < buf_size) || cur > tail)
       tail++;
     /* Update the string on screen */
-    for (i = cur-1; i < tail; i++)
+    for (i = cur-1; i < tail-1; i++)
       putch(cmd_buf[i]);
+    if (cur == tail)
+      return cmd_buf[tail - 1];
+    putch(cmd_buf[tail - 1]);
 
     /* Put cursor back to the current position */
     for (i = cur; i < tail; i++)
       putch(KEY_ASCII(KEY_BACKSPACE));
   }
+  return 0;
 }
 
 

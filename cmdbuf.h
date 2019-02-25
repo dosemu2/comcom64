@@ -14,7 +14,7 @@
 unsigned int cmdbuf_get_tail(void);
 void cmdbuf_move(char *cmd_buf, int direction);
 void cmdbuf_delch(char *cmd_buf);
-void cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag);
+char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag);
 char *cmdbuf_gets(char *cmd_buf);
 
 #endif

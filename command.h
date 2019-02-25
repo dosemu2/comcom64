@@ -360,6 +360,12 @@ static inline int file_copytime(int desc_handle, int src_handle)
 #include <unistd.h>
 #include <sys/exceptn.h>
 
+#ifndef USE_CONIO_OUT
+#define cprintf printf
+#define cputs(s) fputs(s, stdout)
+#define putch(c) putchar(c)
+#endif
+
 #define mkdir(dir_path) mkdir(dir_path, S_IWUSR)
 
 /* File find */

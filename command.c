@@ -561,7 +561,9 @@ static void prompt_for_and_get_cmd(void)
         break;
       default:
         if (KEY_ASCII(key) != 0x00 && KEY_ASCII(key) != 0xE0) {
-          cmdbuf_putch(conbuf+2, MAX_CMD_BUFLEN-2, KEY_ASCII(key), flag);
+          char c = cmdbuf_putch(conbuf+2, MAX_CMD_BUFLEN-2, KEY_ASCII(key), flag);
+          if (c)
+            putch(c);
         }
         break;
     }
