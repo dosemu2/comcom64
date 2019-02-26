@@ -84,6 +84,18 @@ void cmdbuf_move(char *cmd_buf, int direction)
       cmdqueue_index ++;
       cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
       break;
+    case HOME:
+      while (cur != 0) {
+        putch(KEY_ASCII(KEY_BACKSPACE));
+        cur--;
+      }
+      break;
+    case END:
+      while (cur < tail) {
+        putch(cmd_buf[cur]);
+        cur++;
+      }
+      break;
     default:
       break;
   }

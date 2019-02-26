@@ -559,6 +559,12 @@ static void prompt_for_and_get_cmd(void)
       case KEY_DOWN:
         cmdbuf_move(conbuf+2, DOWN);
         break;
+      case KEY_HOME:
+        cmdbuf_move(conbuf+2, HOME);
+        break;
+      case KEY_END:
+        cmdbuf_move(conbuf+2, END);
+        break;
       default:
         if (KEY_ASCII(key) != 0x00 && KEY_ASCII(key) != 0xE0) {
           char c = cmdbuf_putch(conbuf+2, MAX_CMD_BUFLEN-2, KEY_ASCII(key), flag);
