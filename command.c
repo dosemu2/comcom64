@@ -172,6 +172,7 @@ static int installable_command_check(const char *cmd, const char *tail)
   int i;
   const char *name;
   int tlen;
+  int nlen;
   uint16_t ax;
 
   struct {
@@ -189,8 +190,10 @@ static int installable_command_check(const char *cmd, const char *tail)
   else
     name = cmd;
 
+  nlen = 0;
   for (p = name, q = &s.nbuf[0], i = 0; *p; p++) {
     if (*p == '.') {
+      nlen = i;
       if (i < 8) {
         memset(q + i, ' ', 8 - i);
         i = 8;
@@ -201,7 +204,11 @@ static int installable_command_check(const char *cmd, const char *tail)
       return 0;
     q[i++] = toupper(*p);
   }
-  s.nlen = i;
+  if (i < 11)
+    memset(q + i, ' ', 11 - i);
+  if (!nlen)        // no dot found
+    nlen = i;
+  s.nlen = nlen;    // does not cover extension
 
   if (strlen(cmd) + strlen(tail) + 2 >= sizeof(s.cbuf))
     return 0;
