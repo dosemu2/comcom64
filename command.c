@@ -135,7 +135,7 @@ static void perform_set(const char *arg);
 static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
 
-static int installable_command_check(const char *name, const char *cmdline)
+static int installable_command_check(const char *cmd, const char *tail)
 {
   /* from RBIL
 
@@ -171,6 +171,8 @@ static int installable_command_check(const char *name, const char *cmdline)
   const char *p;
   char *q;
   int i;
+  const char *name;
+  int tlen;
 
   struct {
     uint8_t nlen;
@@ -180,6 +182,12 @@ static int installable_command_check(const char *name, const char *cmdline)
     uint8_t clen;
     char cbuf[256];
   } __attribute__((packed)) s;
+
+  p = strrchr(cmd, '\\');
+  if (p)
+    name = p + 1;
+  else
+    name = cmd;
 
   for (p = name, q = &s.nbuf[0], i = 0; *p; p++) {
     if (*p == '.') {
@@ -195,15 +203,21 @@ static int installable_command_check(const char *name, const char *cmdline)
   }
   s.nlen = i;
 
-  if (strlen(cmdline) >= sizeof(s.cbuf))
+  if (strlen(cmd) + strlen(tail) + 2 >= sizeof(s.cbuf))
     return 0;
   s.cmax = sizeof(s.cbuf) - 1;
-  s.clen = snprintf(s.cbuf, sizeof(s.cbuf), "%s\r", cmdline) - 1;
+  if (tail[0]) {
+    s.clen = snprintf(s.cbuf, sizeof(s.cbuf), "%s %s\r", cmd, tail) - 1;
+    tlen = strlen(tail) + 1;  // account for 'space'
+  } else {
+    s.clen = snprintf(s.cbuf, sizeof(s.cbuf), "%s\r", cmd) - 1;
+    tlen = 0;
+  }
 
   __dpmi_regs regs;
 
   regs.x.ax = 0xae00;
-  regs.x.cx = 0xff00;
+  regs.x.cx = 0xff00 + tlen;
   regs.x.dx = 0xffff;
 
   regs.x.ds = __tb >> 4;      // transfer buffer address in DS:SI
@@ -3140,7 +3154,7 @@ int main(int argc, char *argv[], char *envp[])
 
   // Indicate to Dosemu that the DOS has booted. This may be removed after
   // comcom32 supports installable commands properly.
-  installable_command_check("comcom32.exe", argv[0]);
+  installable_command_check(argv[0], "");
 
   // reset fpu
   _clear87();
