@@ -73,7 +73,6 @@
 #ifdef __DJGPP__
 #include <crt0.h>
 #include <dpmi.h>
-#include <go32.h>
 extern char **environ;
 
 #define UNUSED __attribute__((unused))
@@ -173,6 +172,7 @@ static int installable_command_check(const char *cmd, const char *tail)
   int i;
   const char *name;
   int tlen;
+  uint16_t ax;
 
   struct {
     uint8_t nlen;
@@ -214,22 +214,17 @@ static int installable_command_check(const char *cmd, const char *tail)
     tlen = 0;
   }
 
-  __dpmi_regs regs;
+  asm volatile ("int $0x2f\n"
+    : "=a"(ax)
+    : "a"(0xae00),
+      "c"(0xff00 + tlen),
+      "d"(0xffff),
+      "b"(&s.cmax),
+      "S"(&s.nlen),
+      "D"(0)
+    : "cc", "memory" /* "memory" is needed even for any pointer read! */);
 
-  regs.x.ax = 0xae00;
-  regs.x.cx = 0xff00 + tlen;
-  regs.x.dx = 0xffff;
-
-  regs.x.ds = __tb >> 4;      // transfer buffer address in DS:SI
-  regs.x.si = __tb & 0x0f;
-
-  regs.x.bx = regs.x.si + 12; // offset to cmax within transfer buffer
-
-  dosmemput(&s, sizeof(s), __tb);
-
-  __dpmi_int(0x2f, &regs);
-
-  return (regs.x.ax & 0xff) == 0xff;
+  return ((ax & 0xff) == 0xff);
 }
 
 /***
