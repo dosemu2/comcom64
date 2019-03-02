@@ -87,6 +87,7 @@ void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading 
 #endif
 
 static int shell_mode = SHELL_NORMAL;
+static int shell_permanent;
 
 /*
  * Command parser defines/variables
@@ -2003,7 +2004,7 @@ static void perform_exit(const char *arg)
     stack_level--;
   else
     {
-    if (shell_mode != SHELL_PERMANENT)
+    if (!shell_permanent)
       exit(error_level);
     }
   }
@@ -3182,7 +3183,7 @@ int main(int argc, char *argv[], char *envp[])
     if (stricmp(argv[a], "/P") == 0)
       {
       unsigned int drive;
-      shell_mode = SHELL_PERMANENT;
+      shell_permanent = 1;
       strcpy(bat_file_path[0], "X:\\AUTOEXEC.BAT");  // trigger execution of autoexec.bat
       getdrive(&drive);
       drive += ('A' - 1);
@@ -3211,14 +3212,18 @@ int main(int argc, char *argv[], char *envp[])
       }
 
     // check for command in arguments
-    if (stricmp(argv[a], "/C") == 0 || stricmp(argv[a], "/K") == 0)
+    if (stricmp(argv[a], "/K") == 0)
+      {
+      shell_mode = SHELL_STARTUP_WITH_CMD;
+      a++;
+      strncat(cmd_line, argv[a], MAX_CMD_BUFLEN-1);
+      parse_cmd_line();
+      }
+    if (stricmp(argv[a], "/C") == 0)
       {
       int cmd_buf_remaining;
 
-      if (stricmp(argv[a], "/C") == 0)
-        shell_mode = SHELL_SINGLE_CMD;
-      else
-        shell_mode = SHELL_STARTUP_WITH_CMD;
+      shell_mode = SHELL_SINGLE_CMD;
 
       // build command from rest of the arguments
       a++;
@@ -3240,7 +3245,7 @@ int main(int argc, char *argv[], char *envp[])
     }
 #if 0
   // greet the user with a required message, due to a legality with DJGPP and CWSDPMI.
-  if (shell_mode == SHELL_PERMANENT)
+  if (shell_permanent)
     {
     delay(1000); // delay so that the user can see the FreeDOS greeting
     clrscr();
