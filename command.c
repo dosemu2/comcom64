@@ -3153,6 +3153,7 @@ int main(int argc, char *argv[], char *envp[])
   {
   int a;
   char *cmd_path;
+  int disable_autoexec = 0;
   // initialize the cmd data ...
 
   // Indicate to Dosemu that the DOS has booted. This may be removed after
@@ -3182,13 +3183,7 @@ int main(int argc, char *argv[], char *envp[])
     // check for permanent shell
     if (stricmp(argv[a], "/P") == 0)
       {
-      unsigned int drive;
       shell_permanent = 1;
-      strcpy(bat_file_path[0], "X:\\AUTOEXEC.BAT");  // trigger execution of autoexec.bat
-      getdrive(&drive);
-      drive += ('A' - 1);
-      bat_file_path[0][0] = drive;
-      // no arguments for batch file
       }
 
     if (strnicmp(argv[a], "/E:", 3) == 0)
@@ -3211,6 +3206,11 @@ int main(int argc, char *argv[], char *envp[])
         }
       }
 
+    if (stricmp(argv[a], "/D") == 0)
+      {
+      disable_autoexec = 1;
+      }
+
     // check for command in arguments
     if (stricmp(argv[a], "/K") == 0)
       {
@@ -3219,6 +3219,7 @@ int main(int argc, char *argv[], char *envp[])
       strncat(cmd_line, argv[a], MAX_CMD_BUFLEN-1);
       parse_cmd_line();
       }
+
     if (stricmp(argv[a], "/C") == 0)
       {
       int cmd_buf_remaining;
@@ -3267,6 +3268,16 @@ int main(int argc, char *argv[], char *envp[])
                  // permanent shell mode before autoexec.bat takes over
     }
 #endif
+
+  if (shell_permanent && !disable_autoexec)
+    {
+    unsigned int drive;
+    strcpy(bat_file_path[0], "X:\\AUTOEXEC.BAT");  // trigger execution of autoexec.bat
+    getdrive(&drive);
+    drive += ('A' - 1);
+    bat_file_path[0][0] = drive;
+    // no arguments for batch file
+    }
 
   // Main command parsing/interpretation/execution loop
   for (;;)
