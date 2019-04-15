@@ -1918,7 +1918,12 @@ static void perform_dir(const char *arg)
 
   volspec[0] = full_filespec[0];
   if (findfirst_f(volspec, &ff, FA_LABEL, NULL) == 0)
+    {
+    char *p = strchr(FINDDATA_T_FILENAME(ff), '.');
+    if (p)
+      memmove(p, p + 1, strlen(p + 1) + 1);
     printf(" Volume in drive %c is %s\n", volspec[0], FINDDATA_T_FILENAME(ff));
+    }
   else
     puts(" Volume has no label");
 
@@ -1932,7 +1937,7 @@ static void perform_dir(const char *arg)
       {
       if ((ffrc = findfirst_f(full_filespec, &ff, attrib, &ffhandle)) != 0)
         {
-        puts("File not found\r\n");  // informational message -- not an error
+        puts("File not found");  // informational message -- not an error
         return;
         }
       first = false;
