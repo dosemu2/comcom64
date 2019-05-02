@@ -1517,6 +1517,41 @@ static void perform_call(const char *arg)
   perform_external_cmd(true, cmd);
   }
 
+static void perform_loadhigh(const char *arg)
+  {
+  int orig_strat, orig_umblink;
+  __dpmi_regs r;
+  while (*cmd_switch)  // skip switches
+    advance_cmd_arg();
+  strcpy(cmd, arg);
+  advance_cmd_arg();
+
+  r.x.ax = 0x5800;
+  __dpmi_int(0x21, &r);
+  orig_strat = r.x.ax;
+  r.x.ax = 0x5802;
+  __dpmi_int(0x21, &r);
+  orig_umblink = r.h.al;
+
+  r.x.ax = 0x5801;
+  r.x.bx = (orig_strat & 0xF) | 0x80;	/* set strat area = UMA-then-LMA */
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = 1;				/* set UMB link on */
+  __dpmi_int(0x21, &r);
+
+  perform_external_cmd(true, cmd);
+	  /* Should we set this to true? Only affects batch files anyway,
+	   * which shouldn't be loaded with LOADHIGH to begin with. */
+
+  r.x.ax = 0x5801;
+  r.x.bx = orig_strat;
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = orig_umblink;
+  __dpmi_int(0x21, &r);
+  }
+
 static void perform_cd(const char *arg)
   {
   while (*cmd_switch)  // skip switches
@@ -2889,6 +2924,8 @@ static struct built_in_cmd cmd_table[] =
     {"exit", perform_exit},
     {"goto", perform_goto},
     {"help", perform_help},
+    {"lh", perform_loadhigh},
+    {"loadhigh", perform_loadhigh},
     {"md", perform_md},
     {"mkdir", perform_md},
     {"move", perform_move},
