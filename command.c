@@ -93,6 +93,7 @@
 
 #include "cmdbuf.h"
 #include "command.h"
+#include "version.h"
 
 /*
  * These declarations/definitions turn off some unwanted DJGPP features

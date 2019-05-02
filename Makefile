@@ -7,11 +7,12 @@ PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
 C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations
 LINK_OPT =
-OBJS = command.o cmdbuf.o
+OBJS = command.o cmdbuf.o version.o
 CMD = comcom32.exe
 RELVER = alpha1
 PKG = comcom32-0.1$(RELVER)
 TGZ = $(PKG).tar.gz
+REVISIONID := "git $(shell git describe --abbrev=12 --always --dirty=+)"
 
 .PHONY: all clean
 
@@ -20,6 +21,12 @@ all: $(CMD)
 clean:
 	$(RM) $(CMD)
 	$(RM) *.o
+
+.PHONY: force
+version: force
+	echo '$(REVISIONID)' | cmp -s - "$@" || echo '$(REVISIONID)' > "$@"
+
+version.c: version
 
 # hack: make objs intermediate to avoid their rebuild when binary is there
 .INTERMEDIATE: $(OBJS)
