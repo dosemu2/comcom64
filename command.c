@@ -2740,6 +2740,10 @@ static void perform_type(const char *arg)
 static void perform_ver(const char *arg)
   {
   printf("comcom32 v0.1\n");
+  if (strlen(revisionid))
+    {
+    printf(" Source Control Revision ID: %s\n", revisionid);
+    }
   }
 
 static void perform_cls(const char *arg)
