@@ -90,6 +90,8 @@
 #include <stubinfo.h>
 #include <sys/movedata.h>
 #include <sys/segments.h>
+#include <go32.h>
+#include <sys/farptr.h>
 
 #include "cmdbuf.h"
 #include "command.h"
@@ -2737,12 +2739,114 @@ static void perform_type(const char *arg)
     }
   }
 
+static int is_blank(const char cc)
+  {
+  if (cc == 32 || cc == 9 || cc == 13 || cc == 10)
+    {
+    return 1;
+    }
+  else
+    {
+    return 0;
+    }
+  }
+
 static void perform_ver(const char *arg)
   {
+  int is_r = 0;
+  while (*arg != '\0')
+    {
+    if (*cmd_switch == '\0') // if not a command switch ...
+      {
+      cprintf("Invalid parameter - %s\r\n", cmd_args);
+      reset_batfile_call_stack();
+      return;
+      }
+    else
+      {
+      if (stricmp(cmd_switch,"/r")==0)
+        {
+        is_r = 1;
+        }
+      else
+        {
+        cprintf("Invalid switch - %s\r\n", cmd_switch);
+        reset_batfile_call_stack();
+        return;
+        }
+      }
+    advance_cmd_arg();
+    }
+
+
   printf("comcom32 v0.1\n");
   if (strlen(revisionid))
     {
     printf(" Source Control Revision ID: %s\n", revisionid);
+    }
+  if (is_r)
+    {
+    const int buffersize = 256;
+    int ver_major, ver_minor, true_ver_major, true_ver_minor, oem_id;
+    unsigned ver_string, ii;
+    char *pc, *buffer = malloc(buffersize);
+    __dpmi_regs r;
+    r.x.ax = 0x3000;
+    __dpmi_int(0x21, &r);
+    ver_major = r.h.al;
+    ver_minor = r.h.ah;
+    oem_id = r.h.bh;
+    printf("\nReported DOS version (Int21.3000): %u.%02u OEM: %02Xh\n",
+		ver_major, ver_minor, oem_id);
+    r.x.ax = 0x3306;
+    r.x.bx = 0;
+    __dpmi_int(0x21, &r);
+    if (! r.x.bx)
+      {
+      printf("Reported true DOS version (Int21.3306): (none)\n");
+      }
+    else
+      {
+      true_ver_major = r.h.bl;
+      true_ver_minor = r.h.bh;
+      printf("Reported true DOS version (Int21.3306): %u.%02u\n",
+		true_ver_major, true_ver_minor);
+      }
+    r.x.ax = 0x33FF;
+    r.x.dx = 0;
+    __dpmi_int(0x21, &r);
+    if (! r.x.dx)
+      {
+      printf("Version string (Int21.33FF): (none)\n");
+      }
+    else
+      {
+      if (! buffer)
+        {
+        printf("Version string (Int21.33FF): (buffer allocation failure)\n");
+        }
+      else
+        {
+        ver_string = (r.x.dx << 4) + r.x.ax;
+        movedata(_dos_ds, (unsigned)ver_string,
+		_my_ds(), (unsigned)buffer,
+		buffersize - 1);
+        buffer[buffersize - 1] = 0;
+        pc = buffer;
+        while (is_blank(*pc))
+          {
+          ++pc;
+          }
+        ii = strlen(pc);
+        while (ii > 1 && is_blank(pc[ii - 1]))
+          {
+          --ii;
+          }
+        pc[ii] = 0;
+        printf("Version string (Int21.33FF): %s\n", pc);
+        }
+      }
+    free(buffer);
     }
   }
 
