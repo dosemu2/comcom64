@@ -1552,6 +1552,138 @@ static void perform_loadhigh(const char *arg)
   __dpmi_int(0x21, &r);
   }
 
+static void perform_loadfix(const char *arg)
+  {
+  const int numblocks = 16;
+  int orig_strat, orig_umblink, allocated, ii;
+  unsigned short allocations[numblocks], allocation, to_64kib, max, size;
+  __dpmi_regs r;
+  int is_v = 0;
+  while (*arg != '\0')
+    {
+    if (*cmd_switch == '\0') // if not a command switch ...
+      {
+      break;
+      }
+    else
+      {
+      if (stricmp(cmd_switch,"/v")==0)
+        {
+        is_v = 1;
+        }
+      else
+        {
+        cprintf("Invalid switch - %s\r\n", cmd_switch);
+        reset_batfile_call_stack();
+        return;
+        }
+      }
+    advance_cmd_arg();
+    }
+  strcpy(cmd, arg);
+  advance_cmd_arg();
+
+  r.x.ax = 0x5800;
+  __dpmi_int(0x21, &r);
+  orig_strat = r.x.ax;
+  r.x.ax = 0x5802;
+  __dpmi_int(0x21, &r);
+  orig_umblink = r.h.al;
+
+  r.x.ax = 0x5801;
+  r.x.bx = 0;				/* set strat LMA-then-UMA first-fit */
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = 0;				/* set UMB link off */
+  __dpmi_int(0x21, &r);
+
+  ii = 0;
+  do
+    {
+    r.h.ah = 0x48;
+    r.x.bx = 1;
+    __dpmi_int(0x21, &r);		/* allocate one-paragraph block */
+    if ((r.x.flags & 1) == 0)		/* if NC */
+      {
+      allocated = 1;
+      allocation = r.x.ax;
+      if (is_v)
+        {
+        printf("LOADFIX: allocated block at %04Xh\n", allocation);
+        }
+      if (allocation >= 0x1000) 	/* does it start above 64 KiB ? */
+        {
+        r.h.ah = 0x49;
+        r.x.es = allocation;
+        __dpmi_int(0x21, &r);		/* free */
+        if (is_v)
+          {
+          printf("LOADFIX: too high, freeing block at %04Xh\n", allocation);
+          }
+        break;				/* and done */
+        }
+      if (ii >= numblocks)
+        {
+        printf("LOADFIX: too many blocks allocated!\n");
+        break;
+        }
+      allocations[ii] = allocation;
+      ++ii;
+      r.h.ah = 0x4A;
+      r.x.bx = -1;
+      r.x.es = allocation;
+      __dpmi_int(0x21, &r);		/* resize and get maximum block size */
+		/* Note that this expands the block to the maximum
+		 * available size. */
+      max = r.x.bx;
+      to_64kib = 0x1000 - allocation;	/* note: does not underflow */
+      size = to_64kib < max ? to_64kib : max;
+      r.x.bx = size;
+      r.h.ah = 0x4A;
+      __dpmi_int(0x21, &r);		/* resize */
+		/* If to_64kib is the lower value, this shortens the block
+		 * to that size. Else it does nothing. */
+      if (is_v)
+        {
+        printf("LOADFIX: resizing block at %04Xh to %04Xh paragraphs (%u bytes)\n",
+		allocation, (int)size, (int)size * 16);
+        }
+      }
+    else
+      {
+      if (is_v)
+        {
+        printf("LOADFIX: could not allocate another block\n");
+        }
+      allocated = 0;
+      }
+    }
+  while (allocated);
+
+  r.x.ax = 0x5801;
+  r.x.bx = orig_strat;
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = orig_umblink;
+  __dpmi_int(0x21, &r);
+
+  perform_external_cmd(true, cmd);
+	  /* Should we set this to true? Only affects batch files anyway,
+	   * which shouldn't be loaded with LOADFIX to begin with. */
+
+  while (ii != 0)
+    {
+    --ii;
+    r.h.ah = 0x49;
+    r.x.es = allocations[ii];
+    __dpmi_int(0x21, &r);		/* free */
+    if (is_v)
+      {
+      printf("LOADFIX: afterwards freeing block at %04Xh\n", allocations[ii]);
+      }
+    }
+  }
+
 static void perform_cd(const char *arg)
   {
   while (*cmd_switch)  // skip switches
@@ -2925,6 +3057,7 @@ static struct built_in_cmd cmd_table[] =
     {"goto", perform_goto},
     {"help", perform_help},
     {"lh", perform_loadhigh},
+    {"loadfix", perform_loadfix},
     {"loadhigh", perform_loadhigh},
     {"md", perform_md},
     {"mkdir", perform_md},
