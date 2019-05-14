@@ -90,9 +90,12 @@
 #include <stubinfo.h>
 #include <sys/movedata.h>
 #include <sys/segments.h>
+#include <go32.h>
+#include <sys/farptr.h>
 
 #include "cmdbuf.h"
 #include "command.h"
+#include "version.h"
 
 /*
  * These declarations/definitions turn off some unwanted DJGPP features
@@ -1514,6 +1517,173 @@ static void perform_call(const char *arg)
   perform_external_cmd(true, cmd);
   }
 
+static void perform_loadhigh(const char *arg)
+  {
+  int orig_strat, orig_umblink;
+  __dpmi_regs r;
+  while (*cmd_switch)  // skip switches
+    advance_cmd_arg();
+  strcpy(cmd, arg);
+  advance_cmd_arg();
+
+  r.x.ax = 0x5800;
+  __dpmi_int(0x21, &r);
+  orig_strat = r.x.ax;
+  r.x.ax = 0x5802;
+  __dpmi_int(0x21, &r);
+  orig_umblink = r.h.al;
+
+  r.x.ax = 0x5801;
+  r.x.bx = (orig_strat & 0xF) | 0x80;	/* set strat area = UMA-then-LMA */
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = 1;				/* set UMB link on */
+  __dpmi_int(0x21, &r);
+
+  perform_external_cmd(true, cmd);
+	  /* Should we set this to true? Only affects batch files anyway,
+	   * which shouldn't be loaded with LOADHIGH to begin with. */
+
+  r.x.ax = 0x5801;
+  r.x.bx = orig_strat;
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = orig_umblink;
+  __dpmi_int(0x21, &r);
+  }
+
+static void perform_loadfix(const char *arg)
+  {
+  const int numblocks = 16;
+  int orig_strat, orig_umblink, allocated, ii;
+  unsigned short allocations[numblocks], allocation, to_64kib, max, size;
+  __dpmi_regs r;
+  int is_v = 0;
+  while (*arg != '\0')
+    {
+    if (*cmd_switch == '\0') // if not a command switch ...
+      {
+      break;
+      }
+    else
+      {
+      if (stricmp(cmd_switch,"/v")==0)
+        {
+        is_v = 1;
+        }
+      else
+        {
+        cprintf("Invalid switch - %s\r\n", cmd_switch);
+        reset_batfile_call_stack();
+        return;
+        }
+      }
+    advance_cmd_arg();
+    }
+  strcpy(cmd, arg);
+  advance_cmd_arg();
+
+  r.x.ax = 0x5800;
+  __dpmi_int(0x21, &r);
+  orig_strat = r.x.ax;
+  r.x.ax = 0x5802;
+  __dpmi_int(0x21, &r);
+  orig_umblink = r.h.al;
+
+  r.x.ax = 0x5801;
+  r.x.bx = 0;				/* set strat LMA-then-UMA first-fit */
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = 0;				/* set UMB link off */
+  __dpmi_int(0x21, &r);
+
+  ii = 0;
+  do
+    {
+    r.h.ah = 0x48;
+    r.x.bx = 1;
+    __dpmi_int(0x21, &r);		/* allocate one-paragraph block */
+    if ((r.x.flags & 1) == 0)		/* if NC */
+      {
+      allocated = 1;
+      allocation = r.x.ax;
+      if (is_v)
+        {
+        printf("LOADFIX: allocated block at %04Xh\n", allocation);
+        }
+      if (allocation >= 0x1000) 	/* does it start above 64 KiB ? */
+        {
+        r.h.ah = 0x49;
+        r.x.es = allocation;
+        __dpmi_int(0x21, &r);		/* free */
+        if (is_v)
+          {
+          printf("LOADFIX: too high, freeing block at %04Xh\n", allocation);
+          }
+        break;				/* and done */
+        }
+      if (ii >= numblocks)
+        {
+        printf("LOADFIX: too many blocks allocated!\n");
+        break;
+        }
+      allocations[ii] = allocation;
+      ++ii;
+      r.h.ah = 0x4A;
+      r.x.bx = -1;
+      r.x.es = allocation;
+      __dpmi_int(0x21, &r);		/* resize and get maximum block size */
+		/* Note that this expands the block to the maximum
+		 * available size. */
+      max = r.x.bx;
+      to_64kib = 0x1000 - allocation;	/* note: does not underflow */
+      size = to_64kib < max ? to_64kib : max;
+      r.x.bx = size;
+      r.h.ah = 0x4A;
+      __dpmi_int(0x21, &r);		/* resize */
+		/* If to_64kib is the lower value, this shortens the block
+		 * to that size. Else it does nothing. */
+      if (is_v)
+        {
+        printf("LOADFIX: resizing block at %04Xh to %04Xh paragraphs (%u bytes)\n",
+		allocation, (int)size, (int)size * 16);
+        }
+      }
+    else
+      {
+      if (is_v)
+        {
+        printf("LOADFIX: could not allocate another block\n");
+        }
+      allocated = 0;
+      }
+    }
+  while (allocated);
+
+  r.x.ax = 0x5801;
+  r.x.bx = orig_strat;
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = orig_umblink;
+  __dpmi_int(0x21, &r);
+
+  perform_external_cmd(true, cmd);
+	  /* Should we set this to true? Only affects batch files anyway,
+	   * which shouldn't be loaded with LOADFIX to begin with. */
+
+  while (ii != 0)
+    {
+    --ii;
+    r.h.ah = 0x49;
+    r.x.es = allocations[ii];
+    __dpmi_int(0x21, &r);		/* free */
+    if (is_v)
+      {
+      printf("LOADFIX: afterwards freeing block at %04Xh\n", allocations[ii]);
+      }
+    }
+  }
+
 static void perform_cd(const char *arg)
   {
   while (*cmd_switch)  // skip switches
@@ -2736,9 +2906,115 @@ static void perform_type(const char *arg)
     }
   }
 
+static int is_blank(const char cc)
+  {
+  if (cc == 32 || cc == 9 || cc == 13 || cc == 10)
+    {
+    return 1;
+    }
+  else
+    {
+    return 0;
+    }
+  }
+
 static void perform_ver(const char *arg)
   {
+  int is_r = 0;
+  while (*arg != '\0')
+    {
+    if (*cmd_switch == '\0') // if not a command switch ...
+      {
+      cprintf("Invalid parameter - %s\r\n", cmd_args);
+      reset_batfile_call_stack();
+      return;
+      }
+    else
+      {
+      if (stricmp(cmd_switch,"/r")==0)
+        {
+        is_r = 1;
+        }
+      else
+        {
+        cprintf("Invalid switch - %s\r\n", cmd_switch);
+        reset_batfile_call_stack();
+        return;
+        }
+      }
+    advance_cmd_arg();
+    }
+
+
   printf("comcom32 v0.1\n");
+  if (strlen(revisionid))
+    {
+    printf(" Source Control Revision ID: %s\n", revisionid);
+    }
+  if (is_r)
+    {
+    const int buffersize = 256;
+    int ver_major, ver_minor, true_ver_major, true_ver_minor, oem_id;
+    unsigned ver_string, ii;
+    char *pc, *buffer = malloc(buffersize);
+    __dpmi_regs r;
+    r.x.ax = 0x3000;
+    __dpmi_int(0x21, &r);
+    ver_major = r.h.al;
+    ver_minor = r.h.ah;
+    oem_id = r.h.bh;
+    printf("\nReported DOS version (Int21.3000): %u.%02u OEM: %02Xh\n",
+		ver_major, ver_minor, oem_id);
+    r.x.ax = 0x3306;
+    r.x.bx = 0;
+    __dpmi_int(0x21, &r);
+    if (! r.x.bx)
+      {
+      printf("Reported true DOS version (Int21.3306): (none)\n");
+      }
+    else
+      {
+      true_ver_major = r.h.bl;
+      true_ver_minor = r.h.bh;
+      printf("Reported true DOS version (Int21.3306): %u.%02u\n",
+		true_ver_major, true_ver_minor);
+      }
+    r.x.ax = 0x33FF;
+    r.x.dx = 0;
+    __dpmi_int(0x21, &r);
+    if (! r.x.dx)
+      {
+      printf("Version string (Int21.33FF): (none)\n");
+      }
+    else
+      {
+      if (! buffer)
+        {
+        printf("Version string (Int21.33FF): (buffer allocation failure)\n");
+        }
+      else
+        {
+        ver_string = (r.x.dx << 4) + r.x.ax;
+        movedata(_dos_ds, (unsigned)ver_string,
+		_my_ds(), (unsigned)buffer,
+		buffersize - 1);
+        buffer[buffersize - 1] = 0;
+        pc = buffer;
+        while (is_blank(*pc))
+          {
+          ++pc;
+          }
+        ii = strlen(pc);
+        while (ii > 1 && is_blank(pc[ii - 1]))
+          {
+          --ii;
+          }
+        pc[ii] = 0;
+        printf("Version string (Int21.33FF): %s\n", pc);
+        }
+      }
+    free(buffer);
+    }
   }
 
 static void perform_cls(const char *arg)
@@ -2780,6 +3056,9 @@ static struct built_in_cmd cmd_table[] =
     {"exit", perform_exit},
     {"goto", perform_goto},
     {"help", perform_help},
+    {"lh", perform_loadhigh},
+    {"loadfix", perform_loadfix},
+    {"loadhigh", perform_loadhigh},
     {"md", perform_md},
     {"mkdir", perform_md},
     {"move", perform_move},
