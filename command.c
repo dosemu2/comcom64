@@ -88,7 +88,7 @@
 #include <sys/stat.h>
 
 #include <stubinfo.h>
-#include <sys/movedata.h>
+#include <sys/movedata.h>	/* for movedata and dosmemget */
 #include <sys/segments.h>
 #include <go32.h>
 #include <sys/farptr.h>
@@ -2995,9 +2995,7 @@ static void perform_ver(const char *arg)
       else
         {
         ver_string = (r.x.dx << 4) + r.x.ax;
-        movedata(_dos_ds, (unsigned)ver_string,
-		_my_ds(), (unsigned)buffer,
-		buffersize - 1);
+        dosmemget(ver_string, buffersize - 1, buffer);
         buffer[buffersize - 1] = 0;
         pc = buffer;
         while (is_blank(*pc))
@@ -3442,7 +3440,7 @@ static void set_env_size(void)
   unsigned short env_sel;
   unsigned short env_seg;
   unsigned long env_addr;
-  unsigned short mcb_sel;
+  unsigned short mcb_segment;
   struct MCB mcb;
   unsigned env_size;
   unsigned old_env_size;
@@ -3453,8 +3451,8 @@ static void set_env_size(void)
   old_env_size = __dpmi_get_segment_limit(env_sel) + 1;
   if (!err && !(env_addr & 0xf) && env_addr < 0x110000 && old_env_size == 0x10000) {
     env_seg = env_addr >> 4;
-    mcb_sel = __dpmi_segment_to_descriptor(env_seg - 1);
-    movedata(mcb_sel, 0, _my_ds(), (unsigned)&mcb, sizeof(mcb));
+    mcb_segment = env_seg - 1;
+    dosmemget(mcb_segment << 4, sizeof(mcb), &mcb);
     env_size = mcb.size * 16;
     __dpmi_set_segment_limit(env_sel, env_size - 1);
   }
