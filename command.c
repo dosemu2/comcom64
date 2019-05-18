@@ -88,7 +88,7 @@
 #include <sys/stat.h>
 
 #include <stubinfo.h>
-#include <sys/movedata.h>
+#include <sys/movedata.h>	/* for movedata and dosmemget */
 #include <sys/segments.h>
 #include <go32.h>
 #include <sys/farptr.h>
@@ -2995,9 +2995,7 @@ static void perform_ver(const char *arg)
       else
         {
         ver_string = (r.x.dx << 4) + r.x.ax;
-        movedata(_dos_ds, (unsigned)ver_string,
-		_my_ds(), (unsigned)buffer,
-		buffersize - 1);
+        dosmemget(ver_string, buffersize - 1, buffer);
         buffer[buffersize - 1] = 0;
         pc = buffer;
         while (is_blank(*pc))
