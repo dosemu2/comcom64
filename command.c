@@ -3440,7 +3440,7 @@ static void set_env_size(void)
   unsigned short env_sel;
   unsigned short env_seg;
   unsigned long env_addr;
-  unsigned short mcb_sel;
+  unsigned short mcb_segment;
   struct MCB mcb;
   unsigned env_size;
   unsigned old_env_size;
@@ -3451,8 +3451,8 @@ static void set_env_size(void)
   old_env_size = __dpmi_get_segment_limit(env_sel) + 1;
   if (!err && !(env_addr & 0xf) && env_addr < 0x110000 && old_env_size == 0x10000) {
     env_seg = env_addr >> 4;
-    mcb_sel = __dpmi_segment_to_descriptor(env_seg - 1);
-    movedata(mcb_sel, 0, _my_ds(), (unsigned)&mcb, sizeof(mcb));
+    mcb_segment = env_seg - 1;
+    dosmemget(mcb_segment << 4, sizeof(mcb), &mcb);
     env_size = mcb.size * 16;
     __dpmi_set_segment_limit(env_sel, env_size - 1);
   }
