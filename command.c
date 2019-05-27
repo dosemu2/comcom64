@@ -590,10 +590,12 @@ static void prompt_for_and_get_cmd(void)
       case KEY_ENTER:
         break;
       case KEY_BACKSPACE:
-        cmdbuf_move(conbuf+2, LEFT);
-        clreol();
-        /* Delete the character at the end of string */
-        cmdbuf_delch(conbuf+2);
+        if (cmdbuf_move(conbuf+2, LEFT))
+        {
+          clreol();
+          /* Delete the character at the end of string */
+          cmdbuf_delch(conbuf+2);
+        }
         break;
       case KEY_DELETE:
         cmdbuf_delch(conbuf+2);

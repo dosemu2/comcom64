@@ -54,28 +54,33 @@ static void _cmdbuf_clr_line(char *cmd_buf)
 	}
 }
 
-void cmdbuf_move(char *cmd_buf, int direction)
+int cmdbuf_move(char *cmd_buf, int direction)
 {
+  int ret = 0;
   switch (direction)
   {
     case UP:
       cmdqueue_index --;
       cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
+      ret++;
       if (cmdqueue[cmdqueue_index][0] == '\0') {
         cmdqueue_index ++;
         cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
+        ret--;
       }
       break;
     case LEFT:
       if (cur != 0) {
         putch(KEY_ASCII(KEY_BACKSPACE));
         cur--;
+        ret++;
       }
       break;
     case RIGHT:
       if (cur < tail) {
         putch(cmd_buf[cur]);
         cur++;
+        ret++;
       }
       break;
     case DOWN:
@@ -83,17 +88,20 @@ void cmdbuf_move(char *cmd_buf, int direction)
         break;
       cmdqueue_index ++;
       cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
+      ret++;
       break;
     case HOME:
       while (cur != 0) {
         putch(KEY_ASCII(KEY_BACKSPACE));
         cur--;
+        ret++;
       }
       break;
     case END:
       while (cur < tail) {
         putch(cmd_buf[cur]);
         cur++;
+        ret++;
       }
       break;
     default:
@@ -109,6 +117,8 @@ void cmdbuf_move(char *cmd_buf, int direction)
       cur = tail = strlen(cmdqueue[cmdqueue_index]);
     }
   }
+
+  return ret;
 }
 
 void cmdbuf_delch(char *cmd_buf)
