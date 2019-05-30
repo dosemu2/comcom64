@@ -539,7 +539,7 @@ static unsigned short keyb_get_rawcode(void)
 {
   unsigned short c = getch();
 
-  if (c == 0x00 || c == 0xE0)
+  if (c == 0x00/* || c == 0xE0*/)
     c = getch()<<8;
 
   if (c == KEY_INSERT)
@@ -579,9 +579,10 @@ static void prompt_for_and_get_cmd(void)
     key = keyb_get_rawcode();
     flag = keyb_get_shift_states();
 
-    if (KEY_ASCII(key) == KEY_EXT)
-      key = KEY_EXTM(key);
-    else if (KEY_ASCII(key) != 0)
+//    if (KEY_ASCII(key) == KEY_EXT)
+//      key = KEY_EXTM(key);
+//    else
+    if (KEY_ASCII(key) != 0)
       key = KEY_ASCII(key);
     switch (key)
     {
@@ -625,7 +626,7 @@ static void prompt_for_and_get_cmd(void)
         cmdbuf_move(conbuf+2, END);
         break;
       default:
-        if (KEY_ASCII(key) != 0x00 && KEY_ASCII(key) != 0xE0) {
+        if (KEY_ASCII(key) != 0x00/* && KEY_ASCII(key) != 0xE0*/) {
           char c = cmdbuf_putch(conbuf+2, MAX_CMD_BUFLEN-2, KEY_ASCII(key), flag);
           if (c)
             putch(c);
