@@ -3441,11 +3441,8 @@ static void set_env_size(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
   unsigned short env_sel;
-  unsigned short env_seg;
   unsigned long env_addr;
-  unsigned short mcb_segment;
   struct MCB mcb;
-  unsigned env_size;
   unsigned old_env_size;
   int err;
 
@@ -3453,11 +3450,8 @@ static void set_env_size(void)
   err = __dpmi_get_segment_base_address(env_sel, &env_addr);
   old_env_size = __dpmi_get_segment_limit(env_sel) + 1;
   if (!err && !(env_addr & 0xf) && env_addr < 0x110000 && old_env_size == 0x10000) {
-    env_seg = env_addr >> 4;
-    mcb_segment = env_seg - 1;
-    dosmemget(mcb_segment << 4, sizeof(mcb), &mcb);
-    env_size = mcb.size * 16;
-    __dpmi_set_segment_limit(env_sel, env_size - 1);
+    dosmemget(env_addr - sizeof(mcb), sizeof(mcb), &mcb);
+    __dpmi_set_segment_limit(env_sel, mcb.size * 16 - 1);
   }
 }
 
