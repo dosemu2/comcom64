@@ -151,13 +151,13 @@ char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short 
 
   if (cur < buf_size) {
     /* Reflect the insert method */
-    if (flag&KEYB_FLAG_INSERT) {
+    if (!(flag&KEYB_FLAG_INSERT)) {
       for (i = tail; i > cur; i--)
         cmd_buf[i] = cmd_buf[i-1];
     }
     /* Put into cmdline buffer */
     cmd_buf[cur++] = ch;
-    if ((flag&KEYB_FLAG_INSERT && tail < buf_size) || cur > tail)
+    if ((!(flag&KEYB_FLAG_INSERT) && tail < buf_size) || cur > tail)
       tail++;
     /* Update the string on screen */
     for (i = cur-1; i < tail-1; i++)

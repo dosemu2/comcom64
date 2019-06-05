@@ -534,7 +534,7 @@ NoArgs:
   return;
   }
 
-static unsigned short keyb_shift_states = KEYB_FLAG_INSERT;
+static unsigned short keyb_shift_states;
 static unsigned short keyb_get_rawcode(void)
 {
   unsigned short c = getch();
@@ -569,7 +569,7 @@ static void prompt_for_and_get_cmd(void)
   cgets(conbuf); */
   /* Console initialize */
   flag = keyb_get_shift_states();
-  if (flag&KEYB_FLAG_INSERT)
+  if (!(flag&KEYB_FLAG_INSERT))
     _setcursortype(_NORMALCURSOR);
   else
     _setcursortype(_SOLIDCURSOR);
@@ -602,7 +602,7 @@ static void prompt_for_and_get_cmd(void)
         cmdbuf_delch(conbuf+2);
         break;
       case KEY_INSERT:
-        if (flag&KEYB_FLAG_INSERT)
+        if (!(flag&KEYB_FLAG_INSERT))
           _setcursortype(_NORMALCURSOR);
         else
           _setcursortype(_SOLIDCURSOR);
