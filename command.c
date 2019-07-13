@@ -1711,14 +1711,24 @@ static void perform_cd(const char *arg)
 
 static void perform_change_drive(void)
   {
-  unsigned int drive_set, cur_drive, dummy;
+  char cur_drive_and_path[MAXPATH];
+  unsigned int drive_set, cur_drive = 0, old_drive, dummy;
   drive_set = toupper(cmd[0])-'A'+1;
+  getdrive(&old_drive);
   setdrive(drive_set, &dummy);
   getdrive(&cur_drive);
   if (cur_drive != drive_set)
     {
     cprintf("Invalid drive specification - %s\r\n", cmd);
     reset_batfile_call_stack();
+    return;
+    }
+  if (!getcwd(cur_drive_and_path, MAXPATH))
+    {
+    cprintf("Drive not ready - %s\r\n", cmd);
+    reset_batfile_call_stack();
+    setdrive(old_drive, &dummy);
+    return;
     }
   }
 
