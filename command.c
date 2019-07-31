@@ -3465,6 +3465,20 @@ static void set_env_size(void)
   }
 }
 
+static void set_psp_owner(void)
+{
+  unsigned short psp = _stubinfo->psp_selector;
+  unsigned long psp_addr;
+  unsigned short psp_seg;
+  int err;
+
+  err = __dpmi_get_segment_base_address(psp, &psp_addr);
+  if (!err && !(psp_addr & 0xf) && psp_addr < 0x110000) {
+    psp_seg = psp_addr >> 4;
+    dosmemput(&psp_seg, 2, psp_addr + 0x16);
+  }
+}
+
 int main(int argc, char *argv[], char *envp[])
 
   {
@@ -3488,6 +3502,7 @@ int main(int argc, char *argv[], char *envp[])
   // init bat file stack
   reset_batfile_call_stack();
 
+  set_psp_owner();
   set_env_size();
   cmd_path = strdup(argv[0]);
   strupr(cmd_path);
