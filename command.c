@@ -143,7 +143,8 @@ static int pipe_to_cmd_redir_count;
  */
 #define MAX_STACK_LEVEL        20 // Max number of batch file call stack levels
 #define MAX_BAT_ARGS           9  // Max number of batch file arguments
-static int need_to_crlf_at_next_prompt = true;
+
+static int need_to_crlf_at_next_prompt;
 static int stack_level = 0;
 static int echo_on[MAX_STACK_LEVEL];
 static char bat_file_path[MAX_STACK_LEVEL][FILENAME_MAX];  // when this string is not "" it triggers batch file execution
@@ -3371,7 +3372,6 @@ static void exec_cmd(void)
 
   while (cmd[0] != '\0')
     {
-    need_to_crlf_at_next_prompt = true;
     if (stricmp(cmd, "if") == 0)
       {
       perform_if();
@@ -3395,7 +3395,10 @@ static void exec_cmd(void)
           }
         }
       if (c >= CMD_TABLE_COUNT)
-        perform_external_cmd(false, cmd);
+        {
+          need_to_crlf_at_next_prompt = true;
+          perform_external_cmd(false, cmd);
+        }
       }
     cmd[0] = '\0';
     }
