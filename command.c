@@ -151,6 +151,7 @@ static char bat_file_path[MAX_STACK_LEVEL][FILENAME_MAX];  // when this string i
 static char bat_arg[MAX_STACK_LEVEL][MAX_BAT_ARGS][MAX_CMD_BUFLEN];
 static int bat_file_line_number[MAX_STACK_LEVEL];
 static unsigned error_level = 0;  // Program execution return code
+static int exiting;
 
 /*
  * File attribute constants
@@ -2222,7 +2223,7 @@ static void perform_exit(const char *arg)
   else
     {
     if (!shell_permanent)
-      exit(error_level);
+      exiting++;
     }
   }
 
@@ -3468,18 +3469,26 @@ static void set_env_size(void)
   }
 }
 
+static unsigned long psp_addr;
+static unsigned short orig_psp_seg;
+
 static void set_psp_owner(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
-  unsigned long psp_addr;
   unsigned short psp_seg;
   int err;
 
   err = __dpmi_get_segment_base_address(psp, &psp_addr);
   if (!err && !(psp_addr & 0xf) && psp_addr < 0x110000) {
     psp_seg = psp_addr >> 4;
+    dosmemget(psp_addr + 0x16, 2, &orig_psp_seg);
     dosmemput(&psp_seg, 2, psp_addr + 0x16);
   }
+}
+
+static void restore_psp_owner(void)
+{
+  dosmemput(&orig_psp_seg, 2, psp_addr + 0x16);
 }
 
 int main(int argc, char *argv[], char *envp[])
@@ -3615,7 +3624,7 @@ int main(int argc, char *argv[], char *envp[])
     }
 
   // Main command parsing/interpretation/execution loop
-  for (;;)
+  while (!exiting)
     {
     if (cmd_line[0] == '\0')
       {
@@ -3631,5 +3640,6 @@ int main(int argc, char *argv[], char *envp[])
     exec_cmd();
     }
 
-  return 0;
+  restore_psp_owner();
+  return error_level;
   }
