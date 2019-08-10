@@ -2836,7 +2836,7 @@ static void perform_set(const char *arg)
     }
   else
     {
-    var_name = arg;
+    var_name = cmd_args;
     if (strlen(var_name) == 0)
       {
       cputs("Syntax error\r\n");
