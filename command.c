@@ -3631,7 +3631,10 @@ int main(int argc, char *argv[], char *envp[])
       if (bat_file_path[stack_level][0] == '\0')
         {
         if (shell_mode == SHELL_SINGLE_CMD)
+          {
           perform_exit(NULL);
+          continue;
+          }
         prompt_for_and_get_cmd();
         }
       else
