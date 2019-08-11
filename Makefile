@@ -1,8 +1,9 @@
 # Project: FreeDOS-32 command
 # Makefile for DJGPP and Mingw32
 
-CC = i586-pc-msdosdjgpp-gcc
-STRIP = i586-pc-msdosdjgpp-strip
+DOS_CC ?= i586-pc-msdosdjgpp-gcc
+DOS_LD ?= i586-pc-msdosdjgpp-gcc
+DOS_STRIP ?= i586-pc-msdosdjgpp-strip
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
 C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations
@@ -31,13 +32,13 @@ version.c: version
 # hack: make objs intermediate to avoid their rebuild when binary is there
 .INTERMEDIATE: $(OBJS)
 $(CMD): $(OBJS)
-	$(CC) $(LINK_OPT) $(OBJS) -o $(CMD)
-	$(STRIP) $(CMD)
+	$(DOS_LD) $(LINK_OPT) $(OBJS) -o $(CMD)
+	$(DOS_STRIP) $(CMD)
 	chmod -x $(CMD)
 
 # Common rules
 %.o : %.c
-	$(REDIR) $(CC) $(C_OPT) $(C_OUTPUT) -c $<
+	$(REDIR) $(DOS_CC) $(C_OPT) $(C_OUTPUT) -c $<
 
 install: $(CMD)
 	install -D -t $(DESTDIR)$(DATADIR) -m 0644 $(CMD)
