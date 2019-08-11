@@ -2239,14 +2239,15 @@ static void put_env(unsigned short env_sel)
   }
   for (env_count = 0; environ[env_count]; env_count++) {
     int l = strlen(environ[env_count]) + 1;
-    if (env_offs + l >= env_size - 2) {
+    if (env_offs + l >= env_size - tail_sz) {
       printf("ENV buffer overflow (size %u)\n", env_size);
       break;
     }
     movedata(_my_ds(), (unsigned)environ[env_count], env_sel, env_offs, l);
     env_offs += l;
   }
-  movedata(_my_ds(), (unsigned)tail, env_sel, env_offs, tail_sz);
+  if (env_offs + tail_sz <= env_size)
+    movedata(_my_ds(), (unsigned)tail, env_sel, env_offs, tail_sz);
 }
 
 static void perform_external_cmd(int call, char *ext_cmd)
