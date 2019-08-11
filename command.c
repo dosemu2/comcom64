@@ -558,17 +558,8 @@ static void prompt_for_and_get_cmd(void)
   {
   int flag = 0, key = 0, len;
   char conbuf[MAX_CMD_BUFLEN+1];
-  output_prompt();
-  conbuf[0] = MAX_CMD_BUFLEN-1;
-  /* conbuf[1] is not used, reserved ... */
-  /* -Salvo: was while(kbhit()) getch(); */
 
-  /* while(kbhit())
-  {
-    unsigned short c = keyb_get_rawcode();
-    printf("while(kbhit()) getch(): '%02x'\n", c);
-  }
-  cgets(conbuf); */
+  output_prompt();
   /* Console initialize */
   flag = keyb_get_shift_states();
   if (!(flag&KEYB_FLAG_INSERT))
@@ -593,15 +584,15 @@ static void prompt_for_and_get_cmd(void)
       case KEY_ENTER:
         break;
       case KEY_BACKSPACE:
-        if (cmdbuf_move(conbuf+2, LEFT))
+        if (cmdbuf_move(conbuf, LEFT))
         {
           clreol();
           /* Delete the character at the end of string */
-          cmdbuf_delch(conbuf+2);
+          cmdbuf_delch(conbuf);
         }
         break;
       case KEY_DELETE:
-        cmdbuf_delch(conbuf+2);
+        cmdbuf_delch(conbuf);
         break;
       case KEY_INSERT:
         if (!(flag&KEYB_FLAG_INSERT))
@@ -610,26 +601,26 @@ static void prompt_for_and_get_cmd(void)
           _setcursortype(_SOLIDCURSOR);
         break;
       case KEY_UP:
-        cmdbuf_move(conbuf+2, UP);
+        cmdbuf_move(conbuf, UP);
         break;
       case KEY_LEFT:
-        cmdbuf_move(conbuf+2, LEFT);
+        cmdbuf_move(conbuf, LEFT);
         break;
       case KEY_RIGHT:
-        cmdbuf_move(conbuf+2, RIGHT);
+        cmdbuf_move(conbuf, RIGHT);
         break;
       case KEY_DOWN:
-        cmdbuf_move(conbuf+2, DOWN);
+        cmdbuf_move(conbuf, DOWN);
         break;
       case KEY_HOME:
-        cmdbuf_move(conbuf+2, HOME);
+        cmdbuf_move(conbuf, HOME);
         break;
       case KEY_END:
-        cmdbuf_move(conbuf+2, END);
+        cmdbuf_move(conbuf, END);
         break;
       default:
         if (KEY_ASCII(key) != 0x00/* && KEY_ASCII(key) != 0xE0*/) {
-          char c = cmdbuf_putch(conbuf+2, MAX_CMD_BUFLEN-2, KEY_ASCII(key), flag);
+          char c = cmdbuf_putch(conbuf, MAX_CMD_BUFLEN-2, KEY_ASCII(key), flag);
           if (c)
             putch(c);
         }
@@ -639,7 +630,7 @@ static void prompt_for_and_get_cmd(void)
 
   len = cmdbuf_get_tail();
   /* Get the size of typed string */
-  strncpy(cmd_line, (char *)cmdbuf_gets(conbuf+2), len);
+  strncpy(cmd_line, (char *)cmdbuf_gets(conbuf), len);
 
   cmd_line[len] = '\0';
   parse_cmd_line();

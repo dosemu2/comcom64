@@ -4,7 +4,7 @@
 /*
  * Command parser defines
  */
-#define MAX_CMD_BUFLEN 128        // Define max command length
+#define MAX_CMD_BUFLEN 512        // Define max command length
 
 enum { UP, LEFT, RIGHT, DOWN, HOME, END };
 
