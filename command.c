@@ -2258,7 +2258,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
   char *pathvar, pathlist[200];
   char full_cmd[MAXPATH+MAX_CMD_BUFLEN] = "";
   char temp_cmd[MAXPATH+MAX_CMD_BUFLEN];
-
+  int rc;
   int exec_type, e, ba;
   static char *exec_ext[3] = {".COM",".EXE",".BAT"};
   char *s;
@@ -2407,7 +2407,11 @@ static void perform_external_cmd(int call, char *ext_cmd)
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
 #endif
-    error_level = system(full_cmd) & 0xff;
+    rc = system(full_cmd);
+    if (rc == -1)
+      cprintf("Error: unable to execute %s\r\n", full_cmd);
+    else
+      error_level = rc & 0xff;
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
 #endif
