@@ -88,6 +88,7 @@
 #include <sys/stat.h>
 
 #include <stubinfo.h>
+#include <process.h>
 #include <sys/movedata.h>	/* for movedata and dosmemget */
 #include <sys/segments.h>
 #include <go32.h>
@@ -2392,9 +2393,6 @@ static void perform_external_cmd(int call, char *ext_cmd)
     int err;
     int env_chg = 0;
 
-    if (*cmd_args != ' ' && *cmd_args != '\t')
-      strcat(full_cmd, " ");
-    strcat(full_cmd, cmd_args);
     movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
     err = __dpmi_get_segment_base_address(env_sel, &env_addr);
     if (!err && !(env_addr & 0xf) && env_addr < 0x110000) {
@@ -2407,7 +2405,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
 #endif
-    rc = system(full_cmd);
+    rc = _dos_exec(full_cmd, cmd_args, environ, 0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
     else
