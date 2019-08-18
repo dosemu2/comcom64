@@ -2398,7 +2398,16 @@ static void perform_external_cmd(int call, char *ext_cmd)
     if (!err && !(env_addr & 0xf) && env_addr < 0x110000) {
       env_seg = env_addr >> 4;
       movedata(_my_ds(), (unsigned)&env_seg, psp, 0x2c, 2);
+      /* the below is disabled because it seems we don't need
+       * to update our copy of env. djgpp creates the env segment
+       * for the child process from the prot-mode environment anyway.
+       * Disabling allows to pass much fewer memory to /E.
+       * But we still need the /E because some programs (msetenv)
+       * may set the env strings on their parent (shell) to make
+       * them permanent. */
+#if 0
       put_env(env_sel);
+#endif
       env_chg = 1;
     }
     _control87(0x033f, 0xffff);
