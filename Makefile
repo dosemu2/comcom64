@@ -38,9 +38,14 @@ $(CMD): $(OBJS)
 
 # Common rules
 %.o : %.c
-	$(REDIR) $(DOS_CC) $(C_OPT) $(C_OUTPUT) -c $<
+	$(REDIR) $(DOS_CC) $(C_OPT) $(C_OUTPUT) -c $< -o $@
 
-install: $(CMD)
+ifeq (,$(wildcard $(CMD)))
+install:
+	@echo "Build it first!" && false
+else
+install:
+endif
 	install -D -t $(DESTDIR)$(DATADIR) -m 0644 $(CMD)
 	ln -sf $(CMD) $(DESTDIR)$(DATADIR)/command.com
 
