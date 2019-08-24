@@ -2088,7 +2088,12 @@ static void perform_dir(const char *arg)
     advance_cmd_arg();
     }
 
-  if (*filespec == '\0' || is_drive_spec(filespec) || has_trailing_slash(filespec))
+  if (!has_trailing_slash(filespec) && !has_wildcard(filespec) &&
+      findfirst_f(filespec, &ff, FA_DIREC, NULL) == 0)
+    strcat(filespec, "\\");
+
+  if (*filespec == '\0' || is_drive_spec(filespec) ||
+      has_trailing_slash(filespec))
     strcat(filespec, "*.*");
   _fixpath(filespec, full_filespec);
   conv_unix_path_to_ms_dos(full_filespec);
