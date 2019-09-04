@@ -3540,9 +3540,15 @@ int main(int argc, char *argv[], char *envp[])
 
     if (strnicmp(argv[a], "/E:", 3) == 0)
       {
-      unsigned int env_size = atoi(argv[a] + 3) & ~0xf;
-      unsigned int old_size = get_env_size();
+      unsigned int env_size;
       int seg, sel, old_sel;
+      unsigned int old_size = get_env_size();
+
+      if (argv[a][3] == '+')
+        env_size = old_size + atoi(argv[a] + 4);
+      else
+        env_size = atoi(argv[a] + 3);
+      env_size &= ~0xf;
       if (env_size > old_size)
         {
         seg = __dpmi_allocate_dos_memory(env_size >> 4, &sel);
