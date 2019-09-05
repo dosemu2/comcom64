@@ -1517,7 +1517,7 @@ static void perform_call(const char *arg)
 static void perform_loadhigh(const char *arg)
   {
   int orig_strat, orig_umblink;
-  __dpmi_regs r;
+  __dpmi_regs r = {};
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
   strcpy(cmd, arg);
@@ -1554,7 +1554,7 @@ static void perform_loadfix(const char *arg)
   const int numblocks = 16;
   int orig_strat, orig_umblink, allocated, ii;
   unsigned short allocations[numblocks], allocation, to_64kib, max, size;
-  __dpmi_regs r;
+  __dpmi_regs r = {};
   int is_v = 0;
   while (*arg != '\0')
     {
@@ -2980,7 +2980,7 @@ static void perform_ver(const char *arg)
     int ver_major, ver_minor, true_ver_major, true_ver_minor, oem_id;
     unsigned ver_string, ii;
     char *pc, *buffer = malloc(buffersize);
-    __dpmi_regs r;
+    __dpmi_regs r = {};
     r.x.ax = 0x3000;
     __dpmi_int(0x21, &r);
     ver_major = r.h.al;
@@ -3499,6 +3499,14 @@ static void restore_psp_owner(void)
   dosmemput(&orig_psp_seg, 2, psp_addr + 0x16);
 }
 
+static void unlink_umb(void)
+{
+  __dpmi_regs r = {};
+  r.x.ax = 0x5803;
+  r.x.bx = 0;				/* set UMB link off */
+  __dpmi_int(0x21, &r);
+}
+
 int main(int argc, char *argv[], char *envp[])
 
   {
@@ -3514,6 +3522,9 @@ int main(int argc, char *argv[], char *envp[])
   // reset fpu
   _clear87();
   _fpreset();
+  unlink_umb();		// in case we loaded with shellhigh or lh
+  set_psp_owner();
+  set_env_size();
 
   // unbuffer stdin and stdout
   setbuf(stdin, NULL);
@@ -3522,8 +3533,6 @@ int main(int argc, char *argv[], char *envp[])
   // init bat file stack
   reset_batfile_call_stack();
 
-  set_psp_owner();
-  set_env_size();
   cmd_path = strdup(argv[0]);
   strupr(cmd_path);
   setenv("COMSPEC", cmd_path, 1);
