@@ -107,6 +107,9 @@
 #include <dpmi.h>
 extern char **environ;
 
+/* define to sync RM/PM env data - consumes more memory */
+#define SYNC_ENV 0
+
 #define UNUSED __attribute__((unused))
 int _crt0_startup_flags =
        _CRT0_FLAG_USE_DOS_SLASHES |          // keep the backslashes
@@ -2224,6 +2227,7 @@ static void perform_exit(const char *arg)
     }
   }
 
+#if SYNC_ENV
 static void put_env(unsigned short env_sel)
 {
   int env_count;
@@ -2255,6 +2259,7 @@ static void put_env(unsigned short env_sel)
   if (env_offs + tail_sz <= env_size)
     movedata(_my_ds(), (unsigned)tail, env_sel, env_offs, tail_sz);
 }
+#endif
 
 static void perform_external_cmd(int call, char *ext_cmd)
   {
@@ -2410,7 +2415,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
        * But we still need the /E because some programs (msetenv)
        * may set the env strings on their parent (shell) to make
        * them permanent. */
-#if 0
+#if SYNC_ENV
       put_env(env_sel);
 #endif
       env_chg = 1;
@@ -3558,7 +3563,9 @@ int main(int argc, char *argv[], char *envp[])
       else
         env_size = atoi(argv[a] + 3);
       env_size &= ~0xf;
+#if SYNC_ENV
       if (env_size > old_size)
+#endif
         {
         seg = __dpmi_allocate_dos_memory(env_size >> 4, &sel);
         if (seg != -1)
@@ -3566,8 +3573,10 @@ int main(int argc, char *argv[], char *envp[])
           unsigned short psp = _stubinfo->psp_selector;
           movedata(psp, 0x2c, _my_ds(), (unsigned)&old_sel, 2);
           movedata(_my_ds(), (unsigned)&sel, psp, 0x2c, 2);
+#if SYNC_ENV
           movedata(old_sel, 0, sel, 0, old_size);
           put_env(sel);
+#endif
           __dpmi_free_dos_memory(old_sel);
           }
         }
