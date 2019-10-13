@@ -107,9 +107,6 @@
 #include <dpmi.h>
 extern char **environ;
 
-/* define to sync RM/PM env data - consumes more memory */
-#define SYNC_ENV 0
-
 #define UNUSED __attribute__((unused))
 int _crt0_startup_flags =
        _CRT0_FLAG_USE_DOS_SLASHES |          // keep the backslashes
@@ -123,6 +120,9 @@ void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading 
 
 static int shell_mode = SHELL_NORMAL;
 static int shell_permanent;
+
+/* define to sync RM/PM env data - consumes more memory */
+#define SYNC_ENV 0
 
 /*
  * Command parser defines/variables
@@ -3530,6 +3530,10 @@ int main(int argc, char *argv[], char *envp[])
   unlink_umb();		// in case we loaded with shellhigh or lh
   set_psp_owner();
   set_env_size();
+
+#ifdef __spawn_leak_workaround
+  __spawn_flags &= ~__spawn_leak_workaround;
+#endif
 
   // unbuffer stdin and stdout
   setbuf(stdin, NULL);
