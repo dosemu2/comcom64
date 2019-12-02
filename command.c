@@ -2401,6 +2401,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
     unsigned long env_addr;
     char el[16];
     int err;
+    int alen;
     int env_chg = 0;
 
     movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
@@ -2424,6 +2425,15 @@ static void perform_external_cmd(int call, char *ext_cmd)
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
 #endif
+    /* prepend command tail with space */
+    alen = strlen(cmd_args) + 1;
+    if (alen >= MAX_CMD_BUFLEN)
+      {
+      alen = MAX_CMD_BUFLEN - 1;
+      cmd_args[alen - 1] = '\0';
+      }
+    memmove(cmd_args + 1, cmd_args, alen);
+    cmd_args[0] = ' ';
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
