@@ -3495,7 +3495,7 @@ static void set_env_size(void)
 static unsigned long psp_addr;
 static unsigned short orig_psp_seg;
 
-static void set_psp_owner(void)
+static void set_psp_parent(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
   unsigned short psp_seg;
@@ -3509,7 +3509,7 @@ static void set_psp_owner(void)
   }
 }
 
-static void restore_psp_owner(void)
+static void restore_psp_parent(void)
 {
   dosmemput(&orig_psp_seg, 2, psp_addr + 0x16);
 }
@@ -3538,7 +3538,7 @@ int main(int argc, char *argv[], char *envp[])
   _clear87();
   _fpreset();
   unlink_umb();		// in case we loaded with shellhigh or lh
-  set_psp_owner();
+  set_psp_parent();
   set_env_size();
 
 #ifdef __spawn_leak_workaround
@@ -3689,6 +3689,6 @@ int main(int argc, char *argv[], char *envp[])
     exec_cmd();
     }
 
-  restore_psp_owner();
+  restore_psp_parent();
   return error_level;
   }
