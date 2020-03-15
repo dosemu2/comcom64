@@ -593,7 +593,6 @@ static void prompt_for_and_get_cmd(void)
       case KEY_BACKSPACE:
         if (cmdbuf_move(conbuf, LEFT))
         {
-          clreol();
           /* Delete the character at the end of string */
           cmdbuf_delch(conbuf);
         }

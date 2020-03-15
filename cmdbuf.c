@@ -129,11 +129,12 @@ void cmdbuf_delch(char *cmd_buf)
     cmd_buf[tail] = 0;
 
     /* Move the left string to the current position */
-    for (i = cur; i < tail; i++)
+    for (i = cur; i < tail-1; i++)
     {
       putch(cmd_buf[i+1]);
       cmd_buf[i] = cmd_buf[i+1];
     }
+    putch(' ');
 
     /* Put cursor back to the current position */
     for (i = cur; i < tail; i++)
