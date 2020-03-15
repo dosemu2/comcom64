@@ -585,6 +585,9 @@ static void prompt_for_and_get_cmd(void)
     {
       case 0:
         break;
+      case 3:
+        cmdbuf_clear(conbuf);
+        break;
       case KEY_ENTER:
         break;
       case KEY_BACKSPACE:
@@ -3544,6 +3547,7 @@ int main(int argc, char *argv[], char *envp[])
 #ifdef __spawn_leak_workaround
   __spawn_flags &= ~__spawn_leak_workaround;
 #endif
+  __djgpp_hwint_flags = 1; // disable SIGINT
 
   // unbuffer stdin and stdout
   setbuf(stdin, NULL);
