@@ -14,6 +14,7 @@ URL: http://www.github.com/stsp/comcom32
 Source0: %{name}-%{version}.tar.gz
 
 BuildRequires: djcross-gcc
+BuildRequires: git
 BuildRequires: make
 
 %description

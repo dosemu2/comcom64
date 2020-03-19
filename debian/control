@@ -6,6 +6,7 @@ Standards-Version: 3.9.7
 Build-Depends:
     make,
     djgpp,
+    git,
     debhelper (>= 9~)
 Homepage: http://www.github.com/stsp/comcom32
 
