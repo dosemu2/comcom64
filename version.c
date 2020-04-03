@@ -1,6 +1,6 @@
 
 #include "version.h"
 
-const char revisionid[] = ""
+const char revisionid[] =
 #include "version"
 ;

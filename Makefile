@@ -13,7 +13,7 @@ CMD = comcom32.exe
 RELVER = alpha1
 PKG = comcom32-0.1$(RELVER)
 TGZ = $(PKG).tar.gz
-REVISIONID := "git $(shell git describe --abbrev=12 --always --dirty=+)"
+REVISIONID := "$(shell git describe --dirty=+)"
 
 .PHONY: all clean
 
@@ -27,10 +27,8 @@ clean:
 version: force
 	echo '$(REVISIONID)' | cmp -s - "$@" || echo '$(REVISIONID)' > "$@"
 
-version.c: version
+version.o: version
 
-# hack: make objs intermediate to avoid their rebuild when binary is there
-.INTERMEDIATE: $(OBJS)
 $(CMD): $(OBJS)
 	$(DOS_LD) $(LINK_OPT) $(OBJS) -o $(CMD)
 	$(DOS_STRIP) $(CMD)
