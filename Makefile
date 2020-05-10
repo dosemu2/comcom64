@@ -53,8 +53,9 @@ $(TGZ):
 
 tar: $(TGZ)
 
-rpm: $(TGZ)
-	rpmbuild --define "debug_package %{nil}" -tb $(TGZ)
+rpm: comcom32.spec.rpkg
+	git clean -fd
+	rpkg local
 
 deb:
 	debuild -i -us -uc -b

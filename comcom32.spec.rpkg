@@ -2,8 +2,8 @@
 # spec file for package comcom32
 #
 
-Name: comcom32
-Version: 0.1alpha1
+Name: {{{ git_dir_name }}}
+Version: {{{ git_dir_version }}}
 Release: 1%{?dist}
 Summary: 32-bit command.com
 
@@ -11,22 +11,23 @@ Group: System/Emulator
 
 License: GPL-3.0+
 URL: http://www.github.com/stsp/comcom32
-Source0: %{name}-%{version}.tar.gz
+VCS: {{{ git_dir_vcs }}}
+Source: {{{ git_dir_archive }}}
 
 BuildRequires: djcross-gcc
-BuildRequires: git
-BuildRequires: make
 
 %description
 comcom32 is a 32-bit command.com.
 
 %prep
-%setup -q
+{{{ git_dir_setup_macro }}}
 
 %build
 make %{?_smp_mflags}
 
 %check
+
+%define debug_package %{nil}
 
 %install
 make DESTDIR=%{buildroot} PREFIX=%{_prefix} install
@@ -37,3 +38,4 @@ make DESTDIR=%{buildroot} PREFIX=%{_prefix} install
 %{_datadir}/comcom32/command.com
 
 %changelog
+{{{ git_dir_changelog }}}
