@@ -13,7 +13,10 @@ CMD = comcom32.exe
 RELVER = alpha1
 PKG = comcom32-0.1$(RELVER)
 TGZ = $(PKG).tar.gz
-REVISIONID := "$(shell git describe --dirty=+)"
+REVISIONID := $(shell git describe --dirty=+)
+ifeq ($(REVISIONID),)
+REVISIONID := $(shell grep "Version:" ../comcom32.spec | cut -d " " -f 2)
+endif
 
 .PHONY: all clean
 
@@ -25,7 +28,7 @@ clean:
 
 .PHONY: force
 version: force
-	echo '$(REVISIONID)' | cmp -s - "$@" || echo '$(REVISIONID)' > "$@"
+	echo '"$(REVISIONID)"' | cmp -s - "$@" || echo '"$(REVISIONID)"' > "$@"
 
 version.o: version
 
