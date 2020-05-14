@@ -2229,7 +2229,8 @@ static void perform_exit(const char *arg)
     }
   }
 
-#if SYNC_ENV
+/* this function replaces RM env (pointed to with env_sel) with
+ * PM env (environ[]), leaving tail intact */
 static void put_env(unsigned short env_sel)
 {
   int env_count;
@@ -2240,6 +2241,7 @@ static void put_env(unsigned short env_sel)
   int tail_sz = 3;
 
   env = alloca(env_size + tail_sz);
+  /* back up full env, just for getting its tail */
   movedata(env_sel, 0, _my_ds(), (unsigned)env, env_size);
   memset(&env[env_size], 0, tail_sz);
   tail = memchr(env, 1, env_size);
@@ -2249,6 +2251,7 @@ static void put_env(unsigned short env_sel)
   } else {
     tail = env + env_size;
   }
+  /* now put entire environ[] down, overwriting prev content */
   for (env_count = 0; environ[env_count]; env_count++) {
     int l = strlen(environ[env_count]) + 1;
     if (env_offs + l >= env_size - tail_sz) {
@@ -2258,8 +2261,18 @@ static void put_env(unsigned short env_sel)
     movedata(_my_ds(), (unsigned)environ[env_count], env_sel, env_offs, l);
     env_offs += l;
   }
+  /* and preserve tail */
   if (env_offs + tail_sz <= env_size)
     movedata(_my_ds(), (unsigned)tail, env_sel, env_offs, tail_sz);
+}
+
+#if !SYNC_ENV
+static void sync_env(void)
+{
+  unsigned short sel;
+  unsigned short psp = _stubinfo->psp_selector;
+  movedata(psp, 0x2c, _my_ds(), (unsigned)&sel, 2);
+  put_env(sel);
 }
 #endif
 
@@ -3559,6 +3572,11 @@ int main(int argc, char *argv[], char *envp[])
   strupr(cmd_path);
   setenv("COMSPEC", cmd_path, 1);
   free(cmd_path);
+#if !SYNC_ENV
+  /* some progs (Word Perfect) look for COMSPEC in parent env, rather
+   * than their own. We need to sync it down to DOS. */
+  sync_env();
+#endif
 
   // process arguments
   for (a = 1; a < argc; a++)
@@ -3580,9 +3598,7 @@ int main(int argc, char *argv[], char *envp[])
       else
         env_size = atoi(argv[a] + 3);
       env_size &= ~0xf;
-#if SYNC_ENV
       if (env_size > old_size)
-#endif
         {
         seg = __dpmi_allocate_dos_memory(env_size >> 4, &sel);
         if (seg != -1)
@@ -3590,10 +3606,8 @@ int main(int argc, char *argv[], char *envp[])
           unsigned short psp = _stubinfo->psp_selector;
           movedata(psp, 0x2c, _my_ds(), (unsigned)&old_sel, 2);
           movedata(_my_ds(), (unsigned)&sel, psp, 0x2c, 2);
-#if SYNC_ENV
+          /* copy old content to preserve tail (and maybe COMSPEC) */
           movedata(old_sel, 0, sel, 0, old_size);
-          put_env(sel);
-#endif
           __dpmi_free_dos_memory(old_sel);
           }
         }
