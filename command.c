@@ -2460,6 +2460,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
     _control87(0x033f, 0xffff);
     _clear87();
     _fpreset();
+    gppconio_init();  /* video mode could change */
     if (env_chg) {
       char *cp;
       char *dos_environ;
