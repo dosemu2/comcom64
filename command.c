@@ -2267,6 +2267,58 @@ static void put_env(unsigned short env_sel)
 }
 
 #if !SYNC_ENV
+static void set_env(const char *variable, const char *value)
+{
+  unsigned short psp = _stubinfo->psp_selector;
+  unsigned short env_sel;
+  char *env;
+  char *tail;
+  char *cp;
+  char *env2;
+  int l;
+  int len;
+  unsigned env_size;
+  int tail_sz = 3;
+
+  movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
+  env_size  = __dpmi_get_segment_limit(env_sel) + 1;
+  env = alloca(env_size + tail_sz);
+  movedata(env_sel, 0, _my_ds(), (unsigned)env, env_size);
+  memset(&env[env_size], 0, tail_sz);
+  cp = env2 = env;
+  l = strlen(variable);
+  len = l + strlen(value) + 2;
+  /*
+     Delete any existing variable with the name (var).
+  */
+  while (*env2 && (env2 - env) < env_size) {
+    if ((strncmp(variable, env2, l) == 0) && (env2[l] == '=')) {
+      cp = env2 + strlen(env2) + 1;
+      memmove(env2, cp, env_size - (cp - env));
+    } else {
+      env2 += strlen(env2) + 1;
+    }
+  }
+
+  tail = env2;
+  cp = tail + 1;
+  if (cp[0] == '\1' && cp[1] == '\0')
+    tail_sz += strlen(cp + 2) + 1;
+
+  /*
+     If the variable fits, shovel it in at the end of the envrionment.
+  */
+  if (value && value[0] && (env_size - (env2 - env) - tail_sz >= len)) {
+    memmove(env2 + len, env2, tail_sz);
+    strcpy(env2, variable);
+    strcat(env2, "=");
+    strcat(env2, value);
+  }
+
+  /* now put it back */
+  movedata(_my_ds(), (unsigned)env, env_sel, 0, env_size);
+}
+
 static void sync_env(void)
 {
   unsigned short sel;
@@ -2698,6 +2750,9 @@ static void perform_path(const char *arg)
     memmove(cmd_args+5, cmd_args + off, strlen(cmd_args)+1);
     memcpy(cmd_args, "PATH=", 5);
     perform_set(cmd_args);
+#if !SYNC_ENV
+    set_env("PATH", getenv("PATH"));
+#endif
     }
   }
 
