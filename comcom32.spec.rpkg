@@ -14,7 +14,7 @@ URL: http://www.github.com/stsp/comcom32
 VCS: {{{ git_dir_vcs }}}
 Source: {{{ git_dir_archive }}}
 
-BuildRequires: djcross-gcc
+BuildRequires: build-gcc
 BuildRequires: grep
 
 %description
