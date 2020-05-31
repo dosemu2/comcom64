@@ -50,6 +50,9 @@ endif
 	install -D -t $(DESTDIR)$(DATADIR) -m 0644 $(CMD)
 	ln -sf $(CMD) $(DESTDIR)$(DATADIR)/command.com
 
+uninstall:
+	rm -rf $(DATADIR)
+
 $(TGZ):
 	git archive -o $(CURDIR)/$(TGZ) --prefix=$(PKG)/ HEAD
 .PHONY: $(TGZ)
