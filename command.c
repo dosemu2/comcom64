@@ -586,6 +586,7 @@ static void prompt_for_and_get_cmd(void)
       case 0:
         break;
       case 3:
+      case 0x100:
         cmdbuf_clear(conbuf);
         break;
       case KEY_ENTER:
@@ -3615,7 +3616,8 @@ int main(int argc, char *argv[], char *envp[])
 #ifdef __spawn_leak_workaround
   __spawn_flags &= ~__spawn_leak_workaround;
 #endif
-  __djgpp_hwint_flags = 1; // disable SIGINT
+  __djgpp_set_ctrl_c(0);    // disable SIGINT on ^C
+  _go32_want_ctrl_break(1); // disable SIGINT on ^Break
 
   // unbuffer stdin and stdout
   setbuf(stdin, NULL);
