@@ -2226,7 +2226,16 @@ static void perform_exit(const char *arg)
   else
     {
     if (!shell_permanent)
+      {
       exiting++;
+      if (arg)
+        {
+        if (arg[0])
+          error_level = atoi(arg);
+        else
+          error_level = 0;
+        }
+      }
     }
   }
 
