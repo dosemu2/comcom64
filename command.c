@@ -1520,6 +1520,28 @@ static void perform_call(const char *arg)
   perform_external_cmd(true, cmd);
   }
 
+static void perform_license(const char *arg)
+  {
+  const char *license =
+    "comcom32 - COMMAND.COM-compatible command processor for DOS.\n\n"
+    "Copyright (C) 1997, CENTROID CORPORATION, HOWARD, PA 16841\n"
+    "Copyright (C) Allen S. Cheung (allencheung@fastmail.ca)\n"
+    "Copyright (C) 2005, Hanzac Chen\n"
+    "Copyright (C) 2019, C. Masloch <pushbx@38.de>\n"
+    "Copyright (C) 2018-2020, stsp@users.sourceforge.net\n"
+    "\n"
+    "This program is free software: you can redistribute it and/or modify\n"
+    "it under the terms of the GNU General Public License as published by\n"
+    "the Free Software Foundation, either version 3 of the License, or\n"
+    "(at your option) any later version.\n"
+    "\n"
+    "This program is distributed in the hope that it will be useful,\n"
+    "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+    "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+    "GNU General Public License for more details.\n";
+  printf("%s\n", license);
+  }
+
 static void perform_loadhigh(const char *arg)
   {
   int orig_strat, orig_umblink;
@@ -3176,6 +3198,7 @@ static struct built_in_cmd cmd_table[] =
     {"goto", perform_goto, "", "move to label"},
     {"help", perform_help, "", "display this help"},
     {"lh", perform_loadhigh, "", "load program to UMB"},
+    {"license", perform_license, "", "show copyright information"},
     {"loadfix", perform_loadfix, "", "fix \"packed file is corrupt\""},
     {"loadhigh", perform_loadhigh, "", "load program to UMB"},
     {"md", perform_md, "", "create directory"},
