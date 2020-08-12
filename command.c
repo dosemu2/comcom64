@@ -3151,61 +3151,68 @@ static void perform_unimplemented_cmd(void)
 
 struct built_in_cmd
   {
-  char *cmd_name;
+  const char *cmd_name;
   void (*cmd_fn)(const char *);
+  const char *opts;
+  const char *help;
   };
 
 static struct built_in_cmd cmd_table[] =
   {
-    {"attrib", perform_attrib},
-    {"call", perform_call},
-    {"cd", perform_cd},
-    {"chdir", perform_cd},
-    {"choice", perform_choice},
-    {"cls", perform_cls},
-    {"copy", perform_copy},
-    {"date", perform_date},
-    {"del", perform_delete},
-    {"deltree", perform_deltree},
-    {"erase", perform_delete},
-    {"dir", perform_dir},
-    {"echo", perform_echo},
-    {"exit", perform_exit},
-    {"goto", perform_goto},
-    {"help", perform_help},
-    {"lh", perform_loadhigh},
-    {"loadfix", perform_loadfix},
-    {"loadhigh", perform_loadhigh},
-    {"md", perform_md},
-    {"mkdir", perform_md},
-    {"move", perform_move},
-    {"more", perform_more},
-    {"path", perform_path},
-    {"pause", perform_pause},
-    {"prompt", perform_prompt},
-    {"rd", perform_rd},
-    {"rmdir", perform_rd},
-    {"rename", perform_rename},
-    {"ren", perform_rename},
-    {"set", perform_set},
-    {"time", perform_time},
-    {"type", perform_type},
-    {"ver", perform_ver},
-    {"xcopy", perform_xcopy}
+    {"attrib", perform_attrib, "", "set file attributes"},
+    {"call", perform_call, "", "call batch file"},
+    {"cd", perform_cd, "", "change directory"},
+    {"chdir", perform_cd, "", "change directory"},
+    {"choice", perform_choice, "", "choice prompt sets ERRORLEVEL"},
+    {"cls", perform_cls, "", "clear screen"},
+    {"copy", perform_copy, "", "copy file"},
+    {"date", perform_date, "", "display date"},
+    {"del", perform_delete, "", "delete file"},
+    {"deltree", perform_deltree, "", "delete directory recursively"},
+    {"erase", perform_delete, "", "delete file"},
+    {"dir", perform_dir, "", "directory listing"},
+    {"echo", perform_echo, "", "terminal output"},
+    {"exit", perform_exit, "", "exit from interpreter"},
+    {"goto", perform_goto, "", "move to label"},
+    {"help", perform_help, "", "display this help"},
+    {"lh", perform_loadhigh, "", "load program to UMB"},
+    {"loadfix", perform_loadfix, "", "fix \"packed file is corrupt\""},
+    {"loadhigh", perform_loadhigh, "", "load program to UMB"},
+    {"md", perform_md, "", "create directory"},
+    {"mkdir", perform_md, "", "create directory"},
+    {"move", perform_move, "", "move file"},
+    {"more", perform_more, "", "scroll-pause long output"},
+    {"path", perform_path, "", "set search path"},
+    {"pause", perform_pause, "", "wait for a keypress"},
+    {"prompt", perform_prompt, "", "customize prompt string"},
+    {"rd", perform_rd, "", "remove directory"},
+    {"rmdir", perform_rd, "", "remove directory"},
+    {"rename", perform_rename, "", "rename with wildcards"},
+    {"ren", perform_rename, "", "rename with wildcards"},
+    {"set", perform_set, "", "set/unset environment variables"},
+    {"time", perform_time, "", "display time"},
+    {"type", perform_type, "", "display file content"},
+    {"ver", perform_ver, " [/r]", "display version"},
+    {"xcopy", perform_xcopy, "", "copy large file"},
   };
 
 static void list_cmds(void)
   {
-  int i;
+  int i, j;
 
-  printf("available commands:\n\n");
+  printf("\tAvailable commands:\n");
   for (i = 0; i < CMD_TABLE_COUNT; i++) {
-    printf("%s", cmd_table[i].cmd_name);
-    if ((i & 7) == 7)
-      putchar('\n');
-    else
-      putchar('\t');
+    int num = printf("%s%s - %s", cmd_table[i].cmd_name, cmd_table[i].opts,
+        cmd_table[i].help);
+    if (!(i & 1))
+      {
+      for (j = num; j < 40; j++)
+        printf(" ");
+      }
+      else
+        printf("\n");
   }
+  printf("\n");
   }
 
 static void parse_cmd_line(void)
