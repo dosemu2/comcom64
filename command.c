@@ -58,7 +58,7 @@
 *       - Some built-in commands should really be separate executables
 *         and not built-in. They are: CHOICE, MORE, PAUSE, XCOPY.
 *       - Some commands are not even recognized but should be.
-*         They are: FOR, SHIFT
+*         They are: SHIFT
 *
 *   COPYRIGHT (C) 1997  CENTROID CORPORATION, HOWARD, PA 16841
 *
@@ -73,6 +73,7 @@
 
 #include <dos.h>
 #include <time.h>
+#include <glob.h>
 #include <utime.h>
 #include <conio.h>
 #include <ctype.h>
@@ -155,6 +156,8 @@ static char bat_file_path[MAX_STACK_LEVEL][FILENAME_MAX];  // when this string i
 static char bat_arg[MAX_STACK_LEVEL][MAX_BAT_ARGS][MAX_CMD_BUFLEN];
 static int bat_file_line_number[MAX_STACK_LEVEL];
 static unsigned error_level = 0;  // Program execution return code
+static char for_var;
+static const char *for_val;
 static int exiting;
 
 /*
@@ -168,6 +171,7 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
  */
 static void parse_cmd_line(void);
 static void perform_external_cmd(int call, char *ext_cmd);
+static void exec_cmd(void);
 static void perform_set(const char *arg);
 static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
@@ -2261,6 +2265,113 @@ static void perform_exit(const char *arg)
     }
   }
 
+struct for_iter {
+  char *token;
+  int glob_idx;
+  int glob_state;
+  glob_t gl;
+  const char *end;
+  char *sptr;
+};
+
+static void advance_iter(struct for_iter *iter)
+  {
+  char *tok = strtok_r(NULL, " )", &iter->sptr);
+  iter->token = ((tok && tok < iter->end) ? tok : NULL);
+  }
+
+static const char *extract_token(struct for_iter *iter)
+  {
+  const char *tok;
+
+  if (iter->glob_state == 2)
+    {
+    globfree(&iter->gl);
+    iter->glob_state = 0;
+    }
+
+again:
+  if (!iter->token)
+    return NULL; // no more tokens
+  if (iter->glob_state)
+    {
+    tok = iter->gl.gl_pathv[iter->glob_idx++];
+    if (iter->glob_idx >= iter->gl.gl_pathc)
+      {
+      iter->glob_state = 2;
+      advance_iter(iter);
+      }
+    return tok;
+    }
+  if (!has_wildcard(iter->token))
+    {
+    tok = iter->token;
+    advance_iter(iter);
+    return tok;
+    }
+  strupr(iter->token);
+  if (glob(iter->token, 0, NULL, &iter->gl))
+    {
+    advance_iter(iter);
+    goto again;
+    }
+  tok = iter->gl.gl_pathv[0];
+  if (iter->gl.gl_pathc > 1)
+    {
+    iter->glob_state = 1;
+    iter->glob_idx = 1;
+    }
+  else
+    {
+    iter->glob_state = 2;
+    advance_iter(iter);
+    }
+  return tok;
+  }
+
+static void perform_for(const char *arg)
+  {
+  const char *tok;
+  char cmd_args2[MAX_CMD_BUFLEN];
+  struct for_iter iter = {};
+  char *p;
+  char *p1;
+  char *d0;
+  char *d1;
+  char *d;
+  char *v;
+  char *c;
+
+  strcpy(cmd_args2, cmd_args);
+  p = strchr(cmd_args2, '(');
+  p1 = strchr(cmd_args2, ')');
+  d0 = strstr(cmd_args2, "DO");
+  d1 = strstr(cmd_args2, "do");
+  d = d0 ?: d1;
+  v = strchr(cmd_args2, '%');
+  if (!p || !p1 || p1 < p || !d || !(c = strchr(d, ' ')) || c != d + 2 || !v)
+    {
+    cprintf("Syntax error\r\n");
+    reset_batfile_call_stack();
+    return;
+    }
+  v++;
+  for_var = *v;
+  p++;
+  iter.token = strtok_r(p, " )", &iter.sptr);
+  iter.end = p1;
+  while (*c == ' ')
+    c++;
+  while ((tok = extract_token(&iter)))
+    {
+    strlcpy(cmd_line, c, sizeof(cmd_line));
+    for_val = tok;
+    parse_cmd_line();
+    exec_cmd();
+    }
+  for_var = '\0';
+  }
+
 /* this function replaces RM env (pointed to with env_sel) with
  * PM env (environ[]), leaving tail intact */
 static void put_env(unsigned short env_sel)
@@ -3195,6 +3306,7 @@ static struct built_in_cmd cmd_table[] =
     {"dir", perform_dir, "", "directory listing"},
     {"echo", perform_echo, "", "terminal output"},
     {"exit", perform_exit, "", "exit from interpreter"},
+    {"for", perform_for, "", "FOR loop"},
     {"goto", perform_goto, "", "move to label"},
     {"help", perform_help, "", "display this help"},
     {"lh", perform_loadhigh, "", "load program to UMB"},
@@ -3242,7 +3354,8 @@ static void parse_cmd_line(void)
   {
   int c, cmd_len, *pipe_count_addr;
   char *extr, *dest, *saved_extr, *delim;
-  char new_cmd_line[MAX_CMD_BUFLEN], *v, *end;
+  char new_cmd_line[MAX_CMD_BUFLEN], *end;
+  const char *v;
 
   // substitute in variable values before parsing
   extr = strchr(cmd_line, '%');
@@ -3271,11 +3384,21 @@ static void parse_cmd_line(void)
             continue;
             }
           end = strchr(extr, '%');             // find ending '%'
-          if (end == NULL)                  // if '%' found, but no ending '%' ...
+          delim = strchr(extr, ' ');
+          if (end == NULL || (delim && end > delim))  // if '%' found, but no ending '%' ...
             {
-            *dest = '%';
-            dest++;
-            continue;
+            if (*extr && *extr == for_var)
+              {
+              v = for_val;
+              extr++;
+              continue;
+              }
+            else
+              {
+              *dest = '%';
+              dest++;
+              continue;
+              }
             }
           else                              // else ending '%' is found too
             {
