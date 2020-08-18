@@ -58,7 +58,7 @@
 *       - Some built-in commands should really be separate executables
 *         and not built-in. They are: CHOICE, MORE, PAUSE, XCOPY.
 *       - Some commands are not even recognized but should be.
-*         They are: SHIFT
+*         They are: PUSHD, POPD
 *
 *   COPYRIGHT (C) 1997  CENTROID CORPORATION, HOWARD, PA 16841
 *
@@ -3088,6 +3088,18 @@ static void perform_set(const char *arg)
     }
   }
 
+static void perform_shift(const char *arg)
+  {
+  int i;
+  for (i = 0; i < MAX_BAT_ARGS - 1; i++)
+    {
+    strcpy(bat_arg[stack_level][i], bat_arg[stack_level][i + 1]);
+    /* check _after_ copy to zero out last entry */
+    if (!bat_arg[stack_level][i + 1][0])
+      break;
+    }
+  }
+
 static void perform_time(const char *arg)
   {
   time_t t = time(NULL);
@@ -3320,6 +3332,7 @@ static struct built_in_cmd cmd_table[] =
     {"rename", perform_rename, "", "rename with wildcards"},
     {"ren", perform_rename, "", "rename with wildcards"},
     {"set", perform_set, "", "set/unset environment variables"},
+    {"shift", perform_shift, "", "shift arguments"},
     {"time", perform_time, "", "display time"},
     {"type", perform_type, "", "display file content"},
     {"ver", perform_ver, " [/r]", "display version"},
