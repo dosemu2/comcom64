@@ -57,8 +57,6 @@
 *       - Some commands are incomplete: TIME, DATE
 *       - Some built-in commands should really be separate executables
 *         and not built-in. They are: CHOICE, MORE, PAUSE, XCOPY.
-*       - Some commands are not even recognized but should be.
-*         They are: PUSHD, POPD
 *
 *   COPYRIGHT (C) 1997  CENTROID CORPORATION, HOWARD, PA 16841
 *
@@ -155,6 +153,8 @@ static int echo_on[MAX_STACK_LEVEL];
 static char bat_file_path[MAX_STACK_LEVEL][FILENAME_MAX];  // when this string is not "" it triggers batch file execution
 static char bat_arg[MAX_STACK_LEVEL][MAX_BAT_ARGS][MAX_CMD_BUFLEN];
 static int bat_file_line_number[MAX_STACK_LEVEL];
+static char pushd_stack[MAX_STACK_LEVEL][MAXPATH];
+static int pushd_stack_level = 0;
 static unsigned error_level = 0;  // Program execution return code
 static char for_var;
 static const char *for_val;
@@ -2900,11 +2900,48 @@ static void perform_pause(const char *arg)
   getch();
   }
 
+static void perform_popd(const char *arg)
+  {
+  if (pushd_stack_level == 0)
+    {
+    printf("pushd stack empty\n");
+    reset_batfile_call_stack();
+    return;
+    }
+  if (chdir(pushd_stack[--pushd_stack_level]) != 0)
+    {
+    cprintf("Directory does not exist - %s\r\n",arg);
+    reset_batfile_call_stack();
+    return;
+    }
+  }
+
 static void perform_prompt(const char *arg)
   {
   memmove(cmd_args+7, cmd_args, strlen(cmd_args)+1);
   memcpy(cmd_args, "PROMPT=", 7);
   perform_set(arg);
+  }
+
+static void perform_pushd(const char *arg)
+  {
+  if (pushd_stack_level >= MAX_STACK_LEVEL)
+    {
+    printf("pushd stack overflow\n");
+    reset_batfile_call_stack();
+    return;
+    }
+  getcwd(pushd_stack[pushd_stack_level], MAXPATH);
+  if (arg && arg[0])
+    {
+    if (chdir(arg) != 0)
+      {
+      cprintf("Directory does not exist - %s\r\n",arg);
+      reset_batfile_call_stack();
+      return;
+      }
+    }
+  pushd_stack_level++;
   }
 
 static void perform_rd(const char *arg)
@@ -3326,7 +3363,9 @@ static struct built_in_cmd cmd_table[] =
     {"more", perform_more, "", "scroll-pause long output"},
     {"path", perform_path, "", "set search path"},
     {"pause", perform_pause, "", "wait for a keypress"},
+    {"popd", perform_popd, "", "pop dir from stack and cd"},
     {"prompt", perform_prompt, "", "customize prompt string"},
+    {"pushd", perform_pushd, "", "push cwd to stack and cd"},
     {"rd", perform_rd, "", "remove directory"},
     {"rmdir", perform_rd, "", "remove directory"},
     {"rename", perform_rename, "", "rename with wildcards"},
