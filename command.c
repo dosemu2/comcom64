@@ -2334,7 +2334,8 @@ static void perform_for(const char *arg)
   const char *tok;
   char cmd_args2[MAX_CMD_BUFLEN];
   struct for_iter iter = {};
-  char *p, *p1, *d0, *d1, *d, *v, *c;
+  char *p, *p1, *d0, *d1, *d, *c;
+  const char *v;
 
   strcpy(cmd_args2, cmd_args);
   p = strchr(cmd_args2, '(');
@@ -2342,14 +2343,15 @@ static void perform_for(const char *arg)
   d0 = strstr(cmd_args2, " DO ");
   d1 = strstr(cmd_args2, " do ");
   d = d0 ?: d1;
-  v = strchr(cmd_args2, '%');
-  if (!p || !p1 || p1 < p || !d || !v)
+  if (!p || !p1 || p1 < p || !d)
     {
     cprintf("Syntax error\r\n");
     reset_batfile_call_stack();
     return;
     }
-  v++;
+  v = arg;
+  if (*v == '%')
+    v++;
   for_var = *v;
   p++;
   iter.token = strtok_r(p, " )", &iter.sptr);
