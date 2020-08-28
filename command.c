@@ -2751,7 +2751,7 @@ static void perform_if(void)
       }
     if (sscanf(s, "%u", &ecomp) == 1)
       {
-      if (ecomp == error_level)
+      if (error_level >= ecomp)
         {
         while (*s != ' ' && *s != '\t')
           {
