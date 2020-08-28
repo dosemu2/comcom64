@@ -3920,30 +3920,6 @@ int main(int argc, char *argv[], char *envp[])
       parse_cmd_line();
       }
     }
-#if 0
-  // greet the user with a required message, due to a legality with DJGPP and CWSDPMI.
-  if (shell_permanent)
-    {
-    delay(1000); // delay so that the user can see the FreeDOS greeting
-    clrscr();
-#ifdef __DJGPP__
-    cputs("          ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿\r\n"
-          "          ³    The program COMMAND.EXE was created using the DJGPP   ³\r\n"   //  This message is required only if
-          "          ³ software development tools and relies on CWSDPMI to run. ³\r\n"   //  you want to distribute the binary
-          "          ³       You have the right to obtain source code and       ³\r\n"   //  COMMAND.COM without sources, and
-          "          ³        binary updates for both DJGPP and CWSDPMI.        ³\r\n"   //  if you want to distribute
-          "          ³    These may be freely downloaded from www.delorie.com   ³\r\n"   //  CWSDPMI.EXE without sources.
-          "          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ\r\n");
-#else
-    cprintf("          ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿\r\n"
-            "          ³    The program COMMAND.EXE was created with the compiler ³\r\n"
-            "          ³    %51s   ³\r\n"
-            "          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ\r\n", __CMD_COMPILER__ __VERSION__);
-#endif
-    delay(1500); // delay so that the user can see the command.com greeting on
-                 // permanent shell mode before autoexec.bat takes over
-    }
-#endif
 
   if (shell_permanent && !disable_autoexec)
     {
