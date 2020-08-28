@@ -1569,7 +1569,7 @@ static void perform_loadhigh(const char *arg)
   r.x.bx = 1;				/* set UMB link on */
   __dpmi_int(0x21, &r);
 
-  perform_external_cmd(true, cmd);
+  perform_external_cmd(false, cmd);
 	  /* Should we set this to true? Only affects batch files anyway,
 	   * which shouldn't be loaded with LOADHIGH to begin with. */
 
@@ -1696,7 +1696,7 @@ static void perform_loadfix(const char *arg)
   r.x.bx = orig_umblink;
   __dpmi_int(0x21, &r);
 
-  perform_external_cmd(true, cmd);
+  perform_external_cmd(false, cmd);
 	  /* Should we set this to true? Only affects batch files anyway,
 	   * which shouldn't be loaded with LOADFIX to begin with. */
 
