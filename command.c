@@ -145,7 +145,7 @@ static int pipe_to_cmd_redir_count;
  * Command interpreter/executor defines/variables
  */
 #define MAX_STACK_LEVEL        20 // Max number of batch file call stack levels
-#define MAX_BAT_ARGS           9  // Max number of batch file arguments
+#define MAX_BAT_ARGS           32 // Max number of batch file arguments
 
 static int need_to_crlf_at_next_prompt;
 static int stack_level = 0;
