@@ -2593,7 +2593,8 @@ static void perform_external_cmd(int call, char *ext_cmd)
       bat_file_line_number[stack_level] = 0;
     strcpy(bat_file_path[stack_level], full_cmd);
     ba = 0;
-    while (ba < MAX_BAT_ARGS && *cmd_arg != '\0')
+    /* keep last entry empty to simplify shifting */
+    while (ba < MAX_BAT_ARGS - 1 && *cmd_arg != '\0')
       {
       strcpy(bat_arg[stack_level][ba], cmd_arg);
       advance_cmd_arg();
