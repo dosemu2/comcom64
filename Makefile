@@ -33,7 +33,7 @@ version: force
 version.o: version
 
 $(CMD): $(OBJS)
-	$(DOS_LD) $(LINK_OPT) $(OBJS) -o $(CMD)
+	$(DOS_LD) $(OBJS) $(LINK_OPT) -o $(CMD)
 	$(DOS_STRIP) $(CMD)
 	chmod -x $(CMD)
 
