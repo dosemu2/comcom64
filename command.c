@@ -2216,10 +2216,10 @@ static void perform_dir(const char *arg)
     printf("%15lli byte(s) free\n", avail);
   else if (avail < 1073741824)
     printf("%15lli KB free\n", avail / 1024);
-  else if (avail < 2147155968)
+  else if (avail < 2147483648ULL)
     printf("%15lli MB free\n", avail / 1024 / 1024);
   else
-    printf("%15lli GB free\n", avail / 1024 / 1024 / 1024);
+    printf("%15.1f GB free\n", avail / 1024.0 / 1024.0 / 1024.0);
   }
 
 static void perform_echo(const char *arg)
