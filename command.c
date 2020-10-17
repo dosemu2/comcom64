@@ -2209,7 +2209,7 @@ static void perform_dir(const char *arg)
   printf("%10lu file(s) %14lu bytes\n", filecount, bytecount);
   printf("%10lu dir(s) ", dircount);
 
-  getdfree(full_filespec[0]-'A'+1, &df);
+  getdfree(full_filespec[0]-'a'+1, &df);
   avail = DISKFREE_T_AVAIL(df)*DISKFREE_T_BSEC(df)*DISKFREE_T_SCLUS(df);
 
   if (avail < 1048576)
