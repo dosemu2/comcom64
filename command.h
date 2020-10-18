@@ -371,9 +371,22 @@ static inline int file_copytime(int desc_handle, int src_handle)
 
 /* File find */
 typedef struct ffblk finddata_t;
+#define FINDDATA_T_FILENAME(f) (f).ff_name
+#define FINDDATA_T_ATTRIB(f) (f).ff_attrib
+#define FINDDATA_T_SIZE(f) (f).ff_fsize
+#define FINDDATA_T_WDATE_YEAR(f) (((f).ff_fdate>>9)&0x7F)+1980
+#define FINDDATA_T_WDATE_MON(f) ((f).ff_fdate>>5)&0xF
+#define FINDDATA_T_WDATE_DAY(f) ((f).ff_fdate)&0x1F
+#define FINDDATA_T_WTIME_HOUR(f) ((f).ff_ftime>>11)&0x1F
+#define FINDDATA_T_WTIME_MIN(f) ((f).ff_ftime>>5)&0x3F
 static inline int findfirst_f(const char *pathname, finddata_t *ff, int attrib, long *handle)
 {
-    return findfirst(pathname, ff, attrib);
+    int err = findfirst(pathname, ff, attrib);
+    if (err)
+        return err;
+    if (attrib == FA_DIREC && FINDDATA_T_ATTRIB(*ff) != attrib)
+        return -1;
+    return 0;
 }
 static inline int findnext_f(finddata_t *ff, long handle)
 {
@@ -383,14 +396,6 @@ static inline int findclose_f(long handle)
 {
     return 0;
 }
-#define FINDDATA_T_FILENAME(f) f.ff_name
-#define FINDDATA_T_ATTRIB(f) f.ff_attrib
-#define FINDDATA_T_SIZE(f) f.ff_fsize
-#define FINDDATA_T_WDATE_YEAR(f) ((f.ff_fdate>>9)&0x7F)+1980
-#define FINDDATA_T_WDATE_MON(f) (f.ff_fdate>>5)&0xF
-#define FINDDATA_T_WDATE_DAY(f) (f.ff_fdate)&0x1F
-#define FINDDATA_T_WTIME_HOUR(f) (f.ff_ftime>>11)&0x1F
-#define FINDDATA_T_WTIME_MIN(f) (f.ff_ftime>>5)&0x3F
 /* File attributes */
 static inline unsigned int setfileattr(const char *filename, unsigned int attr)
 {
