@@ -2921,6 +2921,13 @@ static void perform_popd(const char *arg)
 
 static void perform_prompt(const char *arg)
   {
+  if (!arg[0])
+    {
+    char *promptvar = getenv("PROMPT");
+    if (promptvar)
+      printf("%s\n", promptvar);
+    return;
+    }
   memmove(cmd_args+7, cmd_args, strlen(cmd_args)+1);
   memcpy(cmd_args, "PROMPT=", 7);
   perform_set(arg);
