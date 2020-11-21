@@ -2251,7 +2251,7 @@ static void perform_exit(const char *arg)
     stack_level--;
   else
     {
-    if (!shell_permanent)
+    if (!shell_permanent || getenv("SHELL_ALLOW_EXIT"))
       {
       exiting++;
       if (arg)
@@ -3829,7 +3829,6 @@ int main(int argc, char *argv[], char *envp[])
   _clear87();
   _fpreset();
   unlink_umb();		// in case we loaded with shellhigh or lh
-  set_psp_parent();
   set_env_size();
 
 #ifdef __spawn_leak_workaround
@@ -3929,6 +3928,9 @@ int main(int argc, char *argv[], char *envp[])
       }
     }
 
+  if (shell_permanent)
+    set_psp_parent();
+
   if (shell_permanent && !disable_autoexec)
     {
     unsigned int drive;
@@ -3959,6 +3961,7 @@ int main(int argc, char *argv[], char *envp[])
     exec_cmd();
     }
 
-  restore_psp_parent();
+  if (shell_permanent)
+    restore_psp_parent();
   return error_level;
   }
