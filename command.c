@@ -3115,6 +3115,7 @@ static void perform_set(const char *arg)
     }
   else
     {
+    char *s;
     var_name = cmd_args;
     if (strlen(var_name) == 0)
       {
@@ -3122,9 +3123,18 @@ static void perform_set(const char *arg)
       reset_batfile_call_stack();
       return;
       }
-    /* strupr(var_name); */
     vname = strdup(var_name);
-    err = putenv(vname);
+    strupr(vname);
+    s = strchr(vname, '=');
+    if (s)
+      {
+      *s = '\0';
+      s++;
+      }
+    if (!s || !*s)
+      err = unsetenv(vname);
+    else
+      err = setenv(vname, s, 1);
     free(vname);
     if (err != 0)
       {
