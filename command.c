@@ -2407,21 +2407,18 @@ static void put_env(unsigned short env_sel)
 }
 
 #if !SYNC_ENV
-static void set_env(const char *variable, const char *value)
+static void set_env(const char *variable, const char *value,
+    unsigned short env_sel, unsigned env_size)
 {
-  unsigned short psp = _stubinfo->psp_selector;
-  unsigned short env_sel;
   char *env;
   char *tail;
   char *cp;
   char *env2;
   int l;
   int len;
-  unsigned env_size;
   int tail_sz = 3;
 
-  movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
-  env_size  = __dpmi_get_segment_limit(env_sel) + 1;
+  /* allocate tmp buffer for env and copy them there */
   env = alloca(env_size + tail_sz);
   movedata(env_sel, 0, _my_ds(), (unsigned)env, env_size);
   memset(&env[env_size], 0, tail_sz);
@@ -2617,6 +2614,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
     if (!err && !(env_addr & 0xf) && env_addr < 0x110000) {
       env_seg = env_addr >> 4;
       movedata(_my_ds(), (unsigned)&env_seg, psp, 0x2c, 2);
+#if SYNC_ENV
       /* the below is disabled because it seems we don't need
        * to update our copy of env. djgpp creates the env segment
        * for the child process from the prot-mode environment anyway.
@@ -2624,8 +2622,10 @@ static void perform_external_cmd(int call, char *ext_cmd)
        * But we still need the /E because some programs (msetenv)
        * may set the env strings on their parent (shell) to make
        * them permanent. */
-#if SYNC_ENV
       put_env(env_sel);
+#else
+      set_env("PATH", getenv("PATH"), env_sel,
+          __dpmi_get_segment_limit(env_sel) + 1);
 #endif
       env_chg = 1;
     }
@@ -2891,9 +2891,6 @@ static void perform_path(const char *arg)
     memmove(cmd_args+5, cmd_args + off, strlen(cmd_args)+1);
     memcpy(cmd_args, "PATH=", 5);
     perform_set(cmd_args);
-#if !SYNC_ENV
-    set_env("PATH", getenv("PATH"));
-#endif
     }
   }
 
