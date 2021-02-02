@@ -2242,6 +2242,7 @@ static void perform_echo(const char *arg)
 static void perform_exit(const char *arg)
   {
   int ba;
+  int is_bat = bat_file_path[stack_level][0];
   bat_file_path[stack_level][0] = '\0';
   for (ba = 0; ba < MAX_BAT_ARGS; ba++)
     bat_arg[stack_level][ba][0] = '\0';
@@ -2251,7 +2252,7 @@ static void perform_exit(const char *arg)
     stack_level--;
   else
     {
-    if (!shell_permanent || getenv("SHELL_ALLOW_EXIT"))
+    if (!shell_permanent || (getenv("SHELL_ALLOW_EXIT") && !is_bat))
       {
       exiting++;
       if (arg)
