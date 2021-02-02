@@ -3121,13 +3121,13 @@ static void perform_set(const char *arg)
       return;
       }
     vname = strdup(var_name);
-    strupr(vname);
     s = strchr(vname, '=');
     if (s)
       {
       *s = '\0';
       s++;
       }
+    strupr(vname);
     if (!s || !*s)
       err = unsetenv(vname);
     else
