@@ -2239,6 +2239,14 @@ static void perform_echo(const char *arg)
     puts(cmd_args);
   }
 
+static void perform_echo_dot(const char *arg)
+  {
+  if (arg[0] == '\0')
+    puts("");
+  else
+    puts(cmd_args);
+  }
+
 static void perform_exit(const char *arg)
   {
   int ba;
@@ -3366,6 +3374,7 @@ static struct built_in_cmd cmd_table[] =
     {"deltree", perform_deltree, "", "delete directory recursively"},
     {"erase", perform_delete, "", "delete file"},
     {"dir", perform_dir, "", "directory listing"},
+    {"echo.", perform_echo_dot, "", "terminal output"},  // before normal echo
     {"echo", perform_echo, "", "terminal output"},
     {"exit", perform_exit, "", "exit from interpreter"},
     {"for", perform_for, "", "FOR loop"},
