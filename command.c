@@ -3427,10 +3427,11 @@ static void list_cmds(void)
 static bool is_valid_DOS_char(int c)
 {
   unsigned char u=(unsigned char)c; /* convert to ascii */
+  if (!u) return false;
   if (u >= 128 || isalnum(u)) return true;
 
   /* now we add some extra special chars  */
-  if(strchr("._^$~!#%&-{}()@'`",c)!=0) return true; /* general for
+  if(strchr("_^$~!#%&-{}()@'`",c)!=0) return true; /* general for
                                                     any codepage */
   /* no match is found, then    */
   return false;
@@ -3625,7 +3626,7 @@ static void parse_cmd_line(void)
     if (strnicmp(extr, cmd_table[c].cmd_name, cmd_len) == 0)
       {
       delim = extr+cmd_len;
-      if (!is_valid_DOS_char(*delim))
+      if (!is_valid_DOS_char(delim[0]) || !is_valid_DOS_char(delim[-1]))
         {
         // ok, we have a built-in command; extract it
         strcpy(cmd, cmd_table[c].cmd_name);
