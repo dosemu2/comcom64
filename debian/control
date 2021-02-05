@@ -8,7 +8,7 @@ Build-Depends:
     gcc-djgpp,
     git,
     debhelper (>= 9~)
-Homepage: http://www.github.com/stsp/comcom32
+Homepage: https://github.com/dosemu2/comcom32
 
 Package: comcom32
 Architecture: i386 amd64
