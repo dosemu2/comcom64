@@ -6,7 +6,7 @@ DOS_LD ?= i586-pc-msdosdjgpp-gcc
 DOS_STRIP ?= i586-pc-msdosdjgpp-strip
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
-C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations
+C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations -march=i386
 LINK_OPT =
 OBJS = command.o cmdbuf.o version.o
 CMD = comcom32.exe
@@ -39,7 +39,7 @@ $(CMD): $(OBJS)
 
 # Common rules
 %.o : %.c %.h
-	$(REDIR) $(DOS_CC) $(C_OPT) $(C_OUTPUT) -c $< -o $@
+	$(DOS_CC) $(C_OPT) $(C_OUTPUT) -c $< -o $@
 
 ifeq (,$(wildcard $(CMD)))
 install:
