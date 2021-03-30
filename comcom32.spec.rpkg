@@ -15,6 +15,7 @@ VCS: {{{ git_dir_vcs }}}
 Source: {{{ git_dir_archive }}}
 
 BuildRequires: build-gcc
+BuildRequires: make
 BuildRequires: grep
 
 %description
