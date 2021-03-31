@@ -7,6 +7,7 @@ Build-Depends:
     make,
     gcc-djgpp,
     git,
+    grep,
     debhelper (>= 9~)
 Homepage: https://github.com/dosemu2/comcom32
 

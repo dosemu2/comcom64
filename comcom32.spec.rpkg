@@ -17,6 +17,7 @@ Source: {{{ git_dir_archive }}}
 BuildRequires: build-gcc
 BuildRequires: make
 BuildRequires: grep
+BuildRequires: git
 
 %description
 comcom32 is a 32-bit command.com.
