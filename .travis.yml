@@ -2,36 +2,19 @@ language: c
 
 dist:  focal
 
-addons:
-  apt:
-    sources:
-      - sourceline: 'ppa:dosemu2/ppa'
-      - sourceline: 'ppa:jwt27/djgpp-toolchain'
-    packages:
-      - acl
-      - gcc-djgpp
-      - devscripts
-      - debhelper
-  update: true
-
 git:
   depth: false
 
 #env: DOSEMU_QUIET=1
 
 before_install:
-  - echo "before_install"
-  - make deb
+  - ./ci_prereq.sh
 
 install:
-  - echo "install"
-  - sudo dpkg -i ../comcom32*amd64.deb
-  - sudo apt-get install -qq -f dosemu2 fdpp
+  - ./ci_build.sh
 
 before_script:
   - echo "before_script"
-  - sudo setfacl -m u:${USER}:rw /dev/kvm
 
 script:
-  - echo "script"
-  - dosemu -td -E ver
+  - ./ci_test.sh
