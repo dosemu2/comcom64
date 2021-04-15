@@ -94,8 +94,9 @@
 #include <sys/farptr.h>
 
 #include "cmdbuf.h"
-#include "command.h"
+#include "memmem.h"
 #include "version.h"
+#include "command.h"
 
 /*
  * These declarations/definitions turn off some unwanted DJGPP features
@@ -2398,13 +2399,21 @@ static void put_env(unsigned short env_sel)
     tail_sz += strlen(tail + 2) + 1;
     tail--;
   } else {
-    tail = env + env_size;
+    tail = memmem(env, env_size, "\x0\x0", 2);
+    if (!tail) {
+      printf("ENV block corrupted\n");
+      return;
+    }
+    tail++;
+    if (tail - env + tail_sz > env_size || memcmp(tail, "\x0\x0\x0", 3) != 0)
+      tail_sz = 1;  /* DOS-2.0 terminator */
   }
   /* now put entire environ[] down, overwriting prev content */
   for (env_count = 0; environ[env_count]; env_count++) {
     int l = strlen(environ[env_count]) + 1;
     if (env_offs + l >= env_size - tail_sz) {
-      printf("ENV buffer overflow (size %u)\n", env_size);
+      printf("ENV buffer overflow (size %u, need %u, tail %i)\n",
+          env_size, env_offs + l, tail_sz);
       break;
     }
     movedata(_my_ds(), (unsigned)environ[env_count], env_sel, env_offs, l);

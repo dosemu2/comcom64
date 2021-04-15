@@ -8,7 +8,7 @@ PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
 C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations -march=i386
 LINK_OPT =
-OBJS = command.o cmdbuf.o version.o
+OBJS = command.o cmdbuf.o version.o memmem.o
 CMD = comcom32.exe
 RELVER = alpha2
 PKG = comcom32-0.1$(RELVER)
@@ -30,7 +30,7 @@ version: force
 version.o: version
 
 $(CMD): $(OBJS)
-	$(DOS_LD) $(OBJS) $(LINK_OPT) -o $(CMD)
+	$(DOS_LD) $^ $(LINK_OPT) -o $(CMD)
 	$(DOS_STRIP) $(CMD)
 	chmod -x $(CMD)
 
