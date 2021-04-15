@@ -3887,11 +3887,6 @@ int main(int argc, char *argv[], char *envp[])
   strupr(cmd_path);
   setenv("COMSPEC", cmd_path, 1);
   free(cmd_path);
-#if !SYNC_ENV
-  /* some progs (Word Perfect) look for COMSPEC in parent env, rather
-   * than their own. We need to sync it down to DOS. */
-  sync_env();
-#endif
 
   // process arguments
   for (a = 1; a < argc; a++)
@@ -3967,8 +3962,14 @@ int main(int argc, char *argv[], char *envp[])
       }
     }
 
-  if (shell_permanent)
+  if (shell_permanent) {
     set_psp_parent();
+#if !SYNC_ENV
+    /* some progs (Word Perfect) look for COMSPEC in parent env, rather
+     * than their own. We need to sync it down to DOS. */
+    sync_env();
+#endif
+  }
 
   if (shell_permanent && !disable_autoexec)
     {
