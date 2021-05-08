@@ -37,8 +37,7 @@ make DESTDIR=%{buildroot} PREFIX=%{_prefix} install
 
 %files
 %defattr(-,root,root)
-%{_datadir}/comcom32/comcom32.exe
-%{_datadir}/comcom32/command.com
+%{_datadir}/comcom32
 
 %changelog
 {{{ git_dir_changelog }}}
