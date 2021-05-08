@@ -12,7 +12,7 @@ Group: System/Emulator
 License: GPL-3.0+
 URL: https://github.com/dosemu2/comcom32
 VCS: {{{ git_dir_vcs }}}
-Source: {{{ git_dir_archive }}}
+Source0: {{{ git_dir_archive }}}
 
 BuildRequires: build-gcc
 BuildRequires: make
