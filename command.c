@@ -384,7 +384,7 @@ static void reset_batfile_call_stack(void)
 static void output_prompt(void)
   {
   char cur_drive_and_path[MAXPATH];
-  char *promptvar = getenv("PROMPT");
+  const char *promptvar = getenv("PROMPT");
 
   if (need_to_crlf_at_next_prompt)
     {
@@ -649,10 +649,10 @@ static void prompt_for_and_get_cmd(void)
   cputs("\r\n");
   }
 
-static int get_choice(char *choices)
+static int get_choice(const char *choices)
   {
   int choice, key;
-  strupr(choices);
+//  strupr(choices);
   do
     {
     key = getch();
@@ -1761,8 +1761,8 @@ static void perform_change_drive(void)
 
 static void perform_choice(const char *arg)
   {
-  char *choices = "YN";  // Y,N are the default choices
-  char *text = "";
+  const char *choices = "YN";  // Y,N are the default choices
+  const char *text = "";
   int supress_prompt = false;
   int choice;
 
@@ -1793,7 +1793,7 @@ static void perform_choice(const char *arg)
   if (!supress_prompt)
     {
     int first = true;
-    char *c;
+    const char *c;
 
     putch('[');
     c = choices;
@@ -2493,7 +2493,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
   char temp_cmd[MAXPATH+MAX_CMD_BUFLEN];
   int rc;
   int exec_type, e, ba;
-  static char *exec_ext[3] = {".COM",".EXE",".BAT"};
+  const char *exec_ext[3] = {".COM",".EXE",".BAT"};
   char *s;
 
   // No wildcards allowed -- reject them
