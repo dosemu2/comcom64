@@ -1857,6 +1857,12 @@ static void perform_delete(const char *arg)
       }
     advance_cmd_arg();
     }
+  if (*filespec == '\0')
+    {
+    cprintf("filespec not specified\r\n");
+    reset_batfile_call_stack();
+    return;
+    }
 
   if (findfirst_f(filespec, &ff, 0, NULL) != 0)
     {
@@ -1941,6 +1947,12 @@ static void perform_deltree(const char *arg)
       }
     advance_cmd_arg();
     }
+  if (*path == '\0')
+    {
+    cprintf("filespec not specified\r\n");
+    reset_batfile_call_stack();
+    return;
+    }
 
   // prepare path for fnsplit() -
   // attach a file specification if specified path doesn't have one
@@ -1999,7 +2011,7 @@ static void perform_deltree(const char *arg)
             {
             if (confirm_before_delete)
               {
-              cprintf("Delete directory %s\\ and all its subdirectories? [Y/N] ", full_path_filespec);
+              cprintf("Delete directory %s and all its subdirectories? [Y/N] ", full_path_filespec);
               remove_level1_dir = (get_choice("YN") == 'Y');
               }
             else
