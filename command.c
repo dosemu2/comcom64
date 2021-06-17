@@ -699,6 +699,7 @@ static void get_cmd_from_bat_file(void)
       if (goto_label[0] != '\0')
         {
         cprintf("Label not found - %s\r\n", goto_label);
+        goto_label[0] = '\0';
         goto ErrorDone;
         }
       goto FileDone;
