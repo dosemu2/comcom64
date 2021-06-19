@@ -2084,6 +2084,7 @@ static void perform_deltree(const char *arg)
             }
           }
         subdir_level--;
+        visitation_mode[subdir_level] = 4;  // restart from findfirst
         }
       }
     }
