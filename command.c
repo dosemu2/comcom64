@@ -3146,6 +3146,12 @@ static void perform_set(const char *arg)
   else
     {
     char *s;
+    int is_p = 0;
+    if (strnicmp(cmd_switch,"/p", 1) == 0)
+      {
+      is_p++;
+      advance_cmd_arg();
+      }
     var_name = cmd_args;
     if (strlen(var_name) == 0)
       {
@@ -3161,10 +3167,24 @@ static void perform_set(const char *arg)
       s++;
       }
     strupr(vname);
-    if (!s || !*s)
-      err = unsetenv(vname);
+    if (is_p)
+      {
+      char buf[128];
+      char *p;
+      cputs(s);
+      p = fgets(buf, sizeof(buf), stdin);
+      if (p)
+        err = setenv(vname, buf, 1);
+      else
+        err = -1;
+      }
     else
-      err = setenv(vname, s, 1);
+      {
+      if (!s || !*s)
+        err = unsetenv(vname);
+      else
+        err = setenv(vname, s, 1);
+      }
     free(vname);
     if (err != 0)
       {
