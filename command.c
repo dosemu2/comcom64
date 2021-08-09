@@ -3859,12 +3859,17 @@ static void restore_psp_parent(void)
   dosmemput(&orig_psp_seg, 2, psp_addr + 0x16);
 }
 
-static void unlink_umb(void)
+static void link_umb(int on)
 {
   __dpmi_regs r = {};
   r.x.ax = 0x5803;
-  r.x.bx = 0;				/* set UMB link off */
+  r.x.bx = on;
   __dpmi_int(0x21, &r);
+  if (on) {
+    r.x.ax = 0x5801;
+    r.x.bx = 0x80;
+    __dpmi_int(0x21, &r);
+  }
 }
 
 int main(int argc, char *argv[], char *envp[])
@@ -3882,7 +3887,7 @@ int main(int argc, char *argv[], char *envp[])
   // reset fpu
   _clear87();
   _fpreset();
-  unlink_umb();		// in case we loaded with shellhigh or lh
+  link_umb(0);		// in case we loaded with shellhigh or lh
   set_env_size();
 
 #ifdef __spawn_leak_workaround
@@ -3925,7 +3930,9 @@ int main(int argc, char *argv[], char *envp[])
       env_size &= ~0xf;
       if (env_size > old_size)
         {
+        link_umb(1);
         seg = __dpmi_allocate_dos_memory(env_size >> 4, &sel);
+        link_umb(0);
         if (seg != -1)
           {
           unsigned short psp = _stubinfo->psp_selector;
