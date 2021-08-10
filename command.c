@@ -2,7 +2,9 @@
  *  COMMAND.COM-compatible command processor for DOS.
  *
  *  Copyright (C) 1997, CENTROID CORPORATION, HOWARD, PA 16841
- *  Copyright (C) Allen S. Cheung (allencheung@fastmail.ca)
+ *  Copyright (C) Allen S. Cheung (RIP)
+ *  Copyright (C) 2005-2006 FreeDOS-32 project
+ *  Copyright (C) 2018-2021 stsp, dosemu2 project
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
