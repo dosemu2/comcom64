@@ -3174,7 +3174,12 @@ static void perform_set(const char *arg)
       cputs(s);
       p = fgets(buf, sizeof(buf), stdin);
       if (p)
+        {
+        p = strpbrk(buf, "\r\n");
+        if (p)
+          *p = '\0';
         err = setenv(vname, buf, 1);
+        }
       else
         err = -1;
       }
