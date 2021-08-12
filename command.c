@@ -178,6 +178,8 @@ static void exec_cmd(void);
 static void perform_set(const char *arg);
 static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
+static void set_env_seg(void);
+static void set_env_sel(void);
 
 static int installable_command_check(const char *cmd, const char *tail)
 {
@@ -2668,6 +2670,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
 #endif
+    set_env_seg();
     /* prepend command tail with space */
     alen = strlen(cmd_args) + 1;
     if (alen >= MAX_CMD_BUFLEN)
@@ -2682,6 +2685,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
     else
       error_level = rc & 0xff;
+    set_env_sel();
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
 #endif
@@ -3837,6 +3841,21 @@ struct MCB {
         char name[8];                   /* 8 */
 } __attribute__((packed));
 
+static unsigned short env_selector;
+static unsigned short env_segment;
+
+static void set_env_seg(void)
+{
+  unsigned short psp = _stubinfo->psp_selector;
+  movedata(_my_ds(), (unsigned)&env_segment, psp, 0x2c, 2);
+}
+
+static void set_env_sel(void)
+{
+  unsigned short psp = _stubinfo->psp_selector;
+  movedata(_my_ds(), (unsigned)&env_selector, psp, 0x2c, 2);
+}
+
 static unsigned get_env_size(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
@@ -3862,6 +3881,9 @@ static void set_env_size(void)
     dosmemget(env_addr - sizeof(mcb), sizeof(mcb), &mcb);
     __dpmi_set_segment_limit(env_sel, mcb.size * 16 - 1);
   }
+
+  env_selector = env_sel;
+  env_segment = env_addr >> 4;
 }
 
 static unsigned long psp_addr;
@@ -3900,7 +3922,6 @@ static void link_umb(int on)
 }
 
 int main(int argc, char *argv[], char *envp[])
-
   {
   int a;
   char *cmd_path;
@@ -3947,7 +3968,7 @@ int main(int argc, char *argv[], char *envp[])
     if (strnicmp(argv[a], "/E:", 3) == 0)
       {
       unsigned int env_size;
-      int seg, sel, old_sel;
+      int seg, sel;
       unsigned int old_size = get_env_size();
 
       if (argv[a][3] == '+')
@@ -3963,11 +3984,17 @@ int main(int argc, char *argv[], char *envp[])
         if (seg != -1)
           {
           unsigned short psp = _stubinfo->psp_selector;
-          movedata(psp, 0x2c, _my_ds(), (unsigned)&old_sel, 2);
           movedata(_my_ds(), (unsigned)&sel, psp, 0x2c, 2);
           /* copy old content to preserve tail (and maybe COMSPEC) */
-          movedata(old_sel, 0, sel, 0, old_size);
-          __dpmi_free_dos_memory(old_sel);
+          movedata(env_selector, 0, sel, 0, old_size);
+          __dpmi_free_dos_memory(env_selector);
+          env_selector = sel;
+          env_segment = seg;
+          }
+        else
+          {
+          printf("ERROR: env allocation of %i bytes failed!\n", env_size);
+          return EXIT_FAILURE;
           }
         }
       }
@@ -4042,7 +4069,10 @@ int main(int argc, char *argv[], char *envp[])
           perform_exit(NULL);
           continue;
           }
+        /* TODO: don't forget to set sel in int23 handler */
+        set_env_seg();
         prompt_for_and_get_cmd();
+        set_env_sel();
         }
       else
         get_cmd_from_bat_file();
