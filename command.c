@@ -162,6 +162,7 @@ static unsigned error_level = 0;  // Program execution return code
 static char for_var;
 static const char *for_val;
 static int exiting;
+static int break_on;
 
 /*
  * File attribute constants
@@ -2259,6 +2260,21 @@ static void perform_echo(const char *arg)
     puts(cmd_args);
   }
 
+static void perform_break(const char *arg)
+  {
+  if (stricmp(arg, "off") == 0)
+    break_on = false;
+  else if (stricmp(arg, "on") == 0)
+    break_on = true;
+  else if (arg[0] == '\0')
+    printf("BREAK is %s\n", break_on ? "on" : "off");
+  else
+    {
+    cprintf("Syntax error\r\n");
+    reset_batfile_call_stack();
+    }
+  }
+
 static void perform_echo_dot(const char *arg)
   {
   if (arg[0] == '\0')
@@ -3418,6 +3434,7 @@ struct built_in_cmd
 static struct built_in_cmd cmd_table[] =
   {
     {"attrib", perform_attrib, "", "set file attributes"},
+    {"break", perform_break, "", "set ^Break handling"},
     {"call", perform_call, "", "call batch file"},
     {"cd", perform_cd, "", "change directory"},
     {"chdir", perform_cd, "", "change directory"},
@@ -3921,6 +3938,76 @@ static void link_umb(int on)
   }
 }
 
+unsigned short ss;
+unsigned short ds;
+char cstack[0x10000];
+int on_cstack;
+
+int do_int23(void);
+int do_int23(void)
+{
+  return break_on;
+}
+
+asm(
+    ".global _my_int23_handler\n"
+    "_my_int23_handler:\n"
+    "pusha\n"
+    "push %ds\n"
+    "mov %cs:_ds, %eax\n"
+    "mov %eax, %ds\n"
+    "xorl %eax, %eax\n"
+    "cmpl _on_cstack, %eax\n"
+    "jnz 2f\n"
+    "incl _on_cstack\n"
+    "mov %ss, %esi\n"
+    "mov %esp, %edi\n"
+    "pushl _ss\n"
+    "lea _cstack+0x10000, %edx\n"
+    "push %edx\n"
+    "lss (%esp), %esp\n"
+    "push %esi\n"
+    "push %edi\n"
+    "call _do_int23\n"
+    "lss (%esp), %esp\n"
+    "decl _on_cstack\n"
+    "5:\n"
+    "pop %ds\n"
+    "or %eax, %eax\n"
+    "jnz 1f\n"
+    "popa\n"
+    "iret\n"
+    "1:\n"
+    "popa\n"
+    "stc\n"
+    "lret\n"
+    "2:\n"
+    "call _do_int23\n"
+    "jmp 5b\n"
+);
+extern void my_int23_handler(void);
+
+static void setup_break_handling(void)
+{
+  __dpmi_regs r = {};
+  __dpmi_paddr pa;
+
+  __djgpp_set_ctrl_c(0);    // disable SIGINT on ^C
+  _go32_want_ctrl_break(1); // disable SIGINT on ^Break
+
+  r.x.ax = 0x3301;          // set break handling
+  r.x.dx = 1;               // to "on"
+  __dpmi_int(0x21, &r);
+
+  ss = _my_ss();
+  ds = _my_ds();
+  pa.selector = _my_cs();
+  pa.offset32 = (uintptr_t)my_int23_handler;
+  __dpmi_set_protected_mode_interrupt_vector(0x23, &pa);
+
+  break_on = true;
+}
+
 int main(int argc, char *argv[], char *envp[])
   {
   int a;
@@ -3941,8 +4028,7 @@ int main(int argc, char *argv[], char *envp[])
 #ifdef __spawn_leak_workaround
   __spawn_flags &= ~__spawn_leak_workaround;
 #endif
-  __djgpp_set_ctrl_c(0);    // disable SIGINT on ^C
-  _go32_want_ctrl_break(1); // disable SIGINT on ^Break
+  setup_break_handling();
 
   // unbuffer stdin and stdout
   setbuf(stdin, NULL);
