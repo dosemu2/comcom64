@@ -10,7 +10,7 @@ C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations -Wwrite-strings -mar
 LINK_OPT =
 OBJS = command.o cmdbuf.o version.o memmem.o
 CMD = comcom32.exe
-RELVER = alpha2
+RELVER = alpha3
 PKG = comcom32-0.1$(RELVER)
 TGZ = $(PKG).tar.gz
 REVISIONID := $(shell git describe --dirty=+)
