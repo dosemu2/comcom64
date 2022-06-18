@@ -62,3 +62,6 @@ rpm: comcom32.spec.rpkg
 
 deb:
 	debuild -i -us -uc -b
+
+checkinstall:
+	checkinstall --nodoc -y -D make install PREFIX=/usr
