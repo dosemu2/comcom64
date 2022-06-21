@@ -2518,6 +2518,21 @@ static void sync_env(void)
 }
 #endif
 
+#define VIDADDR(r,c) (0xb8000 + 2*(((r) * txinfo.screenwidth) + (c)))
+static void reset_text_attrs(void)
+{
+  char attr = 7;
+  struct text_info txinfo;
+  int row, col;
+
+  gettextinfo(&txinfo);
+  for (row=txinfo.wintop-1; row < txinfo.winbottom; row++)
+    {
+    for (col=0; col < txinfo.winright - txinfo.winleft + 1; col++)
+      dosmemput(&attr, 1, VIDADDR(row, txinfo.winleft - 1 + col) + 1);
+    }
+}
+
 static void perform_external_cmd(int call, char *ext_cmd)
   {
   finddata_t ff;
@@ -2708,6 +2723,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
     _control87(0x033f, 0xffff);
     _clear87();
     _fpreset();
+    reset_text_attrs();
     gppconio_init();  /* video mode could change */
     if (env_chg) {
       char *cp;
@@ -4024,6 +4040,7 @@ int main(int argc, char *argv[], char *envp[])
   _fpreset();
   link_umb(0);		// in case we loaded with shellhigh or lh
   set_env_size();
+  reset_text_attrs();
 
 #ifdef __spawn_leak_workaround
   __spawn_flags &= ~__spawn_leak_workaround;
