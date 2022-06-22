@@ -2694,14 +2694,18 @@ static void perform_external_cmd(int call, char *ext_cmd)
 #endif
     set_env_seg();
     /* prepend command tail with space */
-    alen = strlen(cmd_args) + 1;
-    if (alen >= MAX_CMD_BUFLEN)
+    alen = strlen(cmd_args);
+    if (alen)
       {
-      alen = MAX_CMD_BUFLEN - 1;
-      cmd_args[alen - 1] = '\0';
+      alen++;  // \0
+      if (alen >= MAX_CMD_BUFLEN)
+        {
+        alen = MAX_CMD_BUFLEN - 1;
+        cmd_args[alen - 1] = '\0';
+        }
+      memmove(cmd_args + 1, cmd_args, alen);
+      cmd_args[0] = ' ';
       }
-    memmove(cmd_args + 1, cmd_args, alen);
-    cmd_args[0] = ' ';
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
