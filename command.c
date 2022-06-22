@@ -126,6 +126,10 @@ static int shell_permanent;
 /* define to sync RM/PM env data - consumes more memory */
 #define SYNC_ENV 0
 
+static unsigned short env_selector;
+static unsigned short env_segment;
+static unsigned short env_size;
+
 /*
  * Command parser defines/variables
  */
@@ -2422,7 +2426,6 @@ static void put_env(unsigned short env_sel)
   int env_offs = 0;
   char *env;
   char *tail;
-  unsigned env_size = __dpmi_get_segment_limit(env_sel) + 1;
   int tail_sz = 3;
 
   env = alloca(env_size + tail_sz);
@@ -2668,35 +2671,23 @@ static void perform_external_cmd(int call, char *ext_cmd)
     }
   else
     {
-    unsigned short psp = _stubinfo->psp_selector;
-    unsigned short env_sel;
-    unsigned short env_seg;
-    unsigned long env_addr;
     char el[16];
-    int err;
     int alen;
-    int env_chg = 0;
+    char *cp;
+    char *dos_environ;
 
-    movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
-    err = __dpmi_get_segment_base_address(env_sel, &env_addr);
-    if (!err && !(env_addr & 0xf) && env_addr < 0x110000) {
-      env_seg = env_addr >> 4;
-      movedata(_my_ds(), (unsigned)&env_seg, psp, 0x2c, 2);
 #if SYNC_ENV
-      /* the below is disabled because it seems we don't need
-       * to update our copy of env. djgpp creates the env segment
-       * for the child process from the prot-mode environment anyway.
-       * Disabling allows to pass much fewer memory to /E.
-       * But we still need the /E because some programs (msetenv)
-       * may set the env strings on their parent (shell) to make
-       * them permanent. */
-      put_env(env_sel);
+    /* the below is disabled because it seems we don't need
+     * to update our copy of env. djgpp creates the env segment
+     * for the child process from the prot-mode environment anyway.
+     * Disabling allows to pass much fewer memory to /E.
+     * But we still need the /E because some programs (msetenv)
+     * may set the env strings on their parent (shell) to make
+     * them permanent. */
+    put_env(env_selector);
 #else
-      set_env("PATH", getenv("PATH"), env_sel,
-          __dpmi_get_segment_limit(env_sel) + 1);
+    set_env("PATH", getenv("PATH"), env_selector, env_size);
 #endif
-      env_chg = 1;
-    }
     _control87(0x033f, 0xffff);
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
@@ -2725,26 +2716,19 @@ static void perform_external_cmd(int call, char *ext_cmd)
     _fpreset();
     reset_text_attrs();
     gppconio_init();  /* video mode could change */
-    if (env_chg) {
-      char *cp;
-      char *dos_environ;
-      unsigned long env_size;
 
-      env_size = __dpmi_get_segment_limit(env_sel) + 1;
-      dos_environ = alloca(env_size);
-      movedata(_my_ds(), (unsigned)&env_sel, psp, 0x2c, 2);
-      movedata(env_sel, 0, _my_ds(), (unsigned)dos_environ, env_size);
-      dos_environ[env_size] = 0;
-      cp = dos_environ;
-      do {
-        if (*cp) {
-          char *env = strdup(cp);
-          putenv(env);
-          cp += strlen(env);
-        }
-        cp++; /* skip to next character */
-      } while (*cp); /* repeat until two NULs */
-    }
+    dos_environ = alloca(env_size);
+    movedata(env_selector, 0, _my_ds(), (unsigned)dos_environ, env_size);
+    dos_environ[env_size] = 0;
+    cp = dos_environ;
+    do {
+      if (*cp) {
+        char *env = strdup(cp);
+        putenv(env);
+        cp += strlen(env);
+      }
+      cp++; /* skip to next character */
+    } while (*cp); /* repeat until two NULs */
     sprintf(el, "%d", error_level);
     setenv("ERRORLEVEL", el, 1);
     }
@@ -3874,9 +3858,6 @@ struct MCB {
         char name[8];                   /* 8 */
 } __attribute__((packed));
 
-static unsigned short env_selector;
-static unsigned short env_segment;
-
 static void set_env_seg(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
@@ -3887,15 +3868,6 @@ static void set_env_sel(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
   movedata(_my_ds(), (unsigned)&env_selector, psp, 0x2c, 2);
-}
-
-static unsigned get_env_size(void)
-{
-  unsigned short psp = _stubinfo->psp_selector;
-  unsigned short env_sel;
-
-  movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
-  return __dpmi_get_segment_limit(env_sel) + 1;
 }
 
 static void set_env_size(void)
@@ -3910,9 +3882,11 @@ static void set_env_size(void)
   movedata(psp, 0x2c, _my_ds(), (unsigned)&env_sel, 2);
   err = __dpmi_get_segment_base_address(env_sel, &env_addr);
   old_env_size = __dpmi_get_segment_limit(env_sel) + 1;
+  env_size = old_env_size;
   if (!err && !(env_addr & 0xf) && env_addr < 0x110000 && old_env_size == 0x10000) {
     dosmemget(env_addr - sizeof(mcb), sizeof(mcb), &mcb);
-    __dpmi_set_segment_limit(env_sel, mcb.size * 16 - 1);
+    env_size = mcb.size * 16;
+    __dpmi_set_segment_limit(env_sel, env_size - 1);
   }
 
   env_selector = env_sel;
@@ -4070,9 +4044,8 @@ int main(int argc, char *argv[], char *envp[])
 
     if (strnicmp(argv[a], "/E:", 3) == 0)
       {
-      unsigned int env_size;
       int seg, sel;
-      unsigned int old_size = get_env_size();
+      unsigned int old_size = env_size;
 
       if (argv[a][3] == '+')
         env_size = old_size + atoi(argv[a] + 4);
