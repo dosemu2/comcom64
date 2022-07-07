@@ -2831,9 +2831,20 @@ static void perform_if(void)
     while (*op1 == ' ' || *op1 == '\t')
       op1++;
 
-    op1end = op1;
-    while (*op1end != ' ' && *op1end != '\t' && *op1end != '\0' && *op1end != '=')
-      op1end++;
+    if (op1[0] == '\"')
+      {
+      op1end = strchr(op1 + 1, '\"');
+      if (op1end)
+        op1end++;
+      else
+        goto SyntaxError;
+      }
+    else
+      {
+      op1end = op1;
+      while (*op1end != ' ' && *op1end != '\t' && *op1end != '\0' && *op1end != '=')
+        op1end++;
+      }
     if (*op1end == '\0')
       goto SyntaxError;
     len = op1end - op1;
@@ -2855,9 +2866,20 @@ static void perform_if(void)
     while (*op2 == ' ' || *op2 == '\t')
       op2++;
 
-    op2end = op2;
-    while (*op2end != ' ' && *op2end != '\t' && *op2end != '\0')
-      op2end++;
+    if (op2[0] == '\"')
+      {
+      op2end = strchr(op2 + 1, '\"');
+      if (op2end)
+        op2end++;
+      else
+        goto SyntaxError;
+      }
+    else
+      {
+      op2end = op2;
+      while (*op2end != ' ' && *op2end != '\t' && *op2end != '\0')
+        op2end++;
+      }
     if (op2 == op2end)
       goto SyntaxError;
 
