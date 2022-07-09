@@ -2706,10 +2706,12 @@ static void perform_external_cmd(int call, char *ext_cmd)
     }
   else
     {
+    unsigned do_auto_loadfix = 0;
     char el[16];
     int alen;
     char *cp;
     char *dos_environ;
+    FILE * exefile;
 
 #if SYNC_ENV
     /* the below is disabled because it seems we don't need
@@ -2741,11 +2743,56 @@ static void perform_external_cmd(int call, char *ext_cmd)
       memmove(cmd_args + 1, cmd_args, alen);
       cmd_args[0] = ' ';
       }
+    exefile = fopen(full_cmd,"rb");
+    if (exefile) {
+      /* from https://github.com/dosemu2/comcom32/issues/59#issuecomment-1179566783 */
+      unsigned char exebuffer[256] = { 0 };
+      unsigned is_mz_exe = 0;
+      fread(exebuffer, 1, 256, exefile);
+      if (exebuffer[0] == 'M' && exebuffer[1] == 'Z')
+        is_mz_exe = 1;
+      if (exebuffer[0] == 'Z' && exebuffer[1] == 'M')
+        is_mz_exe = 1;
+      if (is_mz_exe && exebuffer[16] == 128 && exebuffer[17] == 0
+        && (exebuffer[20] == 16 || exebuffer[20] == 18) && exebuffer[21] == 0) {
+        unsigned headersize = (exebuffer[8] + exebuffer[9] * 256UL) * 16UL;
+        short codesegment = exebuffer[22] + exebuffer[23] * 256UL;
+        unsigned checkoffset = headersize + ((int)codesegment * 16UL);
+        unsigned char entrybuffer[18] = { 0 };
+        fseek(exefile, checkoffset, SEEK_SET);
+        fread(entrybuffer, 1, 18, exefile);
+        if (entrybuffer[exebuffer[20] - 2UL] == 'R'
+          && entrybuffer[exebuffer[20] - 1UL] == 'B') {
+          do_auto_loadfix = 1;
+        }
+      }
+      if (is_mz_exe      && !memcmp(&exebuffer[30], "PKLITE", 6))
+        do_auto_loadfix = 1;
+      else if (is_mz_exe && !memcmp(&exebuffer[30], "PKlite", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[46], "PKLITE", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[48], "PKLITE", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[46], "PKlite", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[48], "PKlite", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[38], "PK Copyr", 8))
+        do_auto_loadfix = 1;
+      fclose(exefile);
+      exefile = NULL;
+    }
+
+    if (do_auto_loadfix)
+      loadfix_init(0);
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
     else
       error_level = rc & 0xff;
+    if (do_auto_loadfix)
+      loadfix_exit(0);
     set_env_sel();
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
