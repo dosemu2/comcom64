@@ -1592,36 +1592,23 @@ static void perform_loadhigh(const char *arg)
   __dpmi_int(0x21, &r);
   }
 
-static void perform_loadfix(const char *arg)
-  {
-  const int numblocks = 16;
-  int orig_strat, orig_umblink, allocated, ii;
-  unsigned short allocations[numblocks], allocation, to_64kib, max, size;
+
+#define LOADFIX_NUMBLOCKS 16
+static const int loadfix_numblocks = LOADFIX_NUMBLOCKS;
+static unsigned short loadfix_allocations[LOADFIX_NUMBLOCKS];
+static int loadfix_ii;
+static unsigned loadfix_is_v;
+static unsigned loadfix_initialised = 0;
+
+static void loadfix_init(unsigned is_v) {
+  int orig_strat, orig_umblink, allocated;
+  unsigned short allocation, to_64kib, max, size;
   __dpmi_regs r = {};
-  int is_v = 0;
-  while (*arg != '\0')
-    {
-    if (*cmd_switch == '\0') // if not a command switch ...
-      {
-      break;
-      }
-    else
-      {
-      if (stricmp(cmd_switch,"/v")==0)
-        {
-        is_v = 1;
-        }
-      else
-        {
-        cprintf("Invalid switch - %s\r\n", cmd_switch);
-        reset_batfile_call_stack();
-        return;
-        }
-      }
-    advance_cmd_arg();
-    }
-  strcpy(cmd, arg);
-  advance_cmd_arg();
+
+  if (loadfix_initialised)
+    return;
+
+  loadfix_is_v = is_v;
 
   r.x.ax = 0x5800;
   __dpmi_int(0x21, &r);
@@ -1637,7 +1624,7 @@ static void perform_loadfix(const char *arg)
   r.x.bx = 0;				/* set UMB link off */
   __dpmi_int(0x21, &r);
 
-  ii = 0;
+  loadfix_ii = 0;
   do
     {
     r.h.ah = 0x48;
@@ -1662,13 +1649,13 @@ static void perform_loadfix(const char *arg)
           }
         break;				/* and done */
         }
-      if (ii >= numblocks)
+      if (loadfix_ii >= loadfix_numblocks)
         {
         printf("LOADFIX: too many blocks allocated!\n");
         break;
         }
-      allocations[ii] = allocation;
-      ++ii;
+      loadfix_allocations[loadfix_ii] = allocation;
+      ++loadfix_ii;
       r.h.ah = 0x4A;
       r.x.bx = -1;
       r.x.es = allocation;
@@ -1707,21 +1694,69 @@ static void perform_loadfix(const char *arg)
   r.x.bx = orig_umblink;
   __dpmi_int(0x21, &r);
 
+  loadfix_initialised = 1;
+}
+
+
+static void loadfix_exit(unsigned is_v) {
+  __dpmi_regs r = {};
+
+  if (!loadfix_initialised)
+    return;
+
+  is_v |= loadfix_is_v;
+
+  while (loadfix_ii != 0)
+    {
+    --loadfix_ii;
+    r.h.ah = 0x49;
+    r.x.es = loadfix_allocations[loadfix_ii];
+    __dpmi_int(0x21, &r);		/* free */
+    if (is_v)
+      {
+      printf("LOADFIX: afterwards freeing block at %04Xh\n",
+	loadfix_allocations[loadfix_ii]);
+      }
+    }
+
+  loadfix_initialised = 0;
+}
+
+
+static void perform_loadfix(const char *arg)
+  {
+  int is_v = 0;
+  while (*arg != '\0')
+    {
+    if (*cmd_switch == '\0') // if not a command switch ...
+      {
+      break;
+      }
+    else
+      {
+      if (stricmp(cmd_switch,"/v")==0)
+        {
+        is_v = 1;
+        }
+      else
+        {
+        cprintf("Invalid switch - %s\r\n", cmd_switch);
+        reset_batfile_call_stack();
+        return;
+        }
+      }
+    advance_cmd_arg();
+    }
+  strcpy(cmd, arg);
+  advance_cmd_arg();
+
+  loadfix_init(is_v);
+
   perform_external_cmd(false, cmd);
 	  /* Should we set this to true? Only affects batch files anyway,
 	   * which shouldn't be loaded with LOADFIX to begin with. */
 
-  while (ii != 0)
-    {
-    --ii;
-    r.h.ah = 0x49;
-    r.x.es = allocations[ii];
-    __dpmi_int(0x21, &r);		/* free */
-    if (is_v)
-      {
-      printf("LOADFIX: afterwards freeing block at %04Xh\n", allocations[ii]);
-      }
-    }
+  loadfix_exit(is_v);
   }
 
 static void perform_cd(const char *arg)
