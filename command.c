@@ -1592,36 +1592,23 @@ static void perform_loadhigh(const char *arg)
   __dpmi_int(0x21, &r);
   }
 
-static void perform_loadfix(const char *arg)
-  {
-  const int numblocks = 16;
-  int orig_strat, orig_umblink, allocated, ii;
-  unsigned short allocations[numblocks], allocation, to_64kib, max, size;
+
+#define LOADFIX_NUMBLOCKS 16
+static const int loadfix_numblocks = LOADFIX_NUMBLOCKS;
+static unsigned short loadfix_allocations[LOADFIX_NUMBLOCKS];
+static int loadfix_ii;
+static unsigned loadfix_is_v;
+static unsigned loadfix_initialised = 0;
+
+static void loadfix_init(unsigned is_v) {
+  int orig_strat, orig_umblink, allocated;
+  unsigned short allocation, to_64kib, max, size;
   __dpmi_regs r = {};
-  int is_v = 0;
-  while (*arg != '\0')
-    {
-    if (*cmd_switch == '\0') // if not a command switch ...
-      {
-      break;
-      }
-    else
-      {
-      if (stricmp(cmd_switch,"/v")==0)
-        {
-        is_v = 1;
-        }
-      else
-        {
-        cprintf("Invalid switch - %s\r\n", cmd_switch);
-        reset_batfile_call_stack();
-        return;
-        }
-      }
-    advance_cmd_arg();
-    }
-  strcpy(cmd, arg);
-  advance_cmd_arg();
+
+  if (loadfix_initialised)
+    return;
+
+  loadfix_is_v = is_v;
 
   r.x.ax = 0x5800;
   __dpmi_int(0x21, &r);
@@ -1637,7 +1624,7 @@ static void perform_loadfix(const char *arg)
   r.x.bx = 0;				/* set UMB link off */
   __dpmi_int(0x21, &r);
 
-  ii = 0;
+  loadfix_ii = 0;
   do
     {
     r.h.ah = 0x48;
@@ -1662,13 +1649,13 @@ static void perform_loadfix(const char *arg)
           }
         break;				/* and done */
         }
-      if (ii >= numblocks)
+      if (loadfix_ii >= loadfix_numblocks)
         {
         printf("LOADFIX: too many blocks allocated!\n");
         break;
         }
-      allocations[ii] = allocation;
-      ++ii;
+      loadfix_allocations[loadfix_ii] = allocation;
+      ++loadfix_ii;
       r.h.ah = 0x4A;
       r.x.bx = -1;
       r.x.es = allocation;
@@ -1707,21 +1694,69 @@ static void perform_loadfix(const char *arg)
   r.x.bx = orig_umblink;
   __dpmi_int(0x21, &r);
 
+  loadfix_initialised = 1;
+}
+
+
+static void loadfix_exit(unsigned is_v) {
+  __dpmi_regs r = {};
+
+  if (!loadfix_initialised)
+    return;
+
+  is_v |= loadfix_is_v;
+
+  while (loadfix_ii != 0)
+    {
+    --loadfix_ii;
+    r.h.ah = 0x49;
+    r.x.es = loadfix_allocations[loadfix_ii];
+    __dpmi_int(0x21, &r);		/* free */
+    if (is_v)
+      {
+      printf("LOADFIX: afterwards freeing block at %04Xh\n",
+	loadfix_allocations[loadfix_ii]);
+      }
+    }
+
+  loadfix_initialised = 0;
+}
+
+
+static void perform_loadfix(const char *arg)
+  {
+  int is_v = 0;
+  while (*arg != '\0')
+    {
+    if (*cmd_switch == '\0') // if not a command switch ...
+      {
+      break;
+      }
+    else
+      {
+      if (stricmp(cmd_switch,"/v")==0)
+        {
+        is_v = 1;
+        }
+      else
+        {
+        cprintf("Invalid switch - %s\r\n", cmd_switch);
+        reset_batfile_call_stack();
+        return;
+        }
+      }
+    advance_cmd_arg();
+    }
+  strcpy(cmd, arg);
+  advance_cmd_arg();
+
+  loadfix_init(is_v);
+
   perform_external_cmd(false, cmd);
 	  /* Should we set this to true? Only affects batch files anyway,
 	   * which shouldn't be loaded with LOADFIX to begin with. */
 
-  while (ii != 0)
-    {
-    --ii;
-    r.h.ah = 0x49;
-    r.x.es = allocations[ii];
-    __dpmi_int(0x21, &r);		/* free */
-    if (is_v)
-      {
-      printf("LOADFIX: afterwards freeing block at %04Xh\n", allocations[ii]);
-      }
-    }
+  loadfix_exit(is_v);
   }
 
 static void perform_cd(const char *arg)
@@ -2671,10 +2706,12 @@ static void perform_external_cmd(int call, char *ext_cmd)
     }
   else
     {
+    unsigned do_auto_loadfix = 0;
     char el[16];
     int alen;
     char *cp;
     char *dos_environ;
+    FILE * exefile;
 
 #if SYNC_ENV
     /* the below is disabled because it seems we don't need
@@ -2706,11 +2743,56 @@ static void perform_external_cmd(int call, char *ext_cmd)
       memmove(cmd_args + 1, cmd_args, alen);
       cmd_args[0] = ' ';
       }
+    exefile = fopen(full_cmd,"rb");
+    if (exefile) {
+      /* from https://github.com/dosemu2/comcom32/issues/59#issuecomment-1179566783 */
+      unsigned char exebuffer[256] = { 0 };
+      unsigned is_mz_exe = 0;
+      fread(exebuffer, 1, 256, exefile);
+      if (exebuffer[0] == 'M' && exebuffer[1] == 'Z')
+        is_mz_exe = 1;
+      if (exebuffer[0] == 'Z' && exebuffer[1] == 'M')
+        is_mz_exe = 1;
+      if (is_mz_exe && exebuffer[16] == 128 && exebuffer[17] == 0
+        && (exebuffer[20] == 16 || exebuffer[20] == 18) && exebuffer[21] == 0) {
+        unsigned headersize = (exebuffer[8] + exebuffer[9] * 256UL) * 16UL;
+        short codesegment = exebuffer[22] + exebuffer[23] * 256UL;
+        unsigned checkoffset = headersize + ((int)codesegment * 16UL);
+        unsigned char entrybuffer[18] = { 0 };
+        fseek(exefile, checkoffset, SEEK_SET);
+        fread(entrybuffer, 1, 18, exefile);
+        if (entrybuffer[exebuffer[20] - 2UL] == 'R'
+          && entrybuffer[exebuffer[20] - 1UL] == 'B') {
+          do_auto_loadfix = 1;
+        }
+      }
+      if (is_mz_exe      && !memcmp(&exebuffer[30], "PKLITE", 6))
+        do_auto_loadfix = 1;
+      else if (is_mz_exe && !memcmp(&exebuffer[30], "PKlite", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[46], "PKLITE", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[48], "PKLITE", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[46], "PKlite", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[48], "PKlite", 6))
+        do_auto_loadfix = 1;
+      else if (!is_mz_exe && !memcmp(&exebuffer[38], "PK Copyr", 8))
+        do_auto_loadfix = 1;
+      fclose(exefile);
+      exefile = NULL;
+    }
+
+    if (do_auto_loadfix)
+      loadfix_init(0);
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
     else
       error_level = rc & 0xff;
+    if (do_auto_loadfix)
+      loadfix_exit(0);
     set_env_sel();
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
