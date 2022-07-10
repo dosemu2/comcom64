@@ -1597,18 +1597,13 @@ static void perform_loadhigh(const char *arg)
 static const int loadfix_numblocks = LOADFIX_NUMBLOCKS;
 static unsigned short loadfix_allocations[LOADFIX_NUMBLOCKS];
 static int loadfix_ii;
-static unsigned loadfix_is_v;
-static unsigned loadfix_initialised = 0;
+static unsigned loadfix_initialised;
 
-static void loadfix_init(unsigned is_v) {
+static void loadfix_init(unsigned is_v)
+{
   int orig_strat, orig_umblink, allocated;
   unsigned short allocation, to_64kib, max, size;
   __dpmi_regs r = {};
-
-  if (loadfix_initialised)
-    return;
-
-  loadfix_is_v = is_v;
 
   r.x.ax = 0x5800;
   __dpmi_int(0x21, &r);
@@ -1693,18 +1688,12 @@ static void loadfix_init(unsigned is_v) {
   r.x.ax = 0x5803;
   r.x.bx = orig_umblink;
   __dpmi_int(0x21, &r);
-
-  loadfix_initialised = 1;
 }
 
 
-static void loadfix_exit(unsigned is_v) {
+static void loadfix_exit(unsigned is_v)
+{
   __dpmi_regs r = {};
-
-  if (!loadfix_initialised)
-    return;
-
-  is_v |= loadfix_is_v;
 
   while (loadfix_ii != 0)
     {
@@ -1718,8 +1707,6 @@ static void loadfix_exit(unsigned is_v) {
 	loadfix_allocations[loadfix_ii]);
       }
     }
-
-  loadfix_initialised = 0;
 }
 
 
@@ -1751,12 +1738,14 @@ static void perform_loadfix(const char *arg)
   advance_cmd_arg();
 
   loadfix_init(is_v);
+  loadfix_initialised = 1;
 
   perform_external_cmd(false, cmd);
 	  /* Should we set this to true? Only affects batch files anyway,
 	   * which shouldn't be loaded with LOADFIX to begin with. */
 
   loadfix_exit(is_v);
+  loadfix_initialised = 0;
   }
 
 static void perform_cd(const char *arg)
@@ -2743,8 +2732,8 @@ static void perform_external_cmd(int call, char *ext_cmd)
       memmove(cmd_args + 1, cmd_args, alen);
       cmd_args[0] = ' ';
       }
-    exefile = fopen(full_cmd,"rb");
-    if (exefile) {
+    if (!loadfix_initialised && (exefile = fopen(full_cmd,"rb")))
+      {
       /* from https://github.com/dosemu2/comcom32/issues/59#issuecomment-1179566783 */
       unsigned char exebuffer[256] = { 0 };
       unsigned is_mz_exe = 0;
