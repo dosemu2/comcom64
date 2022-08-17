@@ -966,7 +966,6 @@ static void general_file_transfer(int transfer_type)
   long ffhandle = 0;
   int traverse_subdirs = false;
   int copy_empty_subdirs = false;
-  int xcopy_dont_ask_fd_question = false;
   int do_file_verify;
   int s, subdir_level = 0;
   finddata_t ff[MAX_SUBDIR_LEVEL];
@@ -1031,8 +1030,6 @@ static void general_file_transfer(int transfer_type)
             traverse_subdirs = true;
           else if (stricmp(cmd_switch,"/e") == 0)
             copy_empty_subdirs = true;
-          else if (stricmp(cmd_switch,"/i") == 0)
-            xcopy_dont_ask_fd_question = true;
           else
             goto InvalidSwitch;
           }
@@ -1086,8 +1083,7 @@ static void general_file_transfer(int transfer_type)
       strcat(dest_path, "\\*.*");
     else  // else -- if dest does not exist or is not a directory...
       {
-      if ((transfer_type == FILE_XFER_XCOPY && xcopy_dont_ask_fd_question) ||
-          transfer_type == FILE_XFER_MOVE)
+      if (transfer_type == FILE_XFER_XCOPY || transfer_type == FILE_XFER_MOVE)
         {
         // if source has a wildcard and dest does not, then treat dest as a dir ...
         if (has_wildcard(source_filespec) && !has_wildcard(dest_path))
