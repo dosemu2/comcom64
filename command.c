@@ -58,7 +58,7 @@
 *   BUGS, PECULIARITIES, AND/OR UNIMPLEMENTED FEATURES
 *       - Some commands are incomplete: TIME, DATE
 *       - Some built-in commands should really be separate executables
-*         and not built-in. They are: CHOICE, MORE, PAUSE, XCOPY.
+*         and not built-in. They are: CHOICE, MORE, PAUSE.
 *
 *   COPYRIGHT (C) 1997  CENTROID CORPORATION, HOWARD, PA 16841
 *
