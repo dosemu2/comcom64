@@ -2130,6 +2130,7 @@ static void perform_dir(const char *arg)
   long ffhandle;
   int ffrc;
   int wide_column_countdown = -1;
+  int use_pause = 0;
   unsigned long long avail; //was double avail; --Salvo
   finddata_t ff;
   diskfree_t df;
@@ -2139,6 +2140,9 @@ static void perform_dir(const char *arg)
   char volspec[7] = "X:\\*.*";
   char full_filespec[MAXPATH];
   char filespec[MAXPATH] = "";
+  struct text_info txinfo;
+
+  gettextinfo(&txinfo);
 
   while (*arg != '\0')
     {
@@ -2161,6 +2165,11 @@ static void perform_dir(const char *arg)
       {
       if (stricmp(cmd_switch,"/w")==0)
         wide_column_countdown = 5;
+      if (stricmp(cmd_switch,"/p")==0)
+        {
+        use_pause = 1;
+        clrscr();
+        }
       }
     advance_cmd_arg();
     }
@@ -2192,6 +2201,12 @@ static void perform_dir(const char *arg)
   first = true;
   for (;;)
     {
+    if (use_pause && wherey() == txinfo.winbottom)
+      {
+      printf("Press any key to continue...");
+      getch();
+      clrscr();
+      }
     if (first)
       {
       if ((ffrc = findfirst_f(full_filespec, &ff, attrib, &ffhandle)) != 0)
