@@ -5,6 +5,7 @@ Maintainer: Stas Sergeev <stsp@users.sourceforge.net>
 Standards-Version: 3.9.7
 Build-Depends:
     make,
+    djgpp-dev,
     gcc-djgpp,
     git,
     grep,
