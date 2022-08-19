@@ -959,6 +959,49 @@ verify_error:
   return -1;
   }
 
+static void expand_wildcard(char *spec, const char *fname, const char *fext)
+  {
+  char *p, *dot;
+  const char *p1;
+  int on_ext = 0;
+
+  dot = strchr(spec, '.');
+  /* first convert * to ? */
+  while ((p = strchr(spec, '*')))
+    {
+    int len = ((dot && p > dot) ? 3 - (p - (dot + 1)) : 8 - (p - spec));
+    int rem = strlen(p + 1) + 1;
+
+    memmove(p + len, p + 1, rem);
+    memset(p, '?', len);
+    dot = strchr(spec, '.');
+    }
+  /* now expand it */
+  p = spec;
+  p1 = fname;
+  while (*p)
+    {
+    if (*p == '?')
+      {
+      if (*p1)
+        *p = *p1;
+      else
+        {
+        memmove(p, p + 1, strlen(p + 1) + 1);
+        p--;
+        dot = strchr(spec, '.');
+        }
+      }
+    p++;
+    p1++;
+    if (!*p1 && p > dot && !on_ext)
+      {
+      on_ext++;
+      p1 = fext;
+      }
+    }
+  }
+
 static void general_file_transfer(int transfer_type)
   {
   int xfer_count = 0;
@@ -976,7 +1019,8 @@ static void general_file_transfer(int transfer_type)
                                          // 1 = findnext *.* for subdirs;
                                          // 0 = done
   unsigned attrib;
-  char drivespec[MAXDRIVE], dirspec[MAXDIR], filespec[MAXFILE], extspec[MAXEXT];
+  char drivespec[MAXDRIVE], dirspec[MAXDIR], s_filespec[MAXFILE], s_extspec[MAXEXT];
+  char d_filespec[MAXFILE], d_extspec[MAXEXT];
   char temp_path[MAXPATH];
   char source_path[MAXPATH] = "", source_filespec[MAXPATH];
   char dest_path[MAXPATH] = "", dest_filespec[MAXPATH];
@@ -1064,12 +1108,12 @@ static void general_file_transfer(int transfer_type)
 
   // parse source - create full source path and split into 2 components: path + file spec
   _fixpath(source_path, temp_path);
-  fnsplit(temp_path, drivespec, dirspec, filespec, extspec);
+  fnsplit(temp_path, drivespec, dirspec, s_filespec, s_extspec);
   strcpy(source_path, drivespec);
   strcat(source_path, dirspec);
   conv_unix_path_to_ms_dos(source_path);
-  strcpy(source_filespec, filespec);
-  strcat(source_filespec, extspec);
+  strcpy(source_filespec, s_filespec);
+  strcat(source_filespec, s_extspec);
   conv_unix_path_to_ms_dos(source_filespec);
 
   // prepare dest for fnsplit() -
@@ -1093,8 +1137,8 @@ static void general_file_transfer(int transfer_type)
         {
         if (transfer_type == FILE_XFER_XCOPY)  // if we are doing xcopy, ask if target is a dir or a file
           {
-          fnsplit(dest_path, NULL, NULL, filespec, extspec);
-          cprintf("Does %s%s specify a file name\r\n", filespec, extspec);
+          fnsplit(dest_path, NULL, NULL, d_filespec, d_extspec);
+          cprintf("Does %s%s specify a file name\r\n", d_filespec, d_extspec);
           cputs("or directory name on the target\r\n");
           cputs("(F = file, D = directory)?");
           if (get_choice("FD") == 'D')
@@ -1106,18 +1150,17 @@ static void general_file_transfer(int transfer_type)
 
   // parse dest - create full dest path and split into 2 components: path + file spec
   _fixpath(dest_path, temp_path);
-  fnsplit(temp_path, drivespec, dirspec, filespec, extspec);
+  fnsplit(temp_path, drivespec, dirspec, d_filespec, d_extspec);
   strcpy(dest_path, drivespec);
   strcat(dest_path, dirspec);
   conv_unix_path_to_ms_dos(dest_path);
-  strcpy(dest_filespec, filespec);
-  strcat(dest_filespec, extspec);
+  strcpy(dest_filespec, d_filespec);
+  strcat(dest_filespec, d_extspec);
   conv_unix_path_to_ms_dos(dest_filespec);
 
-  // don't allow wildcard on the destination, except for *.*
-  if ((has_wildcard(dest_filespec) &&
-       strcmp(dest_filespec, "*.*") != 0) ||
-      has_wildcard(dest_path))
+  if (has_wildcard(dest_filespec))
+    expand_wildcard(dest_filespec, s_filespec, s_extspec + 1);
+  if (has_wildcard(dest_path))
     {
     cputs("Illegal wildcard on destination\r\n");
     reset_batfile_call_stack();
