@@ -2797,15 +2797,22 @@ static void perform_external_cmd(int call, char *ext_cmd)
       if (exebuffer[0] == 'Z' && exebuffer[1] == 'M')
         is_mz_exe = 1;
       if (is_mz_exe && exebuffer[16] == 128 && exebuffer[17] == 0
-        && (exebuffer[20] == 16 || exebuffer[20] == 18) && exebuffer[21] == 0) {
+        && (exebuffer[20] == 16 || exebuffer[20] == 18 || exebuffer[20] == 0)
+        && exebuffer[21] == 0) {
+
         unsigned headersize = (exebuffer[8] + exebuffer[9] * 256UL) * 16UL;
         short codesegment = exebuffer[22] + exebuffer[23] * 256UL;
         unsigned checkoffset = headersize + ((int)codesegment * 16UL);
         unsigned char entrybuffer[18] = { 0 };
-        fseek(exefile, checkoffset, SEEK_SET);
-        fread(entrybuffer, 1, 18, exefile);
-        if (entrybuffer[exebuffer[20] - 2UL] == 'R'
-          && entrybuffer[exebuffer[20] - 1UL] == 'B') {
+
+        if (exebuffer[20]) {
+          fseek(exefile, checkoffset, SEEK_SET);
+          fread(entrybuffer, 1, 18, exefile);
+          if (entrybuffer[exebuffer[20] - 2UL] == 'R'
+            && entrybuffer[exebuffer[20] - 1UL] == 'B') {
+            do_auto_loadfix = 1;
+          }
+        } else {
           do_auto_loadfix = 1;
         }
       }
