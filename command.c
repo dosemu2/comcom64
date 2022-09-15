@@ -993,7 +993,8 @@ static void expand_wildcard(char *spec, const char *fname, const char *fext)
         }
       }
     p++;
-    p1++;
+    if (*p1)
+      p1++;
     if (!*p1 && p > dot && !on_ext)
       {
       on_ext++;
