@@ -2186,6 +2186,22 @@ static void perform_dir(const char *arg)
   char filespec[MAXPATH] = "";
   struct text_info txinfo;
 
+  struct {
+    uint16_t size;
+    uint16_t version; // (0000h)
+    uint32_t spc;
+    uint32_t bps;
+    uint32_t avail_clusters;
+    uint32_t total_clusters;
+    uint32_t avail_sectors;
+    uint32_t total_sectors;
+    uint32_t avail_units;
+    uint32_t total_units;
+    char reserved[8];
+  } __attribute__((packed)) xdf;
+  uint8_t carry;
+  uint16_t ax;
+
   gettextinfo(&txinfo);
 
   while (*arg != '\0')
@@ -2313,8 +2329,19 @@ static void perform_dir(const char *arg)
   printf("%10lu file(s) %14lu bytes\n", filecount, bytecount);
   printf("%10lu dir(s) ", dircount);
 
-  getdfree(full_filespec[0]-'a'+1, &df);
-  avail = DISKFREE_T_AVAIL(df)*DISKFREE_T_BSEC(df)*DISKFREE_T_SCLUS(df);
+  /* Try extended dfree int21/7303 */
+  asm volatile("stc\n"
+               "int $0x21\n"
+               "setc %0\n"
+               : "=r"(carry), "=a"(ax)
+               : "a"(0x7303), "d"(full_filespec), "D"(&xdf), "c"(sizeof(xdf))
+               : "cc", "memory");
+  if (!carry) {
+    avail = (unsigned long long)xdf.avail_clusters * xdf.bps * xdf.spc;
+  } else { /* Fall back to int21/36 */
+    getdfree(full_filespec[0]-'a'+1, &df);
+    avail = DISKFREE_T_AVAIL(df)*DISKFREE_T_BSEC(df)*DISKFREE_T_SCLUS(df);
+  }
 
   if (avail < 1048576)
     printf("%15lli byte(s) free\n", avail);
