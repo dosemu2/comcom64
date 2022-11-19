@@ -36,7 +36,7 @@ $(CMD): $(OBJS)
 
 # Common rules
 %.o : %.c
-	$(DOS_CC) $(C_OPT) $(C_OUTPUT) -c $< -o $@
+	$(DOS_CC) $(C_OPT) -c $< -o $@
 
 ifeq (,$(wildcard $(CMD)))
 install:
