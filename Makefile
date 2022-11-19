@@ -35,7 +35,7 @@ $(CMD): $(OBJS)
 	chmod -x $(CMD)
 
 # Common rules
-%.o : %.c %.h
+%.o : %.c
 	$(DOS_CC) $(C_OPT) $(C_OUTPUT) -c $< -o $@
 
 ifeq (,$(wildcard $(CMD)))
