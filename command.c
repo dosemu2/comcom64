@@ -228,7 +228,7 @@ static int installable_command_check(const char *cmd, const char *tail)
   const char *name;
   int tlen;
   int nlen;
-  uint16_t ax;
+  __dpmi_regs r = {};
 
   struct {
     uint8_t nlen;
@@ -276,17 +276,14 @@ static int installable_command_check(const char *cmd, const char *tail)
     tlen = 0;
   }
 
-  asm volatile ("int $0x2f\n"
-    : "=a"(ax)
-    : "a"(0xae00),
-      "c"(0xff00 + tlen),
-      "d"(0xffff),
-      "b"(&s.cmax),
-      "S"(&s.nlen),
-      "D"(0)
-    : "cc", "memory" /* "memory" is needed even for any pointer read! */);
-
-  return ((ax & 0xff) == 0xff);
+  r.d.eax = 0xae00;
+  r.d.ecx = 0xff00 + tlen;
+  r.d.edx = 0xffff;
+  r.d.ebx = PTR_DATA(&s.cmax);
+  r.d.esi = PTR_DATA(&s.nlen);
+  r.d.edi = 0;
+  __dpmi_int(0x2f, &r);
+  return ((r.x.ax & 0xff) == 0xff);
 }
 
 /***
