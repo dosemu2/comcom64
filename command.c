@@ -4114,53 +4114,14 @@ static void link_umb(int on)
   }
 }
 
-unsigned short ss;
-unsigned short ds;
-char cstack[0x10000];
-int on_cstack;
+extern unsigned short ss;
+extern unsigned short ds;
 
 int do_int23(void);
 int do_int23(void)
 {
   return break_on;
 }
-
-asm(
-    ".global _my_int23_handler\n"
-    "_my_int23_handler:\n"
-    "pusha\n"
-    "push %ds\n"
-    "mov %cs:_ds, %eax\n"
-    "mov %eax, %ds\n"
-    "xorl %eax, %eax\n"
-    "cmpl _on_cstack, %eax\n"
-    "jnz 2f\n"
-    "incl _on_cstack\n"
-    "mov %ss, %esi\n"
-    "mov %esp, %edi\n"
-    "pushl _ss\n"
-    "lea _cstack+0x10000, %edx\n"
-    "push %edx\n"
-    "lss (%esp), %esp\n"
-    "push %esi\n"
-    "push %edi\n"
-    "call _do_int23\n"
-    "lss (%esp), %esp\n"
-    "decl _on_cstack\n"
-    "5:\n"
-    "pop %ds\n"
-    "or %eax, %eax\n"
-    "jnz 1f\n"
-    "popa\n"
-    "iret\n"
-    "1:\n"
-    "popa\n"
-    "stc\n"
-    "lret\n"
-    "2:\n"
-    "call _do_int23\n"
-    "jmp 5b\n"
-);
 extern void my_int23_handler(void);
 
 static void setup_break_handling(void)

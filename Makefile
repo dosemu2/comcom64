@@ -3,12 +3,13 @@
 
 DOS_CC ?= i586-pc-msdosdjgpp-gcc
 DOS_LD ?= i586-pc-msdosdjgpp-gcc
+DOS_AS ?= i586-pc-msdosdjgpp-as
 DOS_STRIP ?= i586-pc-msdosdjgpp-strip
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
 C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations -Wwrite-strings -march=i386
 LINK_OPT =
-OBJS = command.o cmdbuf.o version.o memmem.o
+OBJS = command.o cmdbuf.o version.o memmem.o int23.o
 CMD = comcom32.exe
 RELVER = alpha3
 PKG = comcom32-0.1$(RELVER)
@@ -37,6 +38,9 @@ $(CMD): $(OBJS)
 # Common rules
 %.o : %.c
 	$(DOS_CC) $(C_OPT) -c $< -o $@
+
+%.o : %.S
+	$(DOS_AS) $< -o $@
 
 ifeq (,$(wildcard $(CMD)))
 install:
