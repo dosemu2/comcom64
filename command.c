@@ -120,6 +120,9 @@ char **__crt0_glob_function(char *_argument UNUSED) {return NULL;} // prevent wi
 void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading of environment file
 #endif
 
+#define CF 1
+#define PTR_DATA(p) ((uintptr_t)(p))
+
 static int shell_mode = SHELL_NORMAL;
 static int shell_permanent;
 
@@ -2199,8 +2202,7 @@ static void perform_dir(const char *arg)
     uint32_t total_units;
     char reserved[8];
   } __attribute__((packed)) xdf;
-  uint8_t carry;
-  uint16_t ax;
+  __dpmi_regs r = {};
 
   gettextinfo(&txinfo);
 
@@ -2330,13 +2332,13 @@ static void perform_dir(const char *arg)
   printf("%10lu dir(s) ", dircount);
 
   /* Try extended dfree int21/7303 */
-  asm volatile("stc\n"
-               "int $0x21\n"
-               "setc %0\n"
-               : "=r"(carry), "=a"(ax)
-               : "a"(0x7303), "d"(full_filespec), "D"(&xdf), "c"(sizeof(xdf))
-               : "cc", "memory");
-  if (!carry) {
+  r.x.flags = CF;
+  r.d.eax = 0x7303;
+  r.d.edx = PTR_DATA(full_filespec);
+  r.d.edi = PTR_DATA(&xdf);
+  r.d.ecx = sizeof(xdf);
+  __dpmi_int(0x21, &r);
+  if (!(r.x.flags & CF)) {
     avail = (unsigned long long)xdf.avail_clusters * xdf.bps * xdf.spc;
   } else { /* Fall back to int21/36 */
     getdfree(full_filespec[0]-'a'+1, &df);
