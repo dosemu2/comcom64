@@ -1,6 +1,3 @@
-# Project: FreeDOS-32 command
-# Makefile for DJGPP and Mingw32
-
 DOS_CC ?= i586-pc-msdosdjgpp-gcc
 DOS_LD ?= i586-pc-msdosdjgpp-gcc
 DOS_AS ?= i586-pc-msdosdjgpp-as
