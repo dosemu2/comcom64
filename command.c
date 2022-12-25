@@ -2756,7 +2756,7 @@ static void perform_external_cmd(int call, char *ext_cmd)
 
   if (exec_type == 2)  // if command is a batch file
     {
-    if (call)
+    if (call || getenv("SHELL_CALL_DEFAULT"))
       {
       stack_level++;
       if (stack_level >= MAX_STACK_LEVEL)
