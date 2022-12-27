@@ -120,6 +120,8 @@ char **__crt0_glob_function(char *_argument UNUSED) {return NULL;} // prevent wi
 void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading of environment file
 #endif
 
+static const char *version = "0.2";
+
 #define CF 1
 #define PTR_DATA(p) ((uintptr_t)(p))
 
@@ -3524,7 +3526,7 @@ static void perform_ver(const char *arg)
     }
 
 
-  printf("comcom32 v0.1\n");
+  printf("comcom32 v%s\n", version);
   if (strlen(revisionid))
     {
     printf(" Source Control Revision ID: %s\n", revisionid);
@@ -4178,6 +4180,7 @@ int main(int argc, char *argv[], char *envp[])
   strupr(cmd_path);
   setenv("COMSPEC", cmd_path, 1);
   free(cmd_path);
+  setenv("COMCOM_VER", version, 1);
 
   // process arguments
   for (a = 1; a < argc; a++)
