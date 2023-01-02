@@ -2875,6 +2875,8 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
 
     if (do_auto_loadfix)
       loadfix_init(0);
+    if (getenv("SHELL_LOADHIGH_DEFAULT"))
+      lh++;
     if (lh)
       loadhigh_init();
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
