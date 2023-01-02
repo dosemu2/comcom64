@@ -184,7 +184,7 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
  */
 static void parse_cmd_line(void);
 static void perform_external_cmd(int call, int lh, char *ext_cmd);
-static void exec_cmd(void);
+static void exec_cmd(int call);
 static void perform_set(const char *arg);
 static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
@@ -1574,7 +1574,7 @@ static void perform_call(const char *arg)
     advance_cmd_arg();
   strcpy(cmd, arg);
   advance_cmd_arg();
-  perform_external_cmd(true, false, cmd);
+  exec_cmd(true);
   }
 
 static void perform_license(const char *arg)
@@ -2497,7 +2497,7 @@ static void perform_for(const char *arg)
     strlcpy(cmd_line, c, sizeof(cmd_line));
     for_val = tok;
     parse_cmd_line();
-    exec_cmd();
+    exec_cmd(false);
     }
   for_var = '\0';
   }
@@ -3929,7 +3929,7 @@ static void parse_cmd_line(void)
   return;
   }
 
-static void exec_cmd(void)
+static void exec_cmd(int call)
   {
   int c;
   int pipe_index, pipe_fno[2], old_std_fno[2], redir_result[2];
@@ -4017,7 +4017,7 @@ static void exec_cmd(void)
       if (c >= CMD_TABLE_COUNT)
         {
           need_to_crlf_at_next_prompt = true;
-          perform_external_cmd(false, false, cmd);
+          perform_external_cmd(call, false, cmd);
         }
       }
     cmd[0] = '\0';
@@ -4318,7 +4318,7 @@ int main(int argc, char *argv[], char *envp[])
       else
         get_cmd_from_bat_file();
       }
-    exec_cmd();
+    exec_cmd(false);
     }
 
   if (shell_permanent)
