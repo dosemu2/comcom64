@@ -183,7 +183,7 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
  * Some private prototypes
  */
 static void parse_cmd_line(void);
-static void perform_external_cmd(int call, char *ext_cmd);
+static void perform_external_cmd(int call, int lh, char *ext_cmd);
 static void exec_cmd(void);
 static void perform_set(const char *arg);
 static void list_cmds(void);
@@ -1574,7 +1574,7 @@ static void perform_call(const char *arg)
     advance_cmd_arg();
   strcpy(cmd, arg);
   advance_cmd_arg();
-  perform_external_cmd(true, cmd);
+  perform_external_cmd(true, false, cmd);
   }
 
 static void perform_license(const char *arg)
@@ -1601,37 +1601,14 @@ static void perform_license(const char *arg)
 
 static void perform_loadhigh(const char *arg)
   {
-  int orig_strat, orig_umblink;
-  __dpmi_regs r = {};
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
   strcpy(cmd, arg);
   advance_cmd_arg();
 
-  r.x.ax = 0x5800;
-  __dpmi_int(0x21, &r);
-  orig_strat = r.x.ax;
-  r.x.ax = 0x5802;
-  __dpmi_int(0x21, &r);
-  orig_umblink = r.h.al;
-
-  r.x.ax = 0x5801;
-  r.x.bx = (orig_strat & 0xF) | 0x80;	/* set strat area = UMA-then-LMA */
-  __dpmi_int(0x21, &r);
-  r.x.ax = 0x5803;
-  r.x.bx = 1;				/* set UMB link on */
-  __dpmi_int(0x21, &r);
-
-  perform_external_cmd(false, cmd);
+  perform_external_cmd(false, true, cmd);
 	  /* Should we set this to true? Only affects batch files anyway,
 	   * which shouldn't be loaded with LOADHIGH to begin with. */
-
-  r.x.ax = 0x5801;
-  r.x.bx = orig_strat;
-  __dpmi_int(0x21, &r);
-  r.x.ax = 0x5803;
-  r.x.bx = orig_umblink;
-  __dpmi_int(0x21, &r);
   }
 
 
@@ -1782,7 +1759,7 @@ static void perform_loadfix(const char *arg)
   loadfix_init(is_v);
   loadfix_initialised = 1;
 
-  perform_external_cmd(false, cmd);
+  perform_external_cmd(false, false, cmd);
 	  /* Should we set this to true? Only affects batch files anyway,
 	   * which shouldn't be loaded with LOADFIX to begin with. */
 
@@ -2643,7 +2620,40 @@ static void reset_text_attrs(void)
     }
 }
 
-static void perform_external_cmd(int call, char *ext_cmd)
+static int orig_strat, orig_umblink;
+
+static void loadhigh_init(void)
+  {
+  __dpmi_regs r = {};
+
+  r.x.ax = 0x5800;
+  __dpmi_int(0x21, &r);
+  orig_strat = r.x.ax;
+  r.x.ax = 0x5802;
+  __dpmi_int(0x21, &r);
+  orig_umblink = r.h.al;
+
+  r.x.ax = 0x5801;
+  r.x.bx = (orig_strat & 0xF) | 0x80;	/* set strat area = UMA-then-LMA */
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = 1;				/* set UMB link on */
+  __dpmi_int(0x21, &r);
+  }
+
+static void loadhigh_done(void)
+  {
+  __dpmi_regs r = {};
+
+  r.x.ax = 0x5801;
+  r.x.bx = orig_strat;
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5803;
+  r.x.bx = orig_umblink;
+  __dpmi_int(0x21, &r);
+  }
+
+static void perform_external_cmd(int call, int lh, char *ext_cmd)
   {
   finddata_t ff;
   long ffhandle;
@@ -2865,11 +2875,15 @@ static void perform_external_cmd(int call, char *ext_cmd)
 
     if (do_auto_loadfix)
       loadfix_init(0);
+    if (lh)
+      loadhigh_init();
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
     else
       error_level = rc & 0xff;
+    if (lh)
+      loadhigh_done();
     if (do_auto_loadfix)
       loadfix_exit(0);
     set_env_sel();
@@ -4001,7 +4015,7 @@ static void exec_cmd(void)
       if (c >= CMD_TABLE_COUNT)
         {
           need_to_crlf_at_next_prompt = true;
-          perform_external_cmd(false, cmd);
+          perform_external_cmd(false, false, cmd);
         }
       }
     cmd[0] = '\0';
@@ -4025,7 +4039,7 @@ static void exec_cmd(void)
           }
         }
       if (c >= CMD_TABLE_COUNT)
-        perform_external_cmd(false, pipe_to_cmd);
+        perform_external_cmd(false, false, pipe_to_cmd);
     }
 
 /* Exit: */
