@@ -2873,9 +2873,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       exefile = NULL;
     }
 
-    if (do_auto_loadfix)
-      loadfix_init(0);
-    if (getenv("SHELL_LOADHIGH_DEFAULT"))
+    if (do_auto_loadfix || getenv("SHELL_LOADHIGH_DEFAULT"))
       lh++;
     if (lh)
       loadhigh_init();
@@ -2886,8 +2884,6 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       error_level = rc & 0xff;
     if (lh)
       loadhigh_done();
-    if (do_auto_loadfix)
-      loadfix_exit(0);
     set_env_sel();
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
