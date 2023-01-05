@@ -2873,8 +2873,10 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       exefile = NULL;
     }
 
-    if (do_auto_loadfix || getenv("SHELL_LOADHIGH_DEFAULT"))
+    if (do_auto_loadfix || getenv("SHELL_LOADHIGH_DEFAULT")) {
+      unsetenv("SHELL_LOADHIGH_DEFAULT");
       lh++;
+    }
     if (lh)
       loadhigh_init();
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
