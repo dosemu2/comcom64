@@ -2794,6 +2794,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     char *cp;
     char *dos_environ;
     FILE * exefile;
+    char *lh_d;
 
 #if SYNC_ENV
     /* the below is disabled because it seems we don't need
@@ -2873,10 +2874,11 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       exefile = NULL;
     }
 
-    if (do_auto_loadfix || getenv("SHELL_LOADHIGH_DEFAULT")) {
-      unsetenv("SHELL_LOADHIGH_DEFAULT");
+    lh_d = getenv("SHELL_LOADHIGH_DEFAULT");
+    if (do_auto_loadfix || (lh_d && lh_d[0] == '1'))
       lh++;
-    }
+    if (lh_d)
+      unsetenv("SHELL_LOADHIGH_DEFAULT");
     if (lh)
       loadhigh_init();
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
