@@ -190,6 +190,7 @@ static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
 static void set_env_seg(void);
 static void set_env_sel(void);
+static void link_umb(int on);
 
 static int installable_command_check(const char *cmd, const char *tail)
 {
@@ -2632,13 +2633,6 @@ static void loadhigh_init(void)
   r.x.ax = 0x5802;
   __dpmi_int(0x21, &r);
   orig_umblink = r.h.al;
-
-  r.x.ax = 0x5801;
-  r.x.bx = (orig_strat & 0xF) | 0x80;	/* set strat area = UMA-then-LMA */
-  __dpmi_int(0x21, &r);
-  r.x.ax = 0x5803;
-  r.x.bx = 1;				/* set UMB link on */
-  __dpmi_int(0x21, &r);
   }
 
 static void loadhigh_done(void)
@@ -2880,14 +2874,14 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     if (lh_d)
       unsetenv("SHELL_LOADHIGH_DEFAULT");
     if (lh)
-      loadhigh_init();
+      link_umb(1);
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
     else
       error_level = rc & 0xff;
     if (lh)
-      loadhigh_done();
+      link_umb(0);
     set_env_sel();
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
@@ -4124,11 +4118,9 @@ static void link_umb(int on)
   r.x.ax = 0x5803;
   r.x.bx = on;
   __dpmi_int(0x21, &r);
-  if (on) {
-    r.x.ax = 0x5801;
-    r.x.bx = 0x80;
-    __dpmi_int(0x21, &r);
-  }
+  r.x.ax = 0x5801;
+  r.x.bx = on ? 0x80 : 0;
+  __dpmi_int(0x21, &r);
 }
 
 extern unsigned short ss;
@@ -4176,6 +4168,7 @@ int main(int argc, char *argv[], char *envp[])
   // reset fpu
   _clear87();
   _fpreset();
+  loadhigh_init();	// save initial umb link and strat
   link_umb(0);		// in case we loaded with shellhigh or lh
   set_env_size();
   reset_text_attrs();
@@ -4321,6 +4314,7 @@ int main(int argc, char *argv[], char *envp[])
     exec_cmd(false);
     }
 
+  loadhigh_done();
   if (shell_permanent)
     restore_psp_parent();
   return error_level;
