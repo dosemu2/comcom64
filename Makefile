@@ -4,7 +4,9 @@ DOS_AS ?= i586-pc-msdosdjgpp-as
 DOS_STRIP ?= i586-pc-msdosdjgpp-strip
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
-C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations -Wwrite-strings -march=i386
+C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings
+# avoid CMOVxx instructions
+C_OPT += -march=i386
 LINK_OPT =
 OBJS = command.o cmdbuf.o version.o memmem.o fmemcpy.o int23.o
 CMD = comcom32.exe
