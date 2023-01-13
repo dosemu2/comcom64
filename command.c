@@ -96,6 +96,7 @@
 #include "cmdbuf.h"
 #include "memmem.h"
 #include "fmemcpy.h"
+#include "asm.h"
 #include "version.h"
 #include "command.h"
 
@@ -4122,14 +4123,10 @@ static void link_umb(int on)
   __dpmi_int(0x21, &r);
 }
 
-extern unsigned short ds;
-
-int do_int23(void);
 int do_int23(void)
 {
   return break_on;
 }
-extern void my_int23_handler(void);
 
 static void setup_break_handling(void)
 {

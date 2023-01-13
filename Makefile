@@ -27,6 +27,7 @@ version: force
 
 version.o: version
 
+$(OBJS): $(wildcard *.h)
 $(CMD): $(OBJS)
 	$(DOS_LD) $^ $(LINK_OPT) -o $(CMD)
 	$(DOS_STRIP) $(CMD)
