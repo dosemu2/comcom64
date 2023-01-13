@@ -6,7 +6,7 @@ PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
 C_OPT = -Wall -O2 -finline-functions -Wmissing-declarations -Wwrite-strings -march=i386
 LINK_OPT =
-OBJS = command.o cmdbuf.o version.o memmem.o int23.o
+OBJS = command.o cmdbuf.o version.o memmem.o fmemcpy.o int23.o
 CMD = comcom32.exe
 RELVER = alpha3
 PKG = comcom32-0.1$(RELVER)
