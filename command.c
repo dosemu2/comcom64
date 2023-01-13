@@ -2266,7 +2266,7 @@ static void perform_dir(const char *arg)
       printf("%04d-%02d-%02d ", FINDDATA_T_WDATE_YEAR(ff), FINDDATA_T_WDATE_MON(ff), FINDDATA_T_WDATE_DAY(ff));
       printf("%02d:%02d ", FINDDATA_T_WTIME_HOUR(ff), FINDDATA_T_WTIME_MIN(ff));
       if ((FINDDATA_T_ATTRIB(ff)&FA_DIREC) == 0)
-        printf("%13lu", FINDDATA_T_SIZE(ff));
+        printf("%13u", FINDDATA_T_SIZE(ff));
       else
         printf("<DIR>%8s", "");
       printf(" %s\n", FINDDATA_T_FILENAME(ff));
@@ -4071,13 +4071,13 @@ static void set_env_size(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
   unsigned short env_sel;
-  unsigned long env_addr;
+  unsigned env_addr;
   struct MCB mcb;
   unsigned old_env_size;
   int err;
 
   fmemcpy2(&env_sel, psp, 0x2c, 2);
-  err = __dpmi_get_segment_base_address(env_sel, &env_addr);
+  err = get_segment_base_address(env_sel, &env_addr);
   old_env_size = __dpmi_get_segment_limit(env_sel) + 1;
   env_size = old_env_size;
   if (!err && !(env_addr & 0xf) && env_addr < 0x110000 && old_env_size == 0x10000) {
@@ -4090,7 +4090,7 @@ static void set_env_size(void)
   env_segment = env_addr >> 4;
 }
 
-static unsigned long psp_addr;
+static unsigned psp_addr;
 static unsigned short orig_psp_seg;
 
 static void set_psp_parent(void)
@@ -4099,7 +4099,7 @@ static void set_psp_parent(void)
   unsigned short psp_seg;
   int err;
 
-  err = __dpmi_get_segment_base_address(psp, &psp_addr);
+  err = get_segment_base_address(psp, &psp_addr);
   if (!err && !(psp_addr & 0xf) && psp_addr < 0x110000) {
     psp_seg = psp_addr >> 4;
     dosmemget(psp_addr + 0x16, 2, &orig_psp_seg);

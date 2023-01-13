@@ -360,6 +360,7 @@ static inline int file_copytime(int desc_handle, int src_handle)
 #include <values.h>
 #include <unistd.h>
 #include <sys/exceptn.h>
+#include <dpmi.h>
 
 #ifndef USE_CONIO_OUT
 #define cprintf printf
@@ -373,7 +374,7 @@ static inline int file_copytime(int desc_handle, int src_handle)
 typedef struct ffblk finddata_t;
 #define FINDDATA_T_FILENAME(f) (f).ff_name
 #define FINDDATA_T_ATTRIB(f) (f).ff_attrib
-#define FINDDATA_T_SIZE(f) (f).ff_fsize
+#define FINDDATA_T_SIZE(f) (unsigned)(f).ff_fsize
 #define FINDDATA_T_WDATE_YEAR(f) (((f).ff_fdate>>9)&0x7F)+1980
 #define FINDDATA_T_WDATE_MON(f) ((f).ff_fdate>>5)&0xF
 #define FINDDATA_T_WDATE_DAY(f) ((f).ff_fdate)&0x1F
@@ -431,7 +432,16 @@ typedef struct dfree diskfree_t;
 #define DISKFREE_T_TOTAL(d) d.df_total
 #define DISKFREE_T_BSEC(d) d.df_bsec
 #define DISKFREE_T_SCLUS(d) d.df_sclus
-#endif
 
+static inline int get_segment_base_address(int selector, unsigned *addr)
+{
+#ifdef __LP64__
+    return __dpmi_get_segment_base_address(selector, addr);
+#else
+    return __dpmi_get_segment_base_address(selector, (unsigned long *)addr);
+#endif
+}
+
+#endif
 
 #endif

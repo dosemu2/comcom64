@@ -20,14 +20,23 @@
 #include <assert.h>
 #include "fmemcpy.h"
 
+static inline int get_segment_base_address(int selector, unsigned *addr)
+{
+#ifdef __LP64__
+    return __dpmi_get_segment_base_address(selector, addr);
+#else
+    return __dpmi_get_segment_base_address(selector, (unsigned long *)addr);
+#endif
+}
+
 void fmemcpy1(unsigned dst_sel, unsigned dst_off, const void *src,
     unsigned len)
 {
     int rc;
-    unsigned long base;
+    unsigned base;
     void *ptr;
 
-    rc = __dpmi_get_segment_base_address(dst_sel, &base);
+    rc = get_segment_base_address(dst_sel, &base);
     assert(!rc);
     rc = __djgpp_nearptr_enable();
     assert(rc);
@@ -39,10 +48,10 @@ void fmemcpy1(unsigned dst_sel, unsigned dst_off, const void *src,
 void fmemcpy2(void *dst, unsigned src_sel, unsigned src_off, unsigned len)
 {
     int rc;
-    unsigned long base;
+    unsigned base;
     const void *ptr;
 
-    rc = __dpmi_get_segment_base_address(src_sel, &base);
+    rc = get_segment_base_address(src_sel, &base);
     assert(!rc);
     rc = __djgpp_nearptr_enable();
     assert(rc);
@@ -56,13 +65,13 @@ void fmemcpy12(unsigned dst_sel, unsigned dst_off, unsigned src_sel,
     unsigned src_off, unsigned len)
 {
     int rc;
-    unsigned long sbase, dbase;
+    unsigned sbase, dbase;
     const void *sptr;
     void *dptr;
 
-    rc = __dpmi_get_segment_base_address(src_sel, &sbase);
+    rc = get_segment_base_address(src_sel, &sbase);
     assert(!rc);
-    rc = __dpmi_get_segment_base_address(dst_sel, &dbase);
+    rc = get_segment_base_address(dst_sel, &dbase);
     assert(!rc);
     rc = __djgpp_nearptr_enable();
     assert(rc);
