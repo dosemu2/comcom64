@@ -4122,7 +4122,6 @@ static void link_umb(int on)
   __dpmi_int(0x21, &r);
 }
 
-extern unsigned short ss;
 extern unsigned short ds;
 
 int do_int23(void);
@@ -4144,7 +4143,6 @@ static void setup_break_handling(void)
   r.x.dx = 1;               // to "on"
   __dpmi_int(0x21, &r);
 
-  ss = _my_ss();
   ds = _my_ds();
   pa.selector = _my_cs();
   pa.offset32 = (uintptr_t)my_int23_handler;
