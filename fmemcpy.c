@@ -29,54 +29,52 @@ static inline int get_segment_base_address(int selector, unsigned *addr)
 #endif
 }
 
-void fmemcpy1(unsigned dst_sel, unsigned dst_off, const void *src,
-    unsigned len)
+void fmemcpy1(__dpmi_paddr dst, const void *src, unsigned len)
 {
     int rc;
     unsigned base;
     void *ptr;
 
-    rc = get_segment_base_address(dst_sel, &base);
+    rc = get_segment_base_address(dst.selector, &base);
     assert(!rc);
     rc = __djgpp_nearptr_enable();
     assert(rc);
-    ptr = (void *)(base + dst_off + __djgpp_conventional_base);
+    ptr = (void *)(base + dst.offset32 + __djgpp_conventional_base);
     memcpy(ptr, src, len);
     __djgpp_nearptr_disable();
 }
 
-void fmemcpy2(void *dst, unsigned src_sel, unsigned src_off, unsigned len)
+void fmemcpy2(void *dst, __dpmi_paddr src, unsigned len)
 {
     int rc;
     unsigned base;
     const void *ptr;
 
-    rc = get_segment_base_address(src_sel, &base);
+    rc = get_segment_base_address(src.selector, &base);
     assert(!rc);
     rc = __djgpp_nearptr_enable();
     assert(rc);
-    ptr = (const void *)(base + src_off + __djgpp_conventional_base);
+    ptr = (const void *)(base + src.offset32 + __djgpp_conventional_base);
     memcpy(dst, ptr, len);
     __djgpp_nearptr_disable();
 }
 
 /* similar to sys/movedata.h's movedata(), but the src/dst swapped! */
-void fmemcpy12(unsigned dst_sel, unsigned dst_off, unsigned src_sel,
-    unsigned src_off, unsigned len)
+void fmemcpy12(__dpmi_paddr dst, __dpmi_paddr src, unsigned len)
 {
     int rc;
     unsigned sbase, dbase;
     const void *sptr;
     void *dptr;
 
-    rc = get_segment_base_address(src_sel, &sbase);
+    rc = get_segment_base_address(src.selector, &sbase);
     assert(!rc);
-    rc = get_segment_base_address(dst_sel, &dbase);
+    rc = get_segment_base_address(dst.selector, &dbase);
     assert(!rc);
     rc = __djgpp_nearptr_enable();
     assert(rc);
-    sptr = (const void *)(sbase + src_off + __djgpp_conventional_base);
-    dptr = (void *)(dbase + dst_off + __djgpp_conventional_base);
+    sptr = (const void *)(sbase + src.offset32 + __djgpp_conventional_base);
+    dptr = (void *)(dbase + dst.offset32 + __djgpp_conventional_base);
     memcpy(dptr, sptr, len);
     __djgpp_nearptr_disable();
 }

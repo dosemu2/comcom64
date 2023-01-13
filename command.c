@@ -124,6 +124,7 @@ static const char *version = "0.2";
 
 #define CF 1
 #define PTR_DATA(p) ((uintptr_t)(p))
+#define DP(s, o) (__dpmi_paddr){ .selector = s, .offset32 = o, }
 
 static int shell_mode = SHELL_NORMAL;
 static int shell_permanent;
@@ -2515,7 +2516,7 @@ static void put_env(unsigned short env_sel)
 
   env = alloca(env_size + tail_sz);
   /* back up full env, just for getting its tail */
-  fmemcpy2(env, env_sel, 0, env_size);
+  fmemcpy2(env, DP(env_sel, 0), env_size);
   memset(&env[env_size], 0, tail_sz);
   tail = memchr(env, 1, env_size);
   if (tail && tail[1] == '\0') {
@@ -2539,12 +2540,12 @@ static void put_env(unsigned short env_sel)
           env_size, env_offs + l, tail_sz);
       break;
     }
-    fmemcpy1(env_sel, env_offs, environ[env_count], l);
+    fmemcpy1(DP(env_sel, env_offs), environ[env_count], l);
     env_offs += l;
   }
   /* and preserve tail */
   if (env_offs + tail_sz <= env_size)
-    fmemcpy1(env_sel, env_offs, tail, tail_sz);
+    fmemcpy1(DP(env_sel, env_offs), tail, tail_sz);
 }
 
 #if !SYNC_ENV
@@ -2561,7 +2562,7 @@ static void set_env(const char *variable, const char *value,
 
   /* allocate tmp buffer for env and copy them there */
   env = alloca(env_size + tail_sz);
-  fmemcpy2(env, env_sel, 0, env_size);
+  fmemcpy2(env, DP(env_sel, 0), env_size);
   memset(&env[env_size], 0, tail_sz);
   cp = env2 = env;
   l = strlen(variable);
@@ -2594,14 +2595,14 @@ static void set_env(const char *variable, const char *value,
   }
 
   /* now put it back */
-  fmemcpy1(env_sel, 0, env, env_size);
+  fmemcpy1(DP(env_sel, 0), env, env_size);
 }
 
 static void sync_env(void)
 {
   unsigned short sel;
   unsigned short psp = _stubinfo->psp_selector;
-  fmemcpy2(&sel, psp, 0x2c, 2);
+  fmemcpy2(&sel, DP(psp, 0x2c), 2);
   put_env(sel);
 }
 #endif
@@ -2893,7 +2894,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     gppconio_init();  /* video mode could change */
 
     dos_environ = alloca(env_size);
-    fmemcpy2(dos_environ, env_selector, 0, env_size);
+    fmemcpy2(dos_environ, DP(env_selector, 0), env_size);
     dos_environ[env_size] = 0;
     cp = dos_environ;
     do {
@@ -4058,13 +4059,13 @@ struct MCB {
 static void set_env_seg(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
-  fmemcpy1(psp, 0x2c, &env_segment, 2);
+  fmemcpy1(DP(psp, 0x2c), &env_segment, 2);
 }
 
 static void set_env_sel(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
-  fmemcpy1(psp, 0x2c, &env_selector, 2);
+  fmemcpy1(DP(psp, 0x2c), &env_selector, 2);
 }
 
 static void set_env_size(void)
@@ -4076,7 +4077,7 @@ static void set_env_size(void)
   unsigned old_env_size;
   int err;
 
-  fmemcpy2(&env_sel, psp, 0x2c, 2);
+  fmemcpy2(&env_sel, DP(psp, 0x2c), 2);
   err = get_segment_base_address(env_sel, &env_addr);
   old_env_size = __dpmi_get_segment_limit(env_sel) + 1;
   env_size = old_env_size;
@@ -4212,9 +4213,9 @@ int main(int argc, char *argv[], char *envp[])
         if (seg != -1)
           {
           unsigned short psp = _stubinfo->psp_selector;
-          fmemcpy1(psp, 0x2c, &sel, 2);
+          fmemcpy1(DP(psp, 0x2c), &sel, 2);
           /* copy old content to preserve tail (and maybe COMSPEC) */
-          fmemcpy12(sel, 0, env_selector, 0, old_size);
+          fmemcpy12(DP(sel, 0), DP(env_selector, 0), old_size);
           __dpmi_free_dos_memory(env_selector);
           env_selector = sel;
           env_segment = seg;
