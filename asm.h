@@ -12,7 +12,7 @@ __ASM(unsigned short, ds) SEMIC
 __ASM_FUNC(my_int23_handler) SEMIC
 
 int ASMCFUNC do_int23(void);
-int ASMCFUNC main(int argc, char *argv[], char *envp[]);
+int ASMCFUNC main(int argc, const char *argv[], const char *envp[]);
 #endif
 
 #endif

@@ -4149,7 +4149,7 @@ static void setup_break_handling(void)
   break_on = true;
 }
 
-int main(int argc, char *argv[], char *envp[])
+int main(int argc, const char *argv[], const char *envp[])
   {
   int a;
   char *cmd_path;
