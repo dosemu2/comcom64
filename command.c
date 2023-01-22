@@ -193,7 +193,8 @@ static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
 static void set_env_seg(void);
 static void set_env_sel(void);
-static void link_umb(int on);
+static void link_umb(unsigned char strat);
+static void unlink_umb(void);
 
 static int installable_command_check(const char *cmd, const char *tail)
 {
@@ -2852,14 +2853,14 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     if (lh_d)
       unsetenv("SHELL_LOADHIGH_DEFAULT");
     if (lh)
-      link_umb(1);
+      link_umb(0x80);
     rc = _dos_exec(full_cmd, cmd_args, environ, 0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
     else
       error_level = rc & 0xff;
     if (lh)
-      link_umb(0);
+      unlink_umb();
     if (do_auto_loadfix)
       loadfix_exit();
     set_env_sel();
@@ -4092,14 +4093,25 @@ static void restore_psp_parent(void)
   dosmemput(&orig_psp_seg, 2, psp_addr + 0x16);
 }
 
-static void link_umb(int on)
+static void link_umb(unsigned char strat)
 {
   __dpmi_regs r = {};
   r.x.ax = 0x5803;
-  r.x.bx = on;
+  r.x.bx = 1;
   __dpmi_int(0x21, &r);
   r.x.ax = 0x5801;
-  r.x.bx = on ? 0x80 : 0;
+  r.x.bx = strat;
+  __dpmi_int(0x21, &r);
+}
+
+static void unlink_umb(void)
+{
+  __dpmi_regs r = {};
+  r.x.ax = 0x5803;
+  r.x.bx = 0;
+  __dpmi_int(0x21, &r);
+  r.x.ax = 0x5801;
+  r.x.bx = 0;
   __dpmi_int(0x21, &r);
 }
 
@@ -4143,7 +4155,7 @@ int main(int argc, const char *argv[], const char *envp[])
   _clear87();
   _fpreset();
   loadhigh_init();	// save initial umb link and strat
-  link_umb(0);		// in case we loaded with shellhigh or lh
+  unlink_umb();		// in case we loaded with shellhigh or lh
   set_env_size();
   reset_text_attrs();
 
@@ -4186,9 +4198,9 @@ int main(int argc, const char *argv[], const char *envp[])
       env_size &= ~0xf;
       if (env_size > old_size)
         {
-        link_umb(1);
+        link_umb(0x80);
         seg = __dpmi_allocate_dos_memory(env_size >> 4, &sel);
-        link_umb(0);
+        unlink_umb();
         if (seg != -1)
           {
           unsigned short psp = _stubinfo->psp_selector;
