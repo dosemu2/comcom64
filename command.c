@@ -2844,8 +2844,10 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       exefile = NULL;
     }
 
+    if (do_auto_loadfix)
+      loadfix_init();
     lh_d = getenv("SHELL_LOADHIGH_DEFAULT");
-    if (do_auto_loadfix || (lh_d && lh_d[0] == '1'))
+    if ((lh_d && lh_d[0] == '1'))
       lh++;
     if (lh_d)
       unsetenv("SHELL_LOADHIGH_DEFAULT");
@@ -2858,6 +2860,8 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       error_level = rc & 0xff;
     if (lh)
       link_umb(0);
+    if (do_auto_loadfix)
+      loadfix_exit();
     set_env_sel();
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
