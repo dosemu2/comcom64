@@ -132,6 +132,8 @@ static int shell_permanent;
 /* define to sync RM/PM env data - consumes more memory */
 #define SYNC_ENV 0
 
+#define DEBUG 0
+
 static unsigned short env_selector;
 static unsigned short env_segment;
 static unsigned short env_size;
@@ -1620,7 +1622,7 @@ static unsigned short loadfix_allocations[LOADFIX_NUMBLOCKS];
 static int loadfix_ii;
 static unsigned loadfix_initialised;
 
-static void loadfix_init(unsigned is_v)
+static void loadfix_init(void)
 {
   int orig_strat, orig_umblink, allocated;
   unsigned short allocation, to_64kib, max, size;
@@ -1650,19 +1652,17 @@ static void loadfix_init(unsigned is_v)
       {
       allocated = 1;
       allocation = r.x.ax;
-      if (is_v)
-        {
+#if DEBUG
         printf("LOADFIX: allocated block at %04Xh\n", allocation);
-        }
+#endif
       if (allocation >= 0x1000) 	/* does it start above 64 KiB ? */
         {
         r.h.ah = 0x49;
         r.x.es = allocation;
         __dpmi_int(0x21, &r);		/* free */
-        if (is_v)
-          {
+#if DEBUG
           printf("LOADFIX: too high, freeing block at %04Xh\n", allocation);
-          }
+#endif
         break;				/* and done */
         }
       if (loadfix_ii >= loadfix_numblocks)
@@ -1686,18 +1686,16 @@ static void loadfix_init(unsigned is_v)
       __dpmi_int(0x21, &r);		/* resize */
 		/* If to_64kib is the lower value, this shortens the block
 		 * to that size. Else it does nothing. */
-      if (is_v)
-        {
+#if DEBUG
         printf("LOADFIX: resizing block at %04Xh to %04Xh paragraphs (%u bytes)\n",
 		allocation, (int)size, (int)size * 16);
-        }
+#endif
       }
     else
       {
-      if (is_v)
-        {
+#if DEBUG
         printf("LOADFIX: could not allocate another block\n");
-        }
+#endif
       allocated = 0;
       }
     }
@@ -1712,7 +1710,7 @@ static void loadfix_init(unsigned is_v)
 }
 
 
-static void loadfix_exit(unsigned is_v)
+static void loadfix_exit(void)
 {
   __dpmi_regs r = {};
 
@@ -1722,50 +1720,27 @@ static void loadfix_exit(unsigned is_v)
     r.h.ah = 0x49;
     r.x.es = loadfix_allocations[loadfix_ii];
     __dpmi_int(0x21, &r);		/* free */
-    if (is_v)
-      {
+#if DEBUG
       printf("LOADFIX: afterwards freeing block at %04Xh\n",
 	loadfix_allocations[loadfix_ii]);
-      }
+#endif
     }
 }
 
 
 static void perform_loadfix(const char *arg)
   {
-  int is_v = 0;
-  while (*arg != '\0')
-    {
-    if (*cmd_switch == '\0') // if not a command switch ...
-      {
-      break;
-      }
-    else
-      {
-      if (stricmp(cmd_switch,"/v")==0)
-        {
-        is_v = 1;
-        }
-      else
-        {
-        cprintf("Invalid switch - %s\r\n", cmd_switch);
-        reset_batfile_call_stack();
-        return;
-        }
-      }
-    advance_cmd_arg();
-    }
   strcpy(cmd, arg);
   advance_cmd_arg();
 
-  loadfix_init(is_v);
+  loadfix_init();
   loadfix_initialised = 1;
 
   perform_external_cmd(false, false, cmd);
 	  /* Should we set this to true? Only affects batch files anyway,
 	   * which shouldn't be loaded with LOADFIX to begin with. */
 
-  loadfix_exit(is_v);
+  loadfix_exit();
   loadfix_initialised = 0;
   }
 
