@@ -1625,23 +1625,9 @@ static unsigned loadfix_initialised;
 
 static void loadfix_init(void)
 {
-  int orig_strat, orig_umblink, allocated;
+  int allocated;
   unsigned short allocation, to_64kib, max, size;
   __dpmi_regs r = {};
-
-  r.x.ax = 0x5800;
-  __dpmi_int(0x21, &r);
-  orig_strat = r.x.ax;
-  r.x.ax = 0x5802;
-  __dpmi_int(0x21, &r);
-  orig_umblink = r.h.al;
-
-  r.x.ax = 0x5801;
-  r.x.bx = 0;				/* set strat LMA-then-UMA first-fit */
-  __dpmi_int(0x21, &r);
-  r.x.ax = 0x5803;
-  r.x.bx = 0;				/* set UMB link off */
-  __dpmi_int(0x21, &r);
 
   loadfix_ii = 0;
   do
@@ -1702,18 +1688,15 @@ static void loadfix_init(void)
     }
   while (allocated);
 
-  r.x.ax = 0x5801;
-  r.x.bx = orig_strat;
-  __dpmi_int(0x21, &r);
-  r.x.ax = 0x5803;
-  r.x.bx = orig_umblink;
-  __dpmi_int(0x21, &r);
+  link_umb(0);
 }
 
 
 static void loadfix_exit(void)
 {
   __dpmi_regs r = {};
+
+  unlink_umb();
 
   while (loadfix_ii != 0)
     {
