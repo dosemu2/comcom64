@@ -2837,7 +2837,11 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       unsetenv("SHELL_LOADHIGH_DEFAULT");
     if (lh)
       link_umb(0x80);
-    rc = _dos_exec(full_cmd, cmd_args, environ, 0);
+#ifdef HAVE_DOS_EXEC5
+    rc = _dos_exec5(full_cmd, cmd_args, environ, NULL, lh ? 0x80 : 0);
+#else
+    rc = _dos_exec(full_cmd, cmd_args, environ, NULL);
+#endif
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
     else
