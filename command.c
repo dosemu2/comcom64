@@ -3421,6 +3421,23 @@ static void perform_time(const char *arg)
 
   }
 
+static void perform_timeout(const char *arg)
+  {
+  int t = 0;
+  while (*arg != '\0')
+    {
+    if (stricmp(cmd_switch, "/t") == 0) // just ignore
+      {
+      advance_cmd_arg();
+      continue;
+      }
+    t = atoi(arg);
+    advance_cmd_arg();
+    }
+  if (t)
+    sleep(t);
+  }
+
 static void perform_type(const char *arg)
   {
   FILE *textfile;
@@ -3637,6 +3654,7 @@ static struct built_in_cmd cmd_table[] =
     {"set", perform_set, "", "set/unset environment variables"},
     {"shift", perform_shift, "", "shift arguments"},
     {"time", perform_time, "", "display time"},
+    {"timeout", perform_timeout, "", "pause execution"},
     {"type", perform_type, "", "display file content"},
     {"ver", perform_ver, " [/r]", "display version"},
     {"xcopy", perform_xcopy, "", "copy large file"},
