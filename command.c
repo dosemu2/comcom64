@@ -3463,6 +3463,7 @@ static void perform_type(const char *arg)
   /* HACK: open in text mode for dos, but then set binary mode for djgpp.
    * djgpp otherwise doesn't pass 0x1a to us (at least from device). */
   textfile = fopen(filespec,"rt");
+  setbuf(textfile, NULL);
   __file_handle_set(fileno(textfile), O_BINARY);
   if (textfile != NULL)
     {
