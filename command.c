@@ -196,6 +196,7 @@ static void set_env_seg(void);
 static void set_env_sel(void);
 static void link_umb(unsigned char strat);
 static void unlink_umb(void);
+static void set_break(int on);
 
 static int installable_command_check(const char *cmd, const char *tail)
 {
@@ -3467,9 +3468,12 @@ static void perform_type(const char *arg)
   __file_handle_set(fileno(textfile), O_BINARY);
   if (textfile != NULL)
     {
-    while ((c=fgetc(textfile)) != EOF)
+    while (1)
       {
-      if (c == 0x1a)
+      set_break(0);
+      c = fgetc(textfile);
+      set_break(1);
+      if (c == EOF || c == 0x1a || c == 3 || c == 0)
         break;
       putchar(c);
       }
@@ -4126,17 +4130,23 @@ int do_int23(void)
   return break_on;
 }
 
-static void setup_break_handling(void)
+static void set_break(int on)
 {
   __dpmi_regs r = {};
+
+  r.x.ax = 0x3301;          // set break handling
+  r.x.dx = on;              // to "on"
+  __dpmi_int(0x21, &r);
+}
+
+static void setup_break_handling(void)
+{
   __dpmi_paddr pa;
 
   __djgpp_set_ctrl_c(0);    // disable SIGINT on ^C
   _go32_want_ctrl_break(1); // disable SIGINT on ^Break
 
-  r.x.ax = 0x3301;          // set break handling
-  r.x.dx = 1;               // to "on"
-  __dpmi_int(0x21, &r);
+  set_break(1);
 
   ds = _my_ds();
   pa.selector = _my_cs();
