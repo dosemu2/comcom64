@@ -72,6 +72,7 @@
  */
 
 #include <dos.h>
+#include <libc/dosio.h>
 #include <time.h>
 #include <glob.h>
 #include <utime.h>
@@ -3459,12 +3460,18 @@ static void perform_type(const char *arg)
       }
     advance_cmd_arg();
     }
-
+  /* HACK: open in text mode for dos, but then set binary mode for djgpp.
+   * djgpp otherwise doesn't pass 0x1a to us (at least from device). */
   textfile = fopen(filespec,"rt");
+  __file_handle_set(fileno(textfile), O_BINARY);
   if (textfile != NULL)
     {
     while ((c=fgetc(textfile)) != EOF)
+      {
+      if (c == 0x1a)
+        break;
       putchar(c);
+      }
     fclose(textfile);
     }
   else
