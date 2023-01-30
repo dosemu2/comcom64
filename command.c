@@ -1839,6 +1839,83 @@ static void perform_xcopy(const char *arg)
   general_file_transfer(FILE_XFER_XCOPY);
   }
 
+static void perform_ctty(const char *arg)
+  {
+  __dpmi_regs r = {};
+  int fd;
+  if (*arg == '\0')
+    {
+    cprintf("ctty: device name missing\r\n");
+    return;
+    }
+  fd = open(arg, O_RDWR | O_TEXT);
+  if (fd == -1)
+    {
+    cprintf("ctty: cannot open %s\r\n", arg);
+    return;
+    }
+  /* get device info */
+  r.x.ax = 0x4400;
+  r.x.bx = fd;
+  __dpmi_int(0x21, &r);
+  if (r.x.flags & 1)
+    {
+    cprintf("ctty: %s is not a device\r\n", arg);
+    goto err_close;
+    }
+  if (!(r.x.dx & 0x80))
+    {
+    cprintf("ctty: %s is not a char device\r\n", arg);
+    goto err_close;
+    }
+  if ((r.x.dx & 3) != 0)
+    {
+    cprintf("ctty: %s is already a tty\r\n", arg);
+    goto err_close;
+    }
+  if ((r.x.dx & 0x3c) != 0)
+    {
+    cprintf("ctty: %s has wrong type %x\r\n", arg, r.x.dx);
+    goto err_close;
+    }
+
+  r.x.ax = 0x4401;
+  r.x.bx = fd;
+  r.x.dx &= 0xff;
+  r.x.dx |= 3;  // set ctty
+  __dpmi_int(0x21, &r);
+  if (r.x.flags & 1)
+    {
+    cprintf("ctty: failed to set ctty on %s\r\n", arg);
+    goto err_close;
+    }
+
+  r.x.ax = 0x4400;
+  r.x.bx = 0;
+  __dpmi_int(0x21, &r);
+  if (!(r.x.flags & 1))
+    {
+    r.x.ax = 0x4401;
+    r.x.bx = 0;
+    r.x.dx &= 0xfc;  // clear ctty from old device
+    __dpmi_int(0x21, &r);
+    if (r.x.flags & 1)
+      cprintf("ctty: stdin clear ctty failed with %x\r\n", r.x.ax);
+    }
+  else
+    cprintf("ctty: stdin ioctl failed with %x\r\n", r.x.ax);
+
+  close(0);
+  close(1);
+  close(2);
+  dup(fd);
+  dup(fd);
+  dup(fd);
+
+err_close:
+  close(fd);
+  }
+
 static void perform_date(const char *arg)
   {
   time_t t = time(NULL);
@@ -3628,6 +3705,7 @@ static struct built_in_cmd cmd_table[] =
     {"choice", perform_choice, "", "choice prompt sets ERRORLEVEL"},
     {"cls", perform_cls, "", "clear screen"},
     {"copy", perform_copy, "", "copy file"},
+    {"ctty", perform_ctty, "", "change tty"},
     {"date", perform_date, "", "display date"},
     {"del", perform_delete, "", "delete file"},
     {"deltree", perform_deltree, "", "delete directory recursively"},
