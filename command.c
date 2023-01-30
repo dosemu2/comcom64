@@ -73,6 +73,8 @@
 
 #include <dos.h>
 #include <libc/dosio.h>
+#include <io.h>
+#include <libc/getdinfo.h>
 #include <time.h>
 #include <glob.h>
 #include <utime.h>
@@ -1867,9 +1869,12 @@ static void perform_xcopy(const char *arg)
   general_file_transfer(FILE_XFER_XCOPY);
   }
 
+#define IS_CHRDEV(d) ((d) & _DEV_CDEV)
+
 static void perform_ctty(const char *arg)
   {
   __dpmi_regs r = {};
+  int dinfo;
   int fd;
   if (*arg == '\0')
     {
@@ -1882,26 +1887,23 @@ static void perform_ctty(const char *arg)
     cprintf("ctty: cannot open %s\r\n", arg);
     return;
     }
-  /* get device info */
-  r.x.ax = 0x4400;
-  r.x.bx = fd;
-  __dpmi_int(0x21, &r);
-  if (r.x.flags & 1)
+  dinfo = _get_dev_info(fd);
+  if (dinfo == -1)
     {
     cprintf("ctty: %s is not a device\r\n", arg);
     goto err_close;
     }
-  if (!(r.x.dx & 0x80))
+  if (!IS_CHRDEV(dinfo))
     {
     cprintf("ctty: %s is not a char device\r\n", arg);
     goto err_close;
     }
-  if ((r.x.dx & 3) != 0)
+  if ((dinfo & 3) != 0)
     {
     cprintf("ctty: %s is already a tty\r\n", arg);
     goto err_close;
     }
-  if ((r.x.dx & 0x3c) != 0)
+  if ((dinfo & 0x3c) != 0)
     {
     cprintf("ctty: %s has wrong type %x\r\n", arg, r.x.dx);
     goto err_close;
@@ -1909,8 +1911,7 @@ static void perform_ctty(const char *arg)
 
   r.x.ax = 0x4401;
   r.x.bx = fd;
-  r.x.dx &= 0xff;
-  r.x.dx |= 3;  // set ctty
+  r.x.dx = (dinfo & 0xff) | (_DEV_STDIN | _DEV_STDOUT);  // set ctty
   __dpmi_int(0x21, &r);
   if (r.x.flags & 1)
     {
@@ -1918,20 +1919,18 @@ static void perform_ctty(const char *arg)
     goto err_close;
     }
 
-  r.x.ax = 0x4400;
-  r.x.bx = 0;
-  __dpmi_int(0x21, &r);
-  if (!(r.x.flags & 1))
+  dinfo = _get_dev_info(0);
+  if (dinfo != -1)
     {
     r.x.ax = 0x4401;
     r.x.bx = 0;
-    r.x.dx &= 0xfc;  // clear ctty from old device
+    r.x.dx = dinfo & 0xff & ~(_DEV_STDIN | _DEV_STDOUT); // clear ctty from old
     __dpmi_int(0x21, &r);
     if (r.x.flags & 1)
       cprintf("ctty: stdin clear ctty failed with %x\r\n", r.x.ax);
     }
   else
-    cprintf("ctty: stdin ioctl failed with %x\r\n", r.x.ax);
+    cprintf("ctty: stdin ioctl failed\r\n");
 
   close(0);
   close(1);
