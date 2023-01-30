@@ -862,15 +862,31 @@ static int copy_single_file(char *source_file, char *dest_file, int transfer_typ
   FILE *dest_stream;
   char transfer_buffer[32768];
   size_t byte_count;
+  struct stat st;
+  int err;
 
   if (stricmp(source_file, dest_file) == 0)
     {
     cprintf("Source and destination cannot match - %s\r\n", source_file);
     return -1;
     }
-
-  /* Open file for copy */
-  source_stream = fopen(source_file, "rb");
+  err = lstat(source_file, &st);
+  if (err)
+    {
+    cprintf("cannot stat %s\r\n", source_file);
+    return -1;
+    }
+  if (st.st_mode & S_IFCHR)
+    {
+    source_stream = fopen(source_file, "rt");
+    setbuf(source_stream, NULL);
+    __file_handle_set(fileno(source_stream), O_BINARY);
+    }
+  else
+    {
+    /* Open file for copy */
+    source_stream = fopen(source_file, "rb");
+    }
   if (source_stream == NULL)
     {
     cprintf("Unable to open source file - %s\r\n", source_file);
@@ -887,7 +903,21 @@ static int copy_single_file(char *source_file, char *dest_file, int transfer_typ
   /* Copy file contents*/
   do
     {
-    byte_count = fread(transfer_buffer, 1, 32768, source_stream);
+    byte_count = 0;
+    if (st.st_mode & S_IFCHR)
+      {
+      char c;
+      set_break(0);
+      c = fgetc(source_stream);
+      set_break(1);
+      if (!(c == EOF || c == 0x1a || c == 3 || c == 0))
+        {
+        transfer_buffer[0] = c;
+        byte_count = 1;
+        }
+      }
+    else
+      byte_count = fread(transfer_buffer, 1, 32768, source_stream);
     if (byte_count > 0)
       {
       if (fwrite(transfer_buffer, 1, byte_count, dest_stream) != byte_count)
