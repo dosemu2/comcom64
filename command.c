@@ -583,7 +583,7 @@ static unsigned short keyb_get_shift_states(void)
 
 static void prompt_for_and_get_cmd(void)
   {
-  int flag = 0, key = 0, len;
+  int flag = 0, key = 0, len, len1;
   char conbuf[MAX_CMD_BUFLEN+1];
 
   output_prompt();
@@ -663,6 +663,24 @@ static void prompt_for_and_get_cmd(void)
   strncpy(cmd_line, (char *)cmdbuf_gets(conbuf), len);
 
   cmd_line[len] = '\0';
+  if (!len)
+    {
+    cputs("\r\n");
+    return;
+    }
+  len1 = strspn(cmd_line, "\r\n\t ");
+  if (len1 >= len)
+    {
+    /* whole cmd_line contains only junk */
+    cputs("\r");
+    return;
+    }
+  if (len1)
+    {
+    /* part of cmd_line contains junk, skip it */
+    memmove(cmd_line, cmd_line + len1, len - len1 + 1);
+    len -= len1;
+    }
   parse_cmd_line();
   cputs("\r\n");
   }
