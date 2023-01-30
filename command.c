@@ -1626,6 +1626,11 @@ static void perform_license(const char *arg)
 
 static void perform_loadhigh(const char *arg)
   {
+  if (!*arg)
+    {
+    cprintf("loadhigh: command name missing\r\n");
+    return;
+    }
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
   strcpy(cmd, arg);
@@ -1734,6 +1739,11 @@ static void loadfix_exit(void)
 
 static void perform_loadfix(const char *arg)
   {
+  if (!*arg)
+    {
+    cprintf("loadfix: command name missing\r\n");
+    return;
+    }
   strcpy(cmd, arg);
   advance_cmd_arg();
 
