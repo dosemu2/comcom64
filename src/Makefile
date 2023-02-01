@@ -1,16 +1,18 @@
-DOS_CC ?= i586-pc-msdosdjgpp-gcc
-DOS_LD ?= i586-pc-msdosdjgpp-gcc
+HOST_CC = gcc -E -CC -g0 $(CPPFLAGS) $< | gcc -xc -
+HOST_LD = gcc
+HOST_STRIP ?= strip --strip-debug
+DOS_LD ?= i586-pc-msdosdjgpp-ld
 DOS_AS ?= i586-pc-msdosdjgpp-as
-DOS_STRIP ?= i586-pc-msdosdjgpp-strip
 NASM = nasm
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
-C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings
+CPPFLAGS = -I /home/stas/src/djgpp-cvs/include -I .
+C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3
 # avoid CMOVxx instructions
-C_OPT += -march=i386
-C_OPT += -I .
-LINK_OPT =
+#C_OPT += -march=i386
+LINK_OPT = ~/src/djgpp-cvs/lib/libdj64.so -shared
 OBJS = command.o cmdbuf.o version.o memmem.o fmemcpy.o thunks_a.o
+LIBCMD = comcom32.so
 CMD = comcom32.exe
 REVISIONID := $(shell git describe --dirty=+)
 srcdir ?= .
@@ -22,7 +24,7 @@ NASMFLAGS += -i$(SRC)/ -f coff
 all: $(CMD)
 
 clean:
-	$(RM) $(CMD) *.o version
+	$(RM) $(CMD) $(LIBCMD) *.o version
 	$(RM) *.asm *.inc *.tmp thunk_calls.h thunk_asms.h glob_asmdefs.h
 
 .PHONY: force
@@ -32,14 +34,19 @@ version: force
 version.o: version
 
 $(OBJS): $(wildcard *.h)
-$(CMD): $(OBJS)
-	$(DOS_LD) $^ $(LINK_OPT) -o $(CMD)
-	$(DOS_STRIP) $(CMD)
-	chmod -x $(CMD)
+$(LIBCMD): $(OBJS)
+	$(HOST_LD) $^ $(LINK_OPT) -o $@
+	$(HOST_STRIP) $@
+
+$(CMD): $(LIBCMD)
+	$(DOS_LD) ~/src/djgpp-cvs/lib/crt0.o ~/src/djgpp-cvs/lib/libc.a -o _$@
+	./dosemu2-stubify _$@
+	cat _$@ $< >$@
+	$(RM) _$@
 
 # Common rules
 %.o : %.c glob_asmdefs.h
-	$(DOS_CC) $(C_OPT) -c $< -o $@
+	$(HOST_CC) $(C_OPT) -c -o $@
 
 %.o : %.S
 	$(DOS_CC) -c $< -o $@

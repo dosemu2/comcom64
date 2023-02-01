@@ -107,10 +107,10 @@
  * These declarations/definitions turn off some unwanted DJGPP features
  */
 
-#ifdef __DJGPP__
+extern char **environ;
+#if 0
 #include <crt0.h>
 #include <dpmi.h>
-extern char **environ;
 
 #define UNUSED __attribute__((unused))
 int _crt0_startup_flags =
