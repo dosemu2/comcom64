@@ -39,10 +39,8 @@ $(LIBCMD): $(OBJS)
 	$(HOST_STRIP) $@
 
 $(CMD): $(LIBCMD)
-	$(DOS_LD) ~/src/djgpp-cvs/lib/crt0.o ~/src/djgpp-cvs/lib/libc.a -o _$@
-	./dosemu2-stubify _$@
-	cat _$@ $< >$@
-	$(RM) _$@
+	$(DOS_LD) ~/src/djgpp-cvs/lib/crt0.o ~/src/djgpp-cvs/lib/libc.a -o $@
+	./dosemu2-stubify -l $< $@
 
 # Common rules
 %.o : %.c glob_asmdefs.h
