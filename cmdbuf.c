@@ -145,6 +145,21 @@ void cmdbuf_delch(char *cmd_buf)
   }
 }
 
+int cmdbuf_bksp(char *cmd_buf)
+{
+  if (cur == 0)
+    return 0;
+  cur--;
+  if (cur == tail - 1)
+    {
+    tail--;
+    return 1;
+    }
+  putch(KEY_ASCII(KEY_BACKSPACE));
+  cmdbuf_delch(cmd_buf);
+  return 0;
+}
+
 void cmdbuf_clear(char *cmd_buf)
 {
     _cmdbuf_clr_line(cmd_buf);

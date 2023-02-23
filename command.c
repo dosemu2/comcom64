@@ -617,11 +617,12 @@ static void prompt_for_and_get_cmd(void)
       case KEY_ENTER:
         break;
       case KEY_BACKSPACE:
-        if (cmdbuf_move(conbuf, LEFT))
-        {
-          /* Delete the character at the end of string */
-          cmdbuf_delch(conbuf);
-        }
+        if (cmdbuf_bksp(conbuf))
+          {
+          putch(KEY_ASCII(KEY_BACKSPACE));
+          putch(' ');
+          putch(KEY_ASCII(KEY_BACKSPACE));
+          }
         break;
       case KEY_DELETE:
         cmdbuf_delch(conbuf);
