@@ -242,13 +242,16 @@ static int installable_command_check(const char *cmd, const char *tail)
   __dpmi_regs r = {};
 
   struct {
-    uint8_t nlen;
-    char nbuf[11];
-
-    uint8_t cmax;
-    uint8_t clen;
-    char cbuf[256];
-  } __attribute__((packed)) s;
+    struct {
+      uint8_t cmax;
+      uint8_t clen;
+      char cbuf[256];
+    } __attribute__((packed)) cmdl;
+    struct {
+      uint8_t nlen;
+      char nbuf[11];
+    } __attribute__((packed)) cmdn;
+  } s;
 
   p = strrchr(cmd, '\\');
   if (p)
@@ -257,7 +260,7 @@ static int installable_command_check(const char *cmd, const char *tail)
     name = cmd;
 
   nlen = 0;
-  for (p = name, q = &s.nbuf[0], i = 0; *p; p++) {
+  for (p = name, q = &s.cmdn.nbuf[0], i = 0; *p; p++) {
     if (*p == '.') {
       nlen = i;
       if (i < 8) {
@@ -266,7 +269,7 @@ static int installable_command_check(const char *cmd, const char *tail)
       }
       continue;
     }
-    if (i >= sizeof(s.nbuf))
+    if (i >= sizeof(s.cmdn.nbuf))
       return 0;
     q[i++] = toupper(*p);
   }
@@ -274,26 +277,30 @@ static int installable_command_check(const char *cmd, const char *tail)
     memset(q + i, ' ', 11 - i);
   if (!nlen)        // no dot found
     nlen = i;
-  s.nlen = nlen;    // does not cover extension
+  s.cmdn.nlen = nlen;    // does not cover extension
 
-  if (strlen(cmd) + strlen(tail) + 2 >= sizeof(s.cbuf))
+  if (strlen(cmd) + strlen(tail) + 2 >= sizeof(s.cmdl.cbuf))
     return 0;
-  s.cmax = sizeof(s.cbuf) - 1;
+  s.cmdl.cmax = sizeof(s.cmdl.cbuf) - 1;
   if (tail[0]) {
-    s.clen = snprintf(s.cbuf, sizeof(s.cbuf), "%s %s\r", cmd, tail) - 1;
+    s.cmdl.clen = snprintf(s.cmdl.cbuf, sizeof(s.cmdl.cbuf),
+        "%s %s\r", cmd, tail) - 1;
     tlen = strlen(tail) + 1;  // account for 'space'
   } else {
-    s.clen = snprintf(s.cbuf, sizeof(s.cbuf), "%s\r", cmd) - 1;
+    s.cmdl.clen = snprintf(s.cmdl.cbuf, sizeof(s.cmdl.cbuf), "%s\r", cmd) - 1;
     tlen = 0;
   }
 
   r.d.eax = 0xae00;
   r.d.ecx = 0xff00 + tlen;
   r.d.edx = 0xffff;
-  r.d.ebx = PTR_DATA(&s.cmax);
-  r.d.esi = PTR_DATA(&s.nlen);
+  r.x.ds = __tb_segment;
+  r.d.ebx = __tb_offset;
+  r.d.esi = __tb_offset + sizeof(s.cmdl);
   r.d.edi = 0;
+  dosmemput(&s, sizeof(s), __tb);
   __dpmi_int(0x2f, &r);
+  dosmemget(__tb, sizeof(s), &s);
   return ((r.x.ax & 0xff) == 0xff);
 }
 
