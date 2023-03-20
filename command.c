@@ -137,6 +137,8 @@ static int shell_permanent;
 
 #define DEBUG 0
 
+#define MAX_DOS_PATH 260
+
 static unsigned short env_selector;
 static unsigned short env_segment;
 static unsigned short env_size;
@@ -2415,10 +2417,14 @@ static void perform_dir(const char *arg)
   /* Try extended dfree int21/7303 */
   r.x.flags = CF;
   r.d.eax = 0x7303;
-  r.d.edx = PTR_DATA(full_filespec);
-  r.d.edi = PTR_DATA(&xdf);
+  r.x.ds = __tb_segment;
+  r.d.edx = __tb_offset;
+  r.x.es = __tb_segment;
+  r.d.edi = __tb_offset + MAX_DOS_PATH;
   r.d.ecx = sizeof(xdf);
+  dosmemput(full_filespec, strlen(full_filespec) + 1, __tb);
   __dpmi_int(0x21, &r);
+  dosmemget(__tb + MAX_DOS_PATH, sizeof(xdf), &xdf);
   if (!(r.x.flags & CF)) {
     avail = (unsigned long long)xdf.avail_clusters * xdf.bps * xdf.spc;
   } else { /* Fall back to int21/36 */
