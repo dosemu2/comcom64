@@ -48,7 +48,8 @@ install:
 else
 install:
 endif
-	install -D -t $(DESTDIR)$(DATADIR) -m 0644 $(CMD)
+	mkdir -p $(DESTDIR)$(DATADIR)
+	install -m 0644 $(CMD) $(DESTDIR)$(DATADIR)
 	ln -sf $(CMD) $(DESTDIR)$(DATADIR)/command.com
 
 uninstall:
