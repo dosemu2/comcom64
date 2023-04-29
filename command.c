@@ -2338,7 +2338,16 @@ static void perform_dir(const char *arg)
     printf(" Volume in drive %c is %s\n", volspec[0], FINDDATA_T_FILENAME(ff));
     }
   else
+    {
+    struct _DOSERROR derr;
+    int err = _dosexterr(&derr);
+    if (err == 3)
+      {
+      puts("Invalid drive specification");
+      return;
+      }
     puts(" Volume has no label");
+    }
 
   fnsplit (full_filespec, NULL, dirspec, NULL, NULL);
   printf(" Directory of %c:%s\n\n", full_filespec[0], dirspec);
