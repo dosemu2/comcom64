@@ -4306,7 +4306,7 @@ static void setup_break_handling(void)
 
   set_break(1);
 
-  ds = _my_ds();
+  _ds = _my_ds();
   pa.selector = _my_cs();
   pa.offset32 = (uintptr_t)my_int23_handler;
   __dpmi_set_protected_mode_interrupt_vector(0x23, &pa);

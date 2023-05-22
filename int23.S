@@ -1,6 +1,6 @@
 .bss
-.global _ds
-_ds: .long 0
+.global __ds
+__ds: .long 0
 _cstack: .fill 0x10000
 _on_cstack: .long 0
 
@@ -9,7 +9,7 @@ _on_cstack: .long 0
 _my_int23_handler:
     pusha
     push %ds
-    mov %cs:_ds, %eax
+    mov %cs:__ds, %eax
     mov %eax, %ds
     xorl %eax, %eax
     cmpl _on_cstack, %eax
@@ -17,7 +17,7 @@ _my_int23_handler:
     incl _on_cstack
     mov %ss, %esi
     mov %esp, %edi
-    pushl _ds
+    pushl __ds
     lea _cstack+0x10000, %edx
     push %edx
     lss (%esp), %esp

@@ -8,7 +8,7 @@
 #define ASMCFUNC
 #define SEMIC ;
 
-__ASM(unsigned short, ds) SEMIC
+__ASM(unsigned short, _ds) SEMIC
 __ASM_FUNC(my_int23_handler) SEMIC
 
 int ASMCFUNC do_int23(void);
