@@ -27,6 +27,7 @@ all: $(CMD)
 clean:
 	$(RM) $(CMD) $(LIBCMD) *.o version
 	$(RM) *.asm *.inc *.tmp thunk_calls.h thunk_asms.h glob_asmdefs.h
+	$(MAKE) -C parsers clean
 
 .PHONY: force
 version: force
