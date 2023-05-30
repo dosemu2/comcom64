@@ -1,6 +1,8 @@
+section .text
+
 %macro asmcfunc 3
-;    global _%1
-;    _%1:
+    global _%1
+    _%1:
 ;    mov al, 0 ; reserved
 ;    mov bh, 0 ; reserved
 ;    mov bl, DL_CCALL
