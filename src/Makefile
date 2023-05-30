@@ -11,7 +11,7 @@ C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3
 # avoid CMOVxx instructions
 #C_OPT += -march=i386
 LINK_OPT = ~/src/djgpp-cvs/lib/libdj64.so -shared
-OBJS = command.o cmdbuf.o version.o memmem.o fmemcpy.o thunks_a.o
+OBJS = command.o cmdbuf.o version.o memmem.o fmemcpy.o thunks_a.o thunks_c.o
 ASOBJS = int23.o plt.o
 LIBCMD = comcom32.so
 CMD = comcom32.exe
@@ -55,6 +55,8 @@ plt.o: plt.asm plt.inc
 
 plt.asm: $(srcdir)/plt.S $(SRC)/glob_asm.h
 	$(CPP) $(CPPFLAGS) -I . -P $< >$@ || ($(RM) $@ ; false)
+
+thunks_c.o: thunk_calls.h
 
 GEN_TMP = thunk_calls.tmp thunk_asms.tmp plt.inc plt_asmc.inc plt_asmp.inc
 _pos = $(if $(findstring $1,$2),$(call _pos,$1,\
