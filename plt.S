@@ -1,25 +1,18 @@
 section .text
 
-%macro asmcfunc 3
-    global _%1
-    _%1:
-;    mov al, 0 ; reserved
-;    mov bh, 0 ; reserved
-;    mov bl, DL_CCALL
-;    mov cx, %2
-;    mov dx, sp
-;    add dx, %3
-;    mov si, cs
-;    call_plt
-%endmacro
-
-%macro asmcfunc_f 2
-    asmcfunc %1, %2, 4
-    retf
-%endmacro
+extern dj64_plt_call
 
 %macro asmcfunc_n 2
-    asmcfunc %1, %2, 2
+    global _%1
+    _%1:
+    push ebp
+    mov ebp, esp
+    pushad
+    mov ecx, %2
+    mov edx, esp
+    call dj64_plt_call
+    popad
+    pop ebp
     ret
 %endmacro
 
