@@ -39,7 +39,7 @@ $(LIBCMD): $(OBJS)
 	$(HOST_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ASOBJS)
-	$(DOS_LD) $(ASOBJS) ~/src/djgpp-cvs/lib/crt0.o ~/src/djgpp-cvs/lib/libc.a -o $@_
+	$(DOS_LD) $(ASOBJS) ~/src/djgpp-cvs/lib/libc.a -o $@_
 	objcopy -O pe-i386 $@_ $@
 	$(RM) $@_
 	./djstubify -l $< $@
