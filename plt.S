@@ -1,27 +1,24 @@
-section .text
+.text
 
-extern dj64_plt_call
-
-%macro asmcfunc_n 2
-    global _%1
-    _%1:
-    push ebp
-    mov ebp, esp
-    pushad
-    mov ecx, %2
-    mov edx, esp
+.macro asmcfunc_n nm,num
+    .global _\nm
+    _\nm:
+    push %ebp
+    mov %esp, %ebp
+    pushal
+    mov $\num, %ecx
+    mov %esp, %edx
     call dj64_plt_call
-    popad
-    pop ebp
+    popal
+    pop %ebp
     ret
-%endmacro
+.endm
 
-%include "plt.inc"
+#include "plt.inc"
 
-%macro asmsym 1
-    extern _%1
-    dd _%1
-%endmacro
+.macro asmsym nm
+    .long _\nm
+.endm
 
 #define __ASM(t, n) asmsym n
 #define __ASM_FAR(t, n) asmsym n
@@ -36,5 +33,5 @@ __asm_symtab_start:
 __asm_symtab_end:
 
 #ifdef __ELF__
-section .note.GNU-stack
+.section .note.GNU-stack,"",%progbits
 #endif

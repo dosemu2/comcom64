@@ -3,7 +3,6 @@ HOST_LD = gcc
 HOST_STRIP ?= strip --strip-debug
 DOS_LD = ld -melf_i386 -static
 DOS_AS = as --32
-NASM = nasm
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
 CPPFLAGS = -I /home/stas/src/djgpp-cvs/include -I .
@@ -18,7 +17,6 @@ CMD = comcom32.exe
 REVISIONID := $(shell git describe --dirty=+)
 srcdir ?= .
 SRC = $(srcdir)
-NASMFLAGS += -i$(SRC)/ -f elf
 
 .PHONY: all clean install uninstall
 
@@ -53,10 +51,10 @@ $(CMD): $(LIBCMD) $(ASOBJS)
 %.o : %.S
 	$(DOS_CC) -c $< -o $@
 
-plt.o: plt.asm plt.inc
-	$(NASM) $(NASMFLAGS) -o $@ $<
+plt.o: plt.asm
+	$(DOS_AS) -o $@ $<
 
-plt.asm: $(srcdir)/plt.S $(SRC)/glob_asm.h
+plt.asm: $(srcdir)/plt.S plt.inc $(SRC)/glob_asm.h
 	$(CPP) $(CPPFLAGS) -I . -P $< >$@ || ($(RM) $@ ; false)
 
 thunks_c.o: thunk_calls.h
