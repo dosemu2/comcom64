@@ -17,3 +17,7 @@ _my_int23_handler:
     popa
     stc
     lret
+
+#ifdef __ELF__
+.section .note.GNU-stack,"",%progbits
+#endif

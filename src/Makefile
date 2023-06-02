@@ -1,8 +1,8 @@
 HOST_CC = gcc -E -CC -g0 $(CPPFLAGS) $< | gcc -xc -
 HOST_LD = gcc
 HOST_STRIP ?= strip --strip-debug
-DOS_LD ?= i586-pc-msdosdjgpp-ld
-DOS_AS ?= i586-pc-msdosdjgpp-as
+DOS_LD = ld -melf_i386 -static
+DOS_AS = as --32
 NASM = nasm
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
@@ -18,7 +18,7 @@ CMD = comcom32.exe
 REVISIONID := $(shell git describe --dirty=+)
 srcdir ?= .
 SRC = $(srcdir)
-NASMFLAGS += -i$(SRC)/ -f coff
+NASMFLAGS += -i$(SRC)/ -f elf
 
 .PHONY: all clean install uninstall
 
@@ -41,8 +41,10 @@ $(LIBCMD): $(OBJS)
 	$(HOST_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ASOBJS)
-	$(DOS_LD) $(ASOBJS) ~/src/djgpp-cvs/lib/crt0.o ~/src/djgpp-cvs/lib/libc.a -o $@
-	./dosemu2-stubify -l $< $@
+	$(DOS_LD) $(ASOBJS) ~/src/djgpp-cvs/lib/crt0.o ~/src/djgpp-cvs/lib/libc.a -o $@_
+	objcopy -O pe-i386 $@_ $@
+	$(RM) $@_
+	./djstubify -l $< $@
 
 # Common rules
 %.o : %.c glob_asmdefs.h

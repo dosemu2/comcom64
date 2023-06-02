@@ -34,3 +34,7 @@ extern dj64_plt_call
 __asm_symtab_start:
 #include <glob_asm.h>
 __asm_symtab_end:
+
+#ifdef __ELF__
+section .note.GNU-stack
+#endif

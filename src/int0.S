@@ -18,3 +18,7 @@ _my_int0_handler:
     restore_stack
     popa
     ljmpl *__prev0
+
+#ifdef __ELF__
+.section .note.GNU-stack,"",%progbits
+#endif
