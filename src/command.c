@@ -98,7 +98,7 @@
 
 #include "cmdbuf.h"
 #include "memmem.h"
-#include "fmemcpy.h"
+#include <sys/fmemcpy.h>
 #include "asm.h"
 #include "version.h"
 #include "command.h"
