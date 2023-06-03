@@ -1,3 +1,4 @@
+SHELL := /bin/bash -o pipefail
 HOST_CC = gcc -E -CC -g0 $(CPPFLAGS) $< | gcc -xc -
 HOST_LD = gcc
 HOST_STRIP ?= strip --strip-debug
