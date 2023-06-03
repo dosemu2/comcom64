@@ -97,7 +97,6 @@
 #include <go32.h>
 
 #include "cmdbuf.h"
-#include "memmem.h"
 #include <sys/fmemcpy.h>
 #include "asm.h"
 #include "version.h"
