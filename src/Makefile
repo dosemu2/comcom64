@@ -4,6 +4,7 @@ HOST_LD = gcc
 HOST_STRIP ?= strip --strip-debug
 DOS_LD = ld -melf_i386 -static
 DOS_AS = as --32
+DOS_STRIP = strip
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
 CPPFLAGS = -I /home/stas/src/djgpp-cvs/include -I .
@@ -41,6 +42,7 @@ $(LIBCMD): $(OBJS)
 
 $(CMD): $(LIBCMD) $(ASOBJS)
 	$(DOS_LD) $(ASOBJS) ~/src/djgpp-cvs/lib/libc.a -o $@_
+	$(DOS_STRIP) $@_
 	objcopy -O pe-i386 $@_ $@
 	$(RM) $@_
 	./djstubify -l $< $@
