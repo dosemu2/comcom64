@@ -9,7 +9,7 @@ CPPFLAGS = -I /home/stas/src/djgpp-cvs/include -I .
 C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3
 # avoid CMOVxx instructions
 #C_OPT += -march=i386
-LINK_OPT = ~/src/djgpp-cvs/lib/libdj64.so -shared
+LINK_OPT = ~/src/djgpp-cvs/lib/libdj64.so -shared -Wl,-Bsymbolic
 OBJS = command.o cmdbuf.o version.o memmem.o fmemcpy.o thunks_a.o thunks_c.o
 ASOBJS = int23.o plt.o
 LIBCMD = comcom32.so
