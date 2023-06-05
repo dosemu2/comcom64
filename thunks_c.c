@@ -18,11 +18,11 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <dj64thnk.h>
 #include "asm.h"
 typedef uint32_t UDWORD;
 typedef int32_t DWORD;
 typedef uint8_t UBYTE;
-#include "thunks_c.h"
 
 #define fdprintf printf
 #define _fail(...)
@@ -34,7 +34,8 @@ typedef uint8_t UBYTE;
 #define _RET(r) r
 #define _RET_PTR(r) // unused
 
-UDWORD FdppThunkCall(int fn, UBYTE *sp, int *r_stat, int *r_len)
+uint32_t DJ64_DISPATCH_FN(int fn, uint8_t *sp, enum DispStat *r_stat,
+    int *r_len)
 {
     UDWORD ret;
     UBYTE rsz = 0;
