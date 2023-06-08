@@ -2766,6 +2766,15 @@ static void loadhigh_done(void)
   __dpmi_int(0x21, &r);
   }
 
+static int is_HMA_enabled(void)
+  {
+  __dpmi_regs r = {};
+
+  r.x.ax = 0x3306;
+  __dpmi_int(0x21, &r);
+  return !!(r.h.dh & 0x10);
+  }
+
 static void perform_external_cmd(int call, int lh, char *ext_cmd)
   {
   finddata_t ff;
@@ -2939,7 +2948,8 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       memmove(cmd_args + 1, cmd_args, alen);
       cmd_args[0] = ' ';
       }
-    if (!loadfix_initialised && (exefile = fopen(full_cmd,"rb")))
+    if (!loadfix_initialised && is_HMA_enabled() &&
+        (exefile = fopen(full_cmd,"rb")))
       {
       /* from https://github.com/dosemu2/comcom32/issues/59#issuecomment-1179566783 */
       unsigned char exebuffer[256] = { 0 };
@@ -2978,7 +2988,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
         do_auto_loadfix = 1;
       fclose(exefile);
       exefile = NULL;
-    }
+      }
 
     if (do_auto_loadfix)
       loadfix_init();
