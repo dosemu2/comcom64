@@ -44,7 +44,7 @@ $(CMD): $(OBJS)
 
 ifeq (,$(wildcard $(CMD)))
 install:
-	@echo "Build it first!" && false
+	@echo "Build it first or run \"make fetch\"" && false
 else
 install:
 endif
@@ -70,3 +70,7 @@ deb:
 
 checkinstall:
 	checkinstall --nodoc -y -D make install PREFIX=/usr
+
+fetch:
+	curl -O https://dosemu2.github.io/comcom32/files/comcom32.zip
+	unzip -o comcom32.zip
