@@ -417,7 +417,8 @@ static void output_prompt(void)
 
   if (need_to_crlf_at_next_prompt)
     {
-    cputs("\r\n");
+    if (wherex() > 1)
+      cputs("\r\n");
     need_to_crlf_at_next_prompt = false;
     }
 
