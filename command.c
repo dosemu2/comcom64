@@ -3497,7 +3497,7 @@ static void perform_set(const char *arg)
     {
     char *s;
     int is_p = 0;
-    if (strnicmp(cmd_switch,"/p", 1) == 0)
+    if (strnicmp(cmd_switch,"/p", 2) == 0)
       {
       is_p++;
       advance_cmd_arg();
