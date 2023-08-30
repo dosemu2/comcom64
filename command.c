@@ -658,6 +658,17 @@ static void prompt_for_and_get_cmd(void)
       case KEY_END:
         cmdbuf_move(conbuf, END);
         break;
+      case '\t':
+      {
+        int i;
+        for (i = 0; i < 4; i++)
+        {
+          char c = cmdbuf_putch(conbuf, MAX_CMD_BUFLEN-2, ' ', flag);
+          if (c)
+            putch(c);
+        }
+        break;
+      }
       default:
         if (KEY_ASCII(key) != 0x00/* && KEY_ASCII(key) != 0xE0*/) {
           char c = cmdbuf_putch(conbuf, MAX_CMD_BUFLEN-2, KEY_ASCII(key), flag);
