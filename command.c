@@ -136,8 +136,6 @@ static int shell_permanent;
 
 #define DEBUG 0
 
-#define MAX_DOS_PATH 260
-
 static unsigned short env_selector;
 static unsigned short env_segment;
 static unsigned short env_size;
