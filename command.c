@@ -3205,9 +3205,17 @@ static void perform_md(const char *arg)
     advance_cmd_arg();
   if (*arg)
     {
-    if (file_access(arg, D_OK) != 0 && _mkdir(arg) != 0)
+    if (file_access(arg, D_OK) != 0)
       {
-      cprintf("Could not create directory - %s\r\n", arg);
+      if (_mkdir(arg) != 0)
+        {
+        cprintf("Could not create directory - %s\r\n", arg);
+        reset_batfile_call_stack();
+        }
+      }
+    else
+      {
+      cprintf("Directory already exists - %s\r\n", arg);
       reset_batfile_call_stack();
       }
     }
