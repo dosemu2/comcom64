@@ -90,7 +90,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/stat.h>
-
+#include <sys/vfs.h>
 #include <stubinfo.h>
 #include <process.h>
 #include <sys/segments.h>
@@ -2263,7 +2263,8 @@ static void perform_dir(const char *arg)
   int use_pause = 0;
   unsigned long long avail; //was double avail; --Salvo
   finddata_t ff;
-  diskfree_t df;
+  struct statfs sf;
+  int rc;
   unsigned int attrib = FA_DIREC+FA_RDONLY+FA_ARCH+FA_SYSTEM+FA_HIDDEN, first;
   unsigned long filecount = 0, dircount = 0, bytecount = 0;
   char dirspec[MAXPATH];
@@ -2271,21 +2272,6 @@ static void perform_dir(const char *arg)
   char full_filespec[MAXPATH];
   char filespec[MAXPATH] = "";
   struct text_info txinfo;
-
-  struct {
-    uint16_t size;
-    uint16_t version; // (0000h)
-    uint32_t spc;
-    uint32_t bps;
-    uint32_t avail_clusters;
-    uint32_t total_clusters;
-    uint32_t avail_sectors;
-    uint32_t total_sectors;
-    uint32_t avail_units;
-    uint32_t total_units;
-    char reserved[8];
-  } __attribute__((packed)) xdf;
-  __dpmi_regs r = {};
 
   gettextinfo(&txinfo);
 
@@ -2423,32 +2409,18 @@ static void perform_dir(const char *arg)
   printf("%10lu file(s) %14lu bytes\n", filecount, bytecount);
   printf("%10lu dir(s) ", dircount);
 
-  /* Try extended dfree int21/7303 */
-  r.x.flags = CF;
-  r.d.eax = 0x7303;
-  r.x.ds = __tb_segment;
-  r.d.edx = __tb_offset;
-  r.x.es = __tb_segment;
-  r.d.edi = __tb_offset + MAX_DOS_PATH;
-  r.d.ecx = sizeof(xdf);
-  dosmemput(full_filespec, strlen(full_filespec) + 1, __tb);
-  __dpmi_int(0x21, &r);
-  dosmemget(__tb + MAX_DOS_PATH, sizeof(xdf), &xdf);
-  if (!(r.x.flags & CF)) {
-    avail = (unsigned long long)xdf.avail_clusters * xdf.bps * xdf.spc;
-  } else { /* Fall back to int21/36 */
-    getdfree(full_filespec[0]-'a'+1, &df);
-    avail = DISKFREE_T_AVAIL(df)*DISKFREE_T_BSEC(df)*DISKFREE_T_SCLUS(df);
-  }
-
-  if (avail < 1048576)
-    printf("%15lli byte(s) free\n", avail);
-  else if (avail < 1073741824)
-    printf("%15lli KB free\n", avail / 1024);
-  else if (avail < 2147483648ULL)
-    printf("%15lli MB free\n", avail / 1024 / 1024);
-  else
-    printf("%15.1f GB free\n", avail / 1024.0 / 1024.0 / 1024.0);
+  rc = statfs(full_filespec, &sf);
+  if (rc == 0) {
+    avail = (unsigned long long)sf.f_bavail * sf.f_bsize;
+    if (avail < 1048576)
+      printf("%15lli byte(s) free\n", avail);
+    else if (avail < 1073741824)
+      printf("%15lli KB free\n", avail / 1024);
+    else if (avail < 2147483648ULL)
+      printf("%15lli MB free\n", avail / 1024 / 1024);
+    else
+      printf("%15.1f GB free\n", avail / 1024.0 / 1024.0 / 1024.0);
+    }
   }
 
 static void perform_echo(const char *arg)
@@ -4345,6 +4317,8 @@ int main(int argc, const char *argv[], const char *envp[])
 #ifdef __spawn_leak_workaround
   __spawn_flags &= ~__spawn_leak_workaround;
 #endif
+  if (_osmajor < 7)
+    _osmajor = 7;  // fake _osmajor to enable extended functionality
   setup_break_handling();
 
   // unbuffer stdin and stdout
