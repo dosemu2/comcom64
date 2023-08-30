@@ -2563,7 +2563,6 @@ again:
     advance_iter(iter);
     return tok;
     }
-  strupr(iter->token);
   if (glob(iter->token, 0, NULL, &iter->gl))
     {
     advance_iter(iter);
