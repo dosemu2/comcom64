@@ -863,7 +863,7 @@ static int ensure_dir_existence(char *dir)
         printf("Creating directory - %s\\\n", dir_path);
       else
         *c = '\0';
-      if (mkdir(dir_path) != 0 && c == NULL)
+      if (_mkdir(dir_path) != 0 && c == NULL)
         {
         cprintf("Unable to create directory - %s\\\r\n", dir_path);
         return -1;
@@ -3205,7 +3205,7 @@ static void perform_md(const char *arg)
     advance_cmd_arg();
   if (*arg)
     {
-    if (file_access(arg, D_OK) != 0 && mkdir(arg) != 0)
+    if (file_access(arg, D_OK) != 0 && _mkdir(arg) != 0)
       {
       cprintf("Could not create directory - %s\r\n", arg);
       reset_batfile_call_stack();

@@ -368,7 +368,7 @@ static inline int file_copytime(int desc_handle, int src_handle)
 #define putch(c) putchar(c)
 #endif
 
-#define mkdir(dir_path) mkdir(dir_path, S_IWUSR)
+#define _mkdir(dir_path) mkdir(dir_path, S_IWUSR)
 
 /* File find */
 typedef struct ffblk finddata_t;
