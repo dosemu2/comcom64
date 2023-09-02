@@ -3216,7 +3216,7 @@ static void perform_md(const char *arg)
     else
       {
       cprintf("Directory already exists - %s\r\n", arg);
-      reset_batfile_call_stack();
+//      reset_batfile_call_stack();
       }
     }
   else
