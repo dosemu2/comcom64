@@ -4173,16 +4173,9 @@ static void exec_cmd(int call)
 
   if (pipe_to_cmd_redir_count > 0)
     {
-    for (c = 0; c < CMD_TABLE_COUNT; c++)
-        {
-        if (stricmp(pipe_to_cmd, cmd_table[c].cmd_name) == 0)
-          {
-          cmd_table[c].cmd_fn(cmd_arg);
-          break;
-          }
-        }
-      if (c >= CMD_TABLE_COUNT)
-        perform_external_cmd(false, false, pipe_to_cmd);
+    strcpy(cmd_line, pipe_to_cmd);
+    parse_cmd_line();
+    exec_cmd(true);
     }
 
 /* Exit: */
