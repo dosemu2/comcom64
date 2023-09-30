@@ -60,3 +60,8 @@ uint32_t DJ64_DISPATCH_FN(int fn, uint8_t *sp, enum DispStat *r_stat,
     *r_len = rsz;
     return ret;
 }
+
+void DJ64_SYMTAB_FN(struct dj64_symtab *st)
+{
+    /* TODO */
+}
