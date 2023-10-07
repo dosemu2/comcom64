@@ -8,7 +8,7 @@ C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings
 # avoid CMOVxx instructions
 C_OPT += -march=i386
 LINK_OPT =
-OBJS = command.o cmdbuf.o version.o memmem.o fmemcpy.o int23.o
+OBJS = command.o cmdbuf.o version.o memmem.o fmemcpy.o asm.o int23.o
 CMD = comcom32.exe
 RELVER = alpha3
 PKG = comcom32-0.1$(RELVER)
@@ -40,7 +40,7 @@ $(CMD): $(OBJS)
 	$(DOS_CC) $(C_OPT) -c $< -o $@
 
 %.o : %.S
-	$(DOS_AS) $< -o $@
+	$(DOS_CC) -c $< -o $@
 
 ifeq (,$(wildcard $(CMD)))
 install:

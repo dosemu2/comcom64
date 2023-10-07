@@ -4361,7 +4361,6 @@ static void setup_break_handling(void)
 
   set_break(1);
 
-  _ds = _my_ds();
   pa.selector = _my_cs();
   pa.offset32 = (uintptr_t)my_int23_handler;
   __dpmi_set_protected_mode_interrupt_vector(0x23, &pa);
@@ -4383,6 +4382,7 @@ int main(int argc, const char *argv[], const char *envp[])
   // reset fpu
   _clear87();
   _fpreset();
+  _ds = _my_ds();
   loadhigh_init();	// save initial umb link and strat
   unlink_umb();		// in case we loaded with shellhigh or lh
   set_env_size();
