@@ -1680,6 +1680,7 @@ static void perform_loadhigh(const char *arg)
   if (!*arg)
     {
     cprintf("loadhigh: command name missing\r\n");
+    reset_batfile_call_stack();
     return;
     }
   while (*cmd_switch)  // skip switches
@@ -1787,12 +1788,12 @@ static void loadfix_exit(void)
     }
 }
 
-
 static void perform_loadfix(const char *arg)
   {
   if (!*arg)
     {
     cprintf("loadfix: command name missing\r\n");
+    reset_batfile_call_stack();
     return;
     }
   strcpy(cmd, arg);
