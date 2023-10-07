@@ -20,6 +20,9 @@
 
 #include <conio.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <dir.h>
 #include "cmdbuf.h"
 
 #ifdef __MINGW32__
@@ -37,6 +40,7 @@ static unsigned int cur = 0;
 static char cmdqueue[MAX_CMDQUEUE_LEN][MAX_CMD_BUFLEN];
 static unsigned int cmdqueue_count = 0;
 static unsigned int cmdqueue_index = 0;
+static const char *hist_name = "cc.his";
 
 static void _cmdbuf_clr_line(char *cmd_buf)
 {
@@ -188,6 +192,10 @@ char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short 
   return 0;
 }
 
+void cmdbuf_reset(void)
+{
+  cur = tail = 0;
+}
 
 void cmdbuf_store(char *cmd_buf)
 {
@@ -198,11 +206,105 @@ void cmdbuf_store(char *cmd_buf)
 
   if (cmd_buf[0] == '\0')
     return;
-  if (strcmp(cmd_buf, cmdqueue[prev_count]) != 0) {
+  if (strcmp(cmd_buf, cmdqueue[prev_count]) != 0)
+    {
+    const char *tmp;
     /* Enqueue the cmdbuf and save the current index */
     strcpy(cmdqueue[cmdqueue_count], cmd_buf);
     cmdqueue_count++;
     cmdqueue_count = cmdqueue_count%MAX_CMDQUEUE_LEN;
-  }
+    tmp = getenv("TEMP");
+    if (tmp)
+      {
+      char pathbuf[MAXPATH];
+      FILE *his;
+      snprintf(pathbuf, MAXPATH, "%s\\%s", tmp, hist_name);
+      his = fopen(pathbuf, "a");
+      if (his)
+        {
+        fputs(cmd_buf, his);
+        fputs("\n", his);  // actually puts \r\n
+        fclose(his);
+        }
+      }
+    }
   cmdqueue_index = cmdqueue_count;
+}
+
+static int count_lines(FILE *f)
+{
+  int c;
+  int cnt = 0;
+  while ((c = fgetc(f)) != EOF)
+    {
+    if (c == '\n')
+      cnt++;
+    }
+  rewind(f);
+  return cnt;
+}
+
+static int seek_to_line(FILE *f, int n)
+{
+  int c;
+  int cnt = 0;
+  if (!n)
+    return 0;
+  while ((c = fgetc(f)) != EOF)
+    {
+    if (c == '\n')
+      cnt++;
+    if (cnt == n)
+      return 0;
+    }
+  rewind(f);
+  return -1;
+}
+
+void cmdbuf_init(void)
+{
+  const char *tmp = getenv("TEMP");
+  if (tmp)
+    {
+    char pathbuf[MAXPATH];
+    FILE *his;
+    snprintf(pathbuf, MAXPATH, "%s\\%s", tmp, hist_name);
+    his = fopen(pathbuf, "r");
+    if (his)
+      {
+      int cnt = count_lines(his);
+      int cnt1 = cnt;
+      if (cnt > MAX_CMDQUEUE_LEN)
+        {
+        seek_to_line(his, cnt - MAX_CMDQUEUE_LEN);
+        cnt = MAX_CMDQUEUE_LEN;
+        }
+      for (cmdqueue_count = 0; cmdqueue_count < cnt; cmdqueue_count++)
+        {
+        char *got = fgets(cmdqueue[cmdqueue_count], MAX_CMD_BUFLEN, his);
+        if (!got)
+          break;
+        /* strip \n */
+        cmdqueue[cmdqueue_count][strlen(cmdqueue[cmdqueue_count]) - 1] = '\0';
+        }
+      fclose(his);
+      cmdqueue_count %= MAX_CMDQUEUE_LEN;
+      cmdqueue_index = cmdqueue_count;
+      /* if history is too long, rewrite the file */
+      if (cnt1 > cnt)
+        {
+        his = fopen(pathbuf, "w");
+        if (his)
+          {
+          int i;
+          for (i = 0; i < cnt; i++)
+            {
+            fputs(cmdqueue[i], his);
+            fputs("\n", his);  // actually puts \r\n
+            }
+          fclose(his);
+          }
+        }
+      }
+    }
 }

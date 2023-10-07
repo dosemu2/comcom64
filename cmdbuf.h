@@ -14,5 +14,7 @@ int cmdbuf_bksp(char *cmd_buf);
 void cmdbuf_clear(char *cmd_buf);
 char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag);
 void cmdbuf_store(char *cmd_buf);
+void cmdbuf_reset(void);
+void cmdbuf_init(void);
 
 #endif

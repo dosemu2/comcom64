@@ -595,7 +595,7 @@ static unsigned short keyb_get_shift_states(void)
 
 static void prompt_for_and_get_cmd(void)
   {
-  int flag = 0, key = 0, len, len1;
+  int flag = 0, key = 0, len, len1, need_store;
   char conbuf[MAX_CMD_BUFLEN+1];
 
   output_prompt();
@@ -606,6 +606,7 @@ static void prompt_for_and_get_cmd(void)
   else
     _setcursortype(_SOLIDCURSOR);
 
+  need_store = 0;
   do {
     /* Wait and get raw key code */
     key = keyb_get_rawcode();
@@ -616,6 +617,8 @@ static void prompt_for_and_get_cmd(void)
 //    else
     if (KEY_ASCII(key) != 0)
       key = KEY_ASCII(key);
+    if (key != KEY_ENTER)
+      need_store = 1;
     switch (key)
     {
       case 0:
@@ -644,7 +647,8 @@ static void prompt_for_and_get_cmd(void)
           _setcursortype(_SOLIDCURSOR);
         break;
       case KEY_UP:
-        cmdbuf_move(conbuf, UP);
+        if (cmdbuf_move(conbuf, UP))
+          need_store = 0;
         break;
       case KEY_LEFT:
         cmdbuf_move(conbuf, LEFT);
@@ -653,7 +657,8 @@ static void prompt_for_and_get_cmd(void)
         cmdbuf_move(conbuf, RIGHT);
         break;
       case KEY_DOWN:
-        cmdbuf_move(conbuf, DOWN);
+        if (cmdbuf_move(conbuf, DOWN))
+          need_store = 0;
         break;
       case KEY_HOME:
         cmdbuf_move(conbuf, HOME);
@@ -682,7 +687,10 @@ static void prompt_for_and_get_cmd(void)
     }
   } while (key != KEY_ENTER);
 
-  cmdbuf_store(conbuf);
+  if (need_store)
+    cmdbuf_store(conbuf);
+  else
+    cmdbuf_reset();
   strcpy(cmd_line, conbuf);
   /* Get the size of typed string */
   len = strlen(conbuf);
@@ -4413,6 +4421,7 @@ int main(int argc, const char *argv[], const char *envp[])
   int a;
   char *cmd_path;
   int disable_autoexec = 0;
+  int inited = 0;
   // initialize the cmd data ...
 
   // Indicate to Dosemu that the DOS has booted. This may be removed after
@@ -4561,7 +4570,11 @@ int main(int argc, const char *argv[], const char *envp[])
           perform_exit(NULL);
           continue;
           }
-        /* TODO: don't forget to set sel in int23 handler */
+        if (!inited)
+          {
+          inited++;
+          cmdbuf_init();
+          }
         set_env_seg();
         prompt_for_and_get_cmd();
         set_env_sel();
