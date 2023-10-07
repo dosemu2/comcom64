@@ -682,11 +682,10 @@ static void prompt_for_and_get_cmd(void)
     }
   } while (key != KEY_ENTER);
 
-  len = cmdbuf_get_tail();
+  cmdbuf_store(conbuf);
+  strcpy(cmd_line, conbuf);
   /* Get the size of typed string */
-  strncpy(cmd_line, (char *)cmdbuf_gets(conbuf), len);
-
-  cmd_line[len] = '\0';
+  len = strlen(conbuf);
   if (!len)
     {
     cputs("\r\n");

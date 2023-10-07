@@ -38,11 +38,6 @@ static char cmdqueue[MAX_CMDQUEUE_LEN][MAX_CMD_BUFLEN];
 static unsigned int cmdqueue_count = 0;
 static unsigned int cmdqueue_index = 0;
 
-unsigned int cmdbuf_get_tail(void)
-{
-	return tail;
-}
-
 static void _cmdbuf_clr_line(char *cmd_buf)
 {
 	unsigned int i, n;
@@ -194,15 +189,15 @@ char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short 
 }
 
 
-char *cmdbuf_gets(char *cmd_buf)
+void cmdbuf_store(char *cmd_buf)
 {
   int prev_count = (cmdqueue_count - 1) % MAX_CMDQUEUE_LEN;
-  cmd_buf[tail] = 0;
+  cmd_buf[tail] = '\0';
   /* Reset the cmdbuf */
   cur = tail = 0;
 
   if (cmd_buf[0] == '\0')
-    return cmd_buf;
+    return;
   if (strcmp(cmd_buf, cmdqueue[prev_count]) != 0) {
     /* Enqueue the cmdbuf and save the current index */
     strcpy(cmdqueue[cmdqueue_count], cmd_buf);
@@ -210,6 +205,4 @@ char *cmdbuf_gets(char *cmd_buf)
     cmdqueue_count = cmdqueue_count%MAX_CMDQUEUE_LEN;
   }
   cmdqueue_index = cmdqueue_count;
-
-  return cmd_buf;
 }
