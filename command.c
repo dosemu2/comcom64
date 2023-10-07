@@ -3552,22 +3552,47 @@ static void perform_shift(const char *arg)
 static void perform_time(const char *arg)
   {
   time_t t = time(NULL);
-  struct tm *loctime = localtime (&t);
-  char ampm;
-  int hour;
+  struct tm loctime;
+  unsigned int hour, min, sec = 0;
+  int rc, exp_rc;
 
-  hour = loctime->tm_hour;
-  if (hour < 12)
-    ampm = 'a';
+  localtime_r(&t, &loctime);
+  if (*arg != '\0')
+    {
+    struct timeval tv;
+    char *p1 = strchr(arg, ':'), *p2 = strrchr(arg, ':');
+    if (!p1)
+      {
+      cprintf("Invalid time format\r\n");
+      reset_batfile_call_stack();
+      return;
+      }
+    if (p1 == p2)
+      {
+      rc = sscanf(arg, "%d:%d", &hour, &min);
+      exp_rc = 2;
+      }
+    else
+      {
+      rc = sscanf(arg, "%d:%d:%d", &hour, &min, &sec);
+      exp_rc = 3;
+      }
+    if (rc != exp_rc || hour > 23 || min > 59 || sec > 59)
+      {
+      cprintf("Invalid time\r\n");
+      reset_batfile_call_stack();
+      return;
+      }
+    loctime.tm_hour = hour;
+    loctime.tm_min = min;
+    loctime.tm_sec = sec;
+    tv.tv_sec = mktime(&loctime);
+    tv.tv_usec = 0;
+    settimeofday(&tv, NULL);
+    }
   else
-    ampm = 'p';
-  if (hour > 12)
-    hour -= 12;
-  if (hour == 0)
-    hour = 12;
-
-  printf("Current time is %2d:%02d:%02d.%02d%c\n",
-         hour, loctime->tm_min, loctime->tm_sec, 0, ampm);
+    printf("Current time is %d:%02d:%02d\n",
+         loctime.tm_hour, loctime.tm_min, loctime.tm_sec);
 
   }
 
