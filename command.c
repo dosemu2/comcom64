@@ -1995,10 +1995,49 @@ err_close:
 static void perform_date(const char *arg)
   {
   time_t t = time(NULL);
-  struct tm *loctime = localtime (&t);
+  struct tm loctime;
   const char *day_of_week[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-  printf("Current date is %s %02d-%02d-%04d\n", day_of_week[loctime->tm_wday],
-                             loctime->tm_mon+1, loctime->tm_mday, loctime->tm_year+1900);
+  localtime_r(&t, &loctime);
+  if (*arg != '\0')
+    {
+    struct timeval tv;
+    unsigned int m, d, y;
+    int rc = sscanf(arg, "%d-%d-%d", &m, &d, &y);
+    if (rc != 3 || m == 0 || m > 12 || d == 0 || d > 31)
+      {
+      cprintf("Invalid date\r\n");
+      reset_batfile_call_stack();
+      return;
+      }
+    if (y < 100)
+      {
+      if (y < 80)
+        y += 2000;
+      else
+        y += 1900;
+      }
+    else if (y < 1900)
+      {
+      cprintf("Invalid year\r\n");
+      reset_batfile_call_stack();
+      return;
+      }
+    if (y >= 2038)
+      {
+      cprintf("Invalid year: Y2K38\r\n");
+      reset_batfile_call_stack();
+      return;
+      }
+    loctime.tm_year = y - 1900;
+    loctime.tm_mon = m - 1;
+    loctime.tm_mday = d;
+    tv.tv_sec = mktime(&loctime);
+    tv.tv_usec = 0;
+    settimeofday(&tv, NULL);
+    }
+  else
+    printf("Current date is %s %02d-%02d-%04d\n", day_of_week[loctime.tm_wday],
+                             loctime.tm_mon+1, loctime.tm_mday, loctime.tm_year+1900);
   }
 
 static void perform_delete(const char *arg)
