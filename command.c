@@ -140,6 +140,9 @@ static unsigned short env_selector;
 static unsigned short env_segment;
 static unsigned short env_size;
 
+static __dpmi_raddr int0_vec;
+static int int0_wa;
+
 /*
  * Command parser defines/variables
  */
@@ -3361,6 +3364,22 @@ static void perform_pushd(const char *arg)
   pushd_stack_level++;
   }
 
+static void perform_r200fix(const char *arg)
+  {
+  if (!*arg)
+    {
+    cprintf("r200fix: command name missing\r\n");
+    reset_batfile_call_stack();
+    return;
+    }
+  strcpy(cmd, arg);
+  advance_cmd_arg();
+
+  int0_wa = 1;
+  perform_external_cmd(false, false, cmd);
+  int0_wa = 0;
+  }
+
 static void perform_rd(const char *arg)
   {
   while (*cmd_switch)  // skip switches
@@ -3873,6 +3892,7 @@ static struct built_in_cmd cmd_table[] =
     {"popd", perform_popd, "", "pop dir from stack and cd"},
     {"prompt", perform_prompt, "", "customize prompt string"},
     {"pushd", perform_pushd, "", "push cwd to stack and cd"},
+    {"r200fix", perform_r200fix, "", "runtime error 200 fix"},
     {"rd", perform_rd, "", "remove directory"},
     {"rmdir", perform_rd, "", "remove directory"},
     {"rename", perform_rename, "", "rename with wildcards"},
@@ -4369,6 +4389,26 @@ static void setup_break_handling(void)
   break_on = true;
 }
 
+static void setup_int0_handling(void)
+{
+  __dpmi_paddr pa;
+
+  __dpmi_get_real_mode_interrupt_vector(0, &int0_vec);
+  __dpmi_get_extended_exception_handler_vector_rm(0, &pa);
+  _prev0_eip = pa.offset32;
+  _prev0_cs = pa.selector;
+
+  pa.selector = _my_cs();
+  pa.offset32 = (uintptr_t)my_int0_handler;
+  __dpmi_set_extended_exception_handler_vector_rm(0, &pa);
+}
+
+void do_int0(void)
+{
+  if (int0_wa)
+    __dpmi_set_real_mode_interrupt_vector(0, &int0_vec);
+}
+
 int main(int argc, const char *argv[], const char *envp[])
   {
   int a;
@@ -4395,6 +4435,7 @@ int main(int argc, const char *argv[], const char *envp[])
   if (_osmajor < 7)
     _osmajor = 7;  // fake _osmajor to enable extended functionality
   setup_break_handling();
+  setup_int0_handling();
 
   // unbuffer stdin and stdout
   setbuf(stdin, NULL);
