@@ -46,6 +46,11 @@ uint32_t DJ64_DISPATCH_FN(int fn, uint8_t *sp, enum DispStat *r_stat,
     ret = rc(_r); \
     rsz = (r); \
 }
+#define _DISPATCH_v(f, ...) { \
+    f(__VA_ARGS__); \
+    ret = 0; \
+    rsz = 0; \
+}
 
     switch (fn) {
         #include <thunk_calls.h>

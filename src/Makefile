@@ -1,9 +1,9 @@
 SHELL := /bin/bash -o pipefail
 HOST_CC = gcc -E -CC -g0 $(CPPFLAGS) $< | gcc -xc -
 HOST_LD = gcc
+HOST_AS = gcc -m32 -x assembler-with-cpp
 HOST_STRIP ?= strip --strip-debug
 DOS_LD = ld -melf_i386 -static
-DOS_AS = as --32
 DOS_STRIP = strip
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom32
@@ -13,7 +13,7 @@ C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3
 #C_OPT += -march=i386
 LINK_OPT = ~/src/djgpp-cvs/lib/libdj64.so -shared -Wl,-Bsymbolic
 OBJS = command.o cmdbuf.o version.o thunks_a.o thunks_c.o
-ASOBJS = int23.o plt.o
+ASOBJS = int23.o int0.o asm.o plt.o
 LIBCMD = comcom32.so
 CMD = comcom32.exe
 REVISIONID := $(shell git describe --dirty=+)
@@ -26,7 +26,7 @@ all: $(CMD)
 
 clean:
 	$(RM) $(CMD) $(LIBCMD) *.o version
-	$(RM) *.asm *.inc *.tmp thunk_calls.h thunk_asms.h glob_asmdefs.h
+	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h glob_asmdefs.h
 	$(MAKE) -C parsers clean
 
 .PHONY: force
@@ -52,10 +52,10 @@ $(CMD): $(LIBCMD) $(ASOBJS)
 	$(HOST_CC) $(C_OPT) -c -o $@
 
 %.o : %.S
-	$(DOS_CC) -c $< -o $@
+	$(HOST_AS) -c $< -o $@
 
 plt.o: plt.asm
-	$(DOS_AS) -o $@ $<
+	$(HOST_AS) -c -o $@ $<
 
 plt.asm: $(srcdir)/plt.S plt.inc $(SRC)/glob_asm.h
 	$(CPP) $(CPPFLAGS) -I . -P $< >$@ || ($(RM) $@ ; false)
