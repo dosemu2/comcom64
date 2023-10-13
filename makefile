@@ -13,7 +13,7 @@ clean:
 	$(RM) -f $(TGZ) *.zip
 
 distclean:
-	git clean -fd
+	git clean -fd || $(MAKE) clean
 
 $(TGZ):
 	git archive -o $(CURDIR)/$(TGZ) --prefix=$(PKG)/ HEAD
