@@ -10,18 +10,14 @@ C_OPT += -march=i386
 LINK_OPT =
 OBJS = command.o cmdbuf.o version.o memmem.o fmemcpy.o asm.o int23.o int0.o
 CMD = comcom32.exe
-RELVER = alpha3
-PKG = comcom32-0.1$(RELVER)
-TGZ = $(PKG).tar.gz
 REVISIONID := $(shell git describe --dirty=+)
 
-.PHONY: all clean
+.PHONY: all clean install uninstall
 
 all: $(CMD)
 
 clean:
-	$(RM) $(CMD)
-	$(RM) *.o
+	$(RM) $(CMD) *.o version
 
 .PHONY: force
 version: force
@@ -54,23 +50,3 @@ endif
 
 uninstall:
 	rm -rf $(DATADIR)
-
-$(TGZ):
-	git archive -o $(CURDIR)/$(TGZ) --prefix=$(PKG)/ HEAD
-.PHONY: $(TGZ)
-
-tar: $(TGZ)
-
-rpm: comcom32.spec.rpkg
-	git clean -fd
-	rpkg local
-
-deb:
-	debuild -i -us -uc -A
-
-checkinstall:
-	checkinstall --nodoc -y -D make install PREFIX=/usr
-
-fetch:
-	curl -O https://dosemu2.github.io/comcom32/files/comcom32.zip
-	unzip -o comcom32.zip
