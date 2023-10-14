@@ -690,7 +690,10 @@ static void prompt_for_and_get_cmd(void)
   if (need_store)
     cmdbuf_store(conbuf);
   else
+    {
     cmdbuf_reset();
+    conbuf[0] = '\0';
+    }
   strcpy(cmd_line, conbuf);
   /* Get the size of typed string */
   len = strlen(conbuf);
