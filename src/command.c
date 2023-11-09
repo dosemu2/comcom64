@@ -2054,10 +2054,12 @@ static void perform_date(const char *arg)
 
 static void perform_delete(const char *arg)
   {
+  long fhandle;
   finddata_t ff;
   char filespec[MAXPATH] = "";
   char full_filespec[MAXPATH] = "";
   char drive[MAXDRIVE], dir[MAXDIR];
+  int done = 0;
 
   while (*arg != '\0')
     {
@@ -2084,18 +2086,17 @@ static void perform_delete(const char *arg)
     return;
     }
 
-  if (findfirst_f(filespec, &ff, 0, NULL) != 0)
-    {
-    printf("File(s) not found - %s\n", filespec);  // informational msg; not an error
-    return;
-    }
-
   _fixpath(filespec, full_filespec);
   fnsplit(full_filespec, drive, dir, NULL, NULL);
   conv_unix_path_to_ms_dos(drive);
   conv_unix_path_to_ms_dos(dir);
 
-  while (findfirst_f(full_filespec, &ff, 0, NULL) == 0)
+  if (findfirst_f(full_filespec, &ff, 0, &fhandle) != 0)
+    {
+    printf("File(s) not found - %s\n", filespec);  // informational msg; not an error
+    return;
+    }
+  while (!done)
     {
     char individual_filespec[MAXPATH];
 
@@ -2104,6 +2105,7 @@ static void perform_delete(const char *arg)
     strcat(individual_filespec, dir);
     strcat(individual_filespec, FINDDATA_T_FILENAME(ff));
 
+    done = (findnext_f(&ff, fhandle) != 0);
     if (remove(individual_filespec) == 0)
       printf("%s erased\n", individual_filespec);
     else
