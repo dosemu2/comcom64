@@ -1,0 +1,22 @@
+language: c
+
+dist:  focal
+
+if: type = cron
+
+git:
+  depth: false
+
+#env: DOSEMU_QUIET=1
+
+before_install:
+  - ./ci_prereq.sh
+
+install:
+  - ./ci_build.sh
+
+before_script:
+  - echo "before_script"
+
+script:
+  - ./ci_test.sh

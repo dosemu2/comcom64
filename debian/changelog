@@ -1,0 +1,17 @@
+comcom32 (0.1~alpha3-1) focal; urgency=low
+
+  * alpha-3
+
+ -- Stas Sergeev <stsp@users.sourceforge.net>  Sat, 1 Jan 2022 14:30:00 +0300
+
+comcom32 (0.1~alpha2-1) focal; urgency=low
+
+  * alpha-2
+
+ -- Stas Sergeev <stsp@users.sourceforge.net>  Sat, 22 Aug 2020 00:00:00 +0300
+
+comcom32 (0.1~alpha1-1) bionic; urgency=low
+
+  * alpha-1
+
+ -- Stas Sergeev <stsp@users.sourceforge.net>  Sun, 24 Feb 2019 00:30:00 +0300
