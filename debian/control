@@ -8,6 +8,8 @@ Build-Depends:
     djstub,
     dj64-dev,
     autoconf,
+    flex,
+    bison,
     gcc,
     git,
     grep,
