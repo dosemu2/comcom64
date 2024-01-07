@@ -11,8 +11,9 @@ C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3 -I.
 LINK_OPT = /usr/i386-pc-dj64/lib64/libdj64.so -shared -Wl,-Bsymbolic
 OBJS = command.o cmdbuf.o version.o thunks_a.o thunks_c.o
 ASOBJS = int23.o int0.o asm.o plt.o
-LIBCMD = comcom64.so
+LIBCMD = libcomcom64.so
 CMD = comcom64.exe
+ELF = comcom64.elf
 REVISIONID := $(shell git describe --dirty=+)
 srcdir ?= .
 SRC = $(srcdir)
@@ -23,7 +24,7 @@ TFLAGS = -a 4 -p 4
 all: $(CMD)
 
 clean:
-	$(RM) $(CMD) $(LIBCMD) *.o version
+	$(RM) $(CMD) $(LIBCMD) $(ELF) *.o version
 	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h glob_asmdefs.h
 	$(MAKE) -C thunk_gen clean
 
@@ -38,12 +39,14 @@ $(LIBCMD): $(OBJS)
 	$(HOST_LD) $^ $(LINK_OPT) -o $@
 	$(HOST_STRIP) $@
 
-$(CMD): $(LIBCMD) $(ASOBJS)
+$(ELF): $(ASOBJS)
 	$(DOS_LD) $(ASOBJS) /usr/i386-pc-dj64/lib/libc.a -o $@
 	$(DOS_STRIP) $@
-	djstubify -l $< $@
 
-.INTERMEDIATE: $(LIBCMD)
+$(CMD): $(LIBCMD) $(ELF)
+	djstubify -l $< -o $@ $(ELF)
+
+#.INTERMEDIATE: $(LIBCMD)
 
 # Common rules
 %.o : %.c glob_asmdefs.h
