@@ -1,5 +1,5 @@
 SHELL := /bin/bash -o pipefail
-HOST_CC = gcc -E -CC -g0 $(CPPFLAGS) $< | gcc -xc -
+HOST_CC = /usr/i386-pc-dj64/bin/ccwrp.sh
 HOST_LD = gcc
 HOST_AS = gcc -m32 -x assembler-with-cpp
 HOST_STRIP ?= strip --strip-debug
@@ -7,8 +7,7 @@ DOS_LD = ld -melf_i386 -static
 DOS_STRIP = strip
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
-CPPFLAGS = -I /usr/i386-pc-dj64/include -I .
-C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3
+C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3 -I.
 LINK_OPT = /usr/i386-pc-dj64/lib64/libdj64.so -shared -Wl,-Bsymbolic
 OBJS = command.o cmdbuf.o version.o thunks_a.o thunks_c.o
 ASOBJS = int23.o int0.o asm.o plt.o
@@ -48,7 +47,7 @@ $(CMD): $(LIBCMD) $(ASOBJS)
 
 # Common rules
 %.o : %.c glob_asmdefs.h
-	$(HOST_CC) $(C_OPT) -c -o $@
+	$(HOST_CC) $(C_OPT) -o $@ -c $<
 
 %.o : %.S
 	$(HOST_AS) -c $< -o $@
@@ -57,7 +56,7 @@ plt.o: plt.asm
 	$(HOST_AS) -c -o $@ $<
 
 plt.asm: $(srcdir)/plt.S plt.inc $(SRC)/glob_asm.h
-	$(CPP) $(CPPFLAGS) -I . -P $< >$@ || ($(RM) $@ ; false)
+	$(CPP) -I . -P $< >$@ || ($(RM) $@ ; false)
 
 thunks_c.o: thunk_calls.h
 
