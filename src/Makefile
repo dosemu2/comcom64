@@ -80,14 +80,6 @@ plt_asmc.h plt_asmp.h: thunk_asms.tmp
 thunk_calls.h: thunk_calls.tmp thunk_gen/thunk_gen
 	thunk_gen/thunk_gen $(TFLAGS) <$< >$@ || ($(RM) $@ ; false)
 
-thunk_asms.h: thunk_asms.tmp thunk_gen/thunk_gen $(srcdir)/parsers/thunks.m4
-	thunk_gen/thunk_gen $(TFLAGS) 1 <$< | sort | uniq | autom4te -l m4sugar $(srcdir)/parsers/thunks.m4 - >$@_ \
-		|| ($(RM) $@_ ; false)
-	thunk_gen/thunk_gen $(TFLAGS) 2 <$< >$@__ \
-		|| ($(RM) $@__ ; false)
-	cat $@_ $@__ >$@
-	rm -f $@_ $@__
-
 glob_asmdefs.h: $(SRC)/glob_asm.h
 	$(srcdir)/parsers/mkasmdefs.sh $< >$@
 

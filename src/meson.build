@@ -19,8 +19,7 @@ gad = custom_target('glob_asmdefs.h',
   command: [MA, '@INPUT@'],
   capture: true)
 
-GEN_TMP = { '1':'thunk_calls.tmp', '2':'thunk_asms.tmp' }
-GEN_H = { 'plt_asmc.h':'4', 'plt_asmp.h':'5' }
+GEN_TMP = { '1':'thunk_calls.tmp' }
 
 tct = custom_target('thunk_calls.tmp',
   output: 'thunk_calls.tmp',
@@ -34,9 +33,9 @@ plt_inc = custom_target('plt.inc',
   capture: true)
 cpp = meson.get_compiler('c')
 sfiles = cpp.preprocess(['plt.S'],
-  output : '@BASENAME@.s',
+  output: '@BASENAME@.s',
   dependencies: declare_dependency(
-    compile_args : ['-D__ASSEMBLER__']))
+    compile_args: ['-D__ASSEMBLER__']))
 
 env = environment()
 env.set('CPP', 'cpp')
@@ -52,19 +51,7 @@ foreach n: GEN_TMP.keys()
       extra_args: n,
       env: ['CPP=cpp', 'srcdir=' + meson.current_source_dir() / 'parsers'])
 endforeach
-GEN = { GEN_TMP['1']:gt[0], GEN_TMP['2']:gt[1] }
-pac = custom_target('plt_asmc.h',
-  output: 'plt_asmc.h',
-  input: GEN['thunk_asms.tmp'],
-  command: [PD, GEN_H['plt_asmc.h'], '@INPUT@'],
-  env: env,
-  capture: true)
-pap = custom_target('plt_asmp.h',
-  output: 'plt_asmp.h',
-  input: GEN['thunk_asms.tmp'],
-  command: [PD, GEN_H['plt_asmp.h'], '@INPUT@'],
-  env: env,
-  capture: true)
+GEN = { GEN_TMP['1']:gt[0] }
 
 tc = custom_target('thunk_calls.h',
   output: 'thunk_calls.h',
@@ -73,30 +60,9 @@ tc = custom_target('thunk_calls.h',
   feed: true,
   capture: true)
 
-ta1 = custom_target('thunk_asms1.h',
-  output: 'thunk_asms1.h',
-  input: GEN['thunk_asms.tmp'],
-  command: [TG, TFLAGS, '1'],
-  feed: true,
-  capture: true)
-
-ta2 = custom_target('thunk_asms2.h',
-  output: 'thunk_asms2.h',
-  input: GEN['thunk_asms.tmp'],
-  command: [TG, TFLAGS, '2'],
-  feed: true,
-  capture: true)
-
-find_program('autom4te')
-ta = custom_target('thunk_asms.h',
-  output: 'thunk_asms.h',
-  input: [ta1, ta2],
-  command: ['sh', '-c', 'cat @INPUT0@ | sort | uniq | autom4te -l m4sugar ' +
-      M4 + ' - | cat - @INPUT1@'],
-  capture: true)
-
 libdj = dependency('dj64')
 libcc64 = shared_library('comcom64', [CFILES],
+  sources: [gad, tc],
   dependencies: libdj,
   link_args: ['-Wl,-Bsymbolic'])
 
@@ -106,7 +72,7 @@ cc64 = custom_target(TARGET + '.so',
   input: libcc64,
   command: [strip, '-o', '@OUTPUT0@', '@INPUT@'])
 
-ASFILES = [ 'int23.S', 'int0.S', 'asm.S', sfiles ]
+ASFILES = [ 'int23.S', 'int0.S', 'asm.S', sfiles, plt_inc ]
 lib = static_library('dummy', ASFILES,
   build_by_default: false)
 
