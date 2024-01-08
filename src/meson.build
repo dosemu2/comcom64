@@ -1,4 +1,3 @@
-project('comcom64', ['c'], version: '0.1')
 MA = meson.current_source_dir() / 'parsers/mkasmdefs.sh'
 PD = meson.current_source_dir() / 'parsers/parse_decls.sh'
 M4 = meson.current_source_dir() / 'parsers/thunks.m4'
@@ -125,9 +124,21 @@ elf_s = custom_target(TARGET + '.elf.stripped',
   command: [strip, '-o', '@OUTPUT0@', '@INPUT@'])
 
 stubify = find_program('djstubify')
-custom_target(TARGET + '.exe',
+ccexe = custom_target(TARGET + '.exe',
   output: TARGET + '.exe',
   input: [elf_s, cc64],
   command: [stubify, '-l', cc64.full_path(), '-o', '@OUTPUT0@',
     elf_s.full_path()],
-  build_by_default: true)
+  install: true,
+  install_dir: get_option('datadir') / TARGET,
+  install_mode: 'rw-r--r--')
+
+ln = find_program('ln')
+custom_target('command.com',
+  output: 'command.com',
+  input: ccexe,
+  command: [ln, '-s', '@PLAINNAME@', '@OUTPUT0@'],
+  install: true,
+  install_dir: get_option('datadir') / TARGET,
+  install_mode: 'rw-r--r--')
+#  follow_symlinks: false)
