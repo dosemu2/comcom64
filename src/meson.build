@@ -10,8 +10,8 @@ CFILES = [
     'cmdbuf.c',
     'command.c',
     'thunks_a.c',
-    'thunks_c.c',
-    'version.c']
+    'thunks_c.c'
+    ]
 
 gad = custom_target('glob_asmdefs.h',
   output: 'glob_asmdefs.h',
@@ -99,12 +99,7 @@ ccexe = custom_target(TARGET + '.exe',
   install_dir: get_option('datadir') / TARGET,
   install_mode: 'rw-r--r--')
 
-ln = find_program('ln')
-custom_target('command.com',
-  output: 'command.com',
-  input: ccexe,
-  command: [ln, '-s', '@PLAINNAME@', '@OUTPUT0@'],
-  install: true,
-  install_dir: get_option('datadir') / TARGET,
-  install_mode: 'rw-r--r--')
-#  follow_symlinks: false)
+fs_mod = import('fs')
+install_symlink('command.com',
+  pointing_to: fs_mod.name(ccexe.full_path()),
+  install_dir: get_option('datadir') / TARGET)

@@ -3775,10 +3775,12 @@ static void perform_ver(const char *arg)
 
 
   printf("comcom32 v%s\n", version);
+#if 0
   if (strlen(revisionid))
     {
     printf(" Source Control Revision ID: %s\n", revisionid);
     }
+#endif
   if (is_r)
     {
     const int buffersize = 256;
