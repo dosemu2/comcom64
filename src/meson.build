@@ -34,6 +34,7 @@ plt_inc = custom_target('plt.inc',
 cpp = meson.get_compiler('c')
 sfiles = cpp.preprocess(['plt.S'],
   output: '@BASENAME@.s',
+  depends: plt_inc,
   dependencies: declare_dependency(
     compile_args: ['-D__ASSEMBLER__']))
 
@@ -72,7 +73,7 @@ cc64 = custom_target(TARGET + '.so',
   input: libcc64,
   command: [strip, '-o', '@OUTPUT0@', '@INPUT@'])
 
-ASFILES = [ 'int23.S', 'int0.S', 'asm.S', sfiles, plt_inc ]
+ASFILES = [ 'int23.S', 'int0.S', 'asm.S', sfiles ]
 lib = static_library('dummy', ASFILES,
   build_by_default: false)
 
