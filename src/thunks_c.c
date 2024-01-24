@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <dj64thnk.h>
+#include <djdev64/dj64thnk.h>
 #include "asm.h"
 typedef uint32_t UDWORD;
 typedef int32_t DWORD;
