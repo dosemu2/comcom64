@@ -1,4 +1,4 @@
-HOST_CC = /usr/i386-pc-dj64/bin/ccwrp.sh
+HOST_CC = $(shell pkg-config --variable=ccwrp dj64)
 HOST_LD = gcc
 HOST_AS = gcc -m32 -x assembler-with-cpp
 HOST_STRIP ?= strip --strip-debug
