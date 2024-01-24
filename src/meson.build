@@ -82,8 +82,8 @@ libdjs = dependency('dj64static', static: true)
 elf = custom_target(TARGET + '.elf',
   output: [TARGET + '.elf', TARGET + '.map'],
   input: [lib.extract_all_objects(recursive: true),
-    '/usr/i386-pc-dj64/lib/libc.a'],
-  command: [nasm_ld, '-melf_i386', '-static',
+    libdjs.link_args()],
+  command: [nasm_ld, '-melf_i386', '-static', '--whole-archive',
     '-Map=@OUTPUT1@', '-o', '@OUTPUT0@', '@INPUT@'])
 elf_s = custom_target(TARGET + '.elf.stripped',
   output: TARGET + '.elf.stripped',

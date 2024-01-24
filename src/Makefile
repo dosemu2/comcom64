@@ -1,4 +1,3 @@
-SHELL := /bin/bash -o pipefail
 HOST_CC = /usr/i386-pc-dj64/bin/ccwrp.sh
 HOST_LD = gcc
 HOST_AS = gcc -m32 -x assembler-with-cpp
@@ -8,7 +7,7 @@ DOS_STRIP = strip
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
 C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3 -I.
-LINK_OPT = /usr/i386-pc-dj64/lib64/libdj64.so -shared -Wl,-Bsymbolic
+LINK_OPT = $(shell pkg-config --libs dj64) -shared -Wl,-Bsymbolic
 OBJS = command.o cmdbuf.o version.o thunks_a.o thunks_c.o
 ASOBJS = int23.o int0.o asm.o plt.o
 LIBCMD = libcomcom64.so
@@ -40,7 +39,7 @@ $(LIBCMD): $(OBJS)
 	$(HOST_STRIP) $@
 
 $(ELF): $(ASOBJS)
-	$(DOS_LD) $(ASOBJS) /usr/i386-pc-dj64/lib/libc.a -o $@
+	$(DOS_LD) $(ASOBJS) --whole-archive $(shell pkg-config --static --libs dj64static) -o $@
 	$(DOS_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ELF)
