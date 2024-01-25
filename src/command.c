@@ -124,8 +124,6 @@ void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading 
 
 static const char *version = "0.2";
 
-#define CF 1
-#define PTR_DATA(p) ((uintptr_t)(p))
 #define DP(s, o) (__dpmi_paddr){ .selector = s, .offset32 = o, }
 
 static int shell_mode = SHELL_NORMAL;
