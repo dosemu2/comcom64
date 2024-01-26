@@ -1,4 +1,4 @@
-HOST_CC = $(shell pkg-config --variable=ccwrp dj64)
+HOST_CC = dj64-gcc
 HOST_LD = gcc
 HOST_AS = gcc -m32 -x assembler-with-cpp
 HOST_STRIP ?= strip --strip-debug
