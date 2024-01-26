@@ -15,8 +15,11 @@ if [ -z "${PREFIX}" ] ; then
     PREFIX="/usr/local"
 fi
 
+CCWRP=`pkg-config --variable=ccwrp dj64`
+sed -e "s!@CCWRP[@]!${CCWRP}!g" $TOP/src/toolchain.ini.in > toolchain.ini
+
 meson setup --prefix ${PREFIX} \
-  --cross-file $TOP/src/toolchain.ini \
+  --cross-file toolchain.ini \
   $BLD $TOP $*
 [ "$?" = "0" ] || exit 1
 
