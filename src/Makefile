@@ -42,7 +42,7 @@ $(LIBCMD): $(OBJS)
 
 $(ELF): $(ASOBJS)
 	$(DOS_LD) $(ASOBJS) --whole-archive $(shell pkg-config --static --libs dj64static) -o $@
-	$(DOS_STRIP) $@
+	$(HOST_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ELF)
 	djstubify -l $< -o $@ $(ELF)

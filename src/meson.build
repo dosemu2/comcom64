@@ -88,7 +88,7 @@ elf = custom_target(TARGET + '.elf',
 elf_s = custom_target(TARGET + '.elf.stripped',
   output: TARGET + '.elf.stripped',
   input: elf[0],
-  command: [strip, '-o', '@OUTPUT0@', '@INPUT@'])
+  command: [strip, '--strip-debug', '-o', '@OUTPUT0@', '@INPUT@'])
 
 stubify = find_program('djstubify')
 ccexe = custom_target(TARGET + '.exe',
