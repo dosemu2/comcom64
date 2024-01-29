@@ -1,9 +1,9 @@
 HOST_CC = dj64-gcc
 HOST_LD = gcc
 HOST_AS = gcc -m32 -x assembler-with-cpp
-HOST_STRIP ?= strip --strip-debug
+HOST_STRIP ?= strip
 DOS_LD = ld -melf_i386 -static
-DOS_STRIP = strip
+DOS_STRIP = strip --strip-debug
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
 C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3 -I.
@@ -15,6 +15,7 @@ ASOBJS = int23.o int0.o asm.o plt.o
 LIBCMD = libcomcom64.so
 CMD = comcom64.exe
 ELF = comcom64.elf
+DBG = dosemu_$(CMD).dbg
 REVISIONID := $(shell git describe --dirty=+)
 srcdir ?= .
 SRC = $(srcdir)
@@ -25,7 +26,7 @@ TFLAGS = -a 4 -p 4
 all: $(CMD)
 
 clean:
-	$(RM) $(CMD) $(LIBCMD) $(ELF) *.o version
+	$(RM) $(CMD) $(LIBCMD) $(ELF) *.dbg *.o version
 	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h glob_asmdefs.h
 	$(MAKE) -C thunk_gen clean
 
@@ -38,14 +39,16 @@ version.o: version
 $(OBJS): $(wildcard *.h)
 $(LIBCMD): $(OBJS)
 	$(HOST_LD) $^ $(LINK_OPT) -o $@
-	$(HOST_STRIP) $@
+	objcopy --only-keep-debug $@ $(DBG) || $(RM) $@
+	$(HOST_STRIP) $@ || $(RM) $@
+	objcopy --add-gnu-debuglink=$(DBG) $@ || $(RM) $@
 
 $(ELF): $(ASOBJS)
 	$(DOS_LD) $(ASOBJS) --whole-archive $(shell pkg-config --static --libs dj64static) -o $@
-	$(HOST_STRIP) $@
+	$(DOS_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ELF)
-	djstubify -l $< -o $@ $(ELF)
+	djstubify -l $< -l $(DBG) -o $@ $(ELF)
 
 #.INTERMEDIATE: $(LIBCMD)
 
