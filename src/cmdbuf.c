@@ -225,7 +225,14 @@ void cmdbuf_store(char *cmd_buf)
     /* Enqueue the cmdbuf and save the current index */
     strcpy(cmdqueue[cmdqueue_count], cmd_buf);
     cmdqueue_count++;
-    cmdqueue_count = cmdqueue_count%MAX_CMDQUEUE_LEN;
+    if (cmdqueue_count == MAX_CMDQUEUE_LEN)
+      {
+      int i;
+      for (i = 1; i < cmdqueue_count; i++)
+        strcpy(cmdqueue[i - 1], cmdqueue[i]);
+      cmdqueue_count--;
+      cmdqueue[cmdqueue_count][0] = '\0';
+      }
     tmp = getenv("TEMP");
     if (tmp)
       {
