@@ -6,7 +6,7 @@
  */
 #define MAX_CMD_BUFLEN 512        // Define max command length
 
-enum { UP, LEFT, RIGHT, DOWN, HOME, END };
+enum { UP, LEFT, RIGHT, DOWN, HOME, END, PGUP, PGDN };
 
 int cmdbuf_move(char *cmd_buf, int direction);
 void cmdbuf_delch(char *cmd_buf);

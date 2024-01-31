@@ -103,7 +103,19 @@ int cmdbuf_move(char *cmd_buf, int direction)
         ret++;
       }
       break;
-    default:
+    case PGUP:
+      if (cmdqueue_index && cmdqueue[0][0]) {
+        cmdqueue_index = 0;
+        direction = UP;
+        ret++;
+      }
+      break;
+    case PGDN:
+      if (cmdqueue_index < cmdqueue_count) {
+        cmdqueue_index = cmdqueue_count;
+        direction = DOWN;
+        ret++;
+      }
       break;
   }
 
@@ -194,6 +206,7 @@ char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short 
 
 void cmdbuf_reset(void)
 {
+  cmdqueue_index = cmdqueue_count;
   cur = tail = 0;
 }
 
@@ -212,7 +225,14 @@ void cmdbuf_store(char *cmd_buf)
     /* Enqueue the cmdbuf and save the current index */
     strcpy(cmdqueue[cmdqueue_count], cmd_buf);
     cmdqueue_count++;
-    cmdqueue_count = cmdqueue_count%MAX_CMDQUEUE_LEN;
+    if (cmdqueue_count == MAX_CMDQUEUE_LEN)
+      {
+      int i;
+      for (i = 1; i < cmdqueue_count; i++)
+        strcpy(cmdqueue[i - 1], cmdqueue[i]);
+      cmdqueue_count--;
+      cmdqueue[cmdqueue_count][0] = '\0';
+      }
     tmp = getenv("TEMP");
     if (tmp)
       {
@@ -274,10 +294,11 @@ void cmdbuf_init(void)
       {
       int cnt = count_lines(his);
       int cnt1 = cnt;
-      if (cnt > MAX_CMDQUEUE_LEN)
+      /* always leave 1 empty slot */
+      if (cnt > (MAX_CMDQUEUE_LEN - 1))
         {
-        seek_to_line(his, cnt - MAX_CMDQUEUE_LEN);
-        cnt = MAX_CMDQUEUE_LEN;
+        seek_to_line(his, cnt - (MAX_CMDQUEUE_LEN - 1));
+        cnt = (MAX_CMDQUEUE_LEN - 1);
         }
       for (cmdqueue_count = 0; cmdqueue_count < cnt; cmdqueue_count++)
         {
@@ -288,7 +309,6 @@ void cmdbuf_init(void)
         cmdqueue[cmdqueue_count][strlen(cmdqueue[cmdqueue_count]) - 1] = '\0';
         }
       fclose(his);
-      cmdqueue_count %= MAX_CMDQUEUE_LEN;
       cmdqueue_index = cmdqueue_count;
       /* if history is too long, rewrite the file */
       if (cnt1 > cnt)

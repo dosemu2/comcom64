@@ -59,6 +59,8 @@
 #define KEY_RIGHT        KEY_EXTM(0x4DE0)
 #define KEY_END          KEY_EXTM(0x4FE0)
 #define KEY_DOWN         KEY_EXTM(0x50E0)
+#define KEY_PGUP         KEY_EXTM(0x49E0)
+#define KEY_PGDN         KEY_EXTM(0x51E0)
 #define KEY_INSERT       KEY_EXTM(0x52E0)
 #define KEY_DELETE       KEY_EXTM(0x53E0)
 

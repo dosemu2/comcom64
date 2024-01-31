@@ -658,6 +658,14 @@ static void prompt_for_and_get_cmd(void)
         if (cmdbuf_move(conbuf, DOWN))
           need_store = 0;
         break;
+      case KEY_PGUP:
+        if (cmdbuf_move(conbuf, PGUP))
+          need_store = 0;
+        break;
+      case KEY_PGDN:
+        if (cmdbuf_move(conbuf, PGDN))
+          need_store = 0;
+        break;
       case KEY_HOME:
         cmdbuf_move(conbuf, HOME);
         break;
