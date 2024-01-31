@@ -206,6 +206,7 @@ char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short 
 
 void cmdbuf_reset(void)
 {
+  cmdqueue_index = cmdqueue_count;
   cur = tail = 0;
 }
 
