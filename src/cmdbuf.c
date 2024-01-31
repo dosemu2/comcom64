@@ -103,7 +103,19 @@ int cmdbuf_move(char *cmd_buf, int direction)
         ret++;
       }
       break;
-    default:
+    case PGUP:
+      if (cmdqueue_index && cmdqueue[0][0]) {
+        cmdqueue_index = 0;
+        direction = UP;
+        ret++;
+      }
+      break;
+    case PGDN:
+      if (cmdqueue_index < cmdqueue_count) {
+        cmdqueue_index = cmdqueue_count;
+        direction = DOWN;
+        ret++;
+      }
       break;
   }
 
