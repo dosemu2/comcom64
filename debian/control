@@ -1,19 +1,21 @@
-Source: comcom32
+Source: comcom64
 Section: contrib/otherosfs
 Priority: optional
 Maintainer: Stas Sergeev <stsp@users.sourceforge.net>
 Standards-Version: 3.9.7
 Build-Depends:
     make,
-    djgpp-dev,
-    gcc-djgpp,
+    djstub,
+    dj64-dev,
+    autoconf,
+    gcc,
     git,
     grep,
     debhelper (>= 9~)
-Homepage: https://github.com/dosemu2/comcom32
+Homepage: https://github.com/dosemu2/comcom64
 
-Package: comcom32
-Architecture: all
+Package: comcom64
+Architecture: x86_64
 Depends:
-Description: 32-bit command.com
- comcom32 is a 32-bit command.com.
+Description: 64-bit command.com
+ comcom64 is a 64-bit command.com.

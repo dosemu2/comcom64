@@ -6,16 +6,14 @@ HOST_STRIP ?= strip --strip-debug
 DOS_LD = ld -melf_i386 -static
 DOS_STRIP = strip
 PREFIX ?= /usr/local
-DATADIR ?= $(PREFIX)/share/comcom32
-CPPFLAGS = -I /home/stas/src/djgpp-cvs/include -I .
+DATADIR ?= $(PREFIX)/share/comcom64
+CPPFLAGS = -I /usr/i386-pc-dj64/include -I .
 C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3
-# avoid CMOVxx instructions
-#C_OPT += -march=i386
-LINK_OPT = ~/src/djgpp-cvs/lib/libdj64.so -shared -Wl,-Bsymbolic
+LINK_OPT = /usr/i386-pc-dj64/lib64/libdj64.so -shared -Wl,-Bsymbolic
 OBJS = command.o cmdbuf.o version.o thunks_a.o thunks_c.o
 ASOBJS = int23.o int0.o asm.o plt.o
-LIBCMD = comcom32.so
-CMD = comcom32.exe
+LIBCMD = comcom64.so
+CMD = comcom64.exe
 REVISIONID := $(shell git describe --dirty=+)
 srcdir ?= .
 SRC = $(srcdir)
@@ -42,9 +40,11 @@ $(LIBCMD): $(OBJS)
 	$(HOST_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ASOBJS)
-	$(DOS_LD) $(ASOBJS) ~/src/djgpp-cvs/lib/libc.a -o $@
+	$(DOS_LD) $(ASOBJS) /usr/i386-pc-dj64/lib/libc.a -o $@
 	$(DOS_STRIP) $@
-	./djstubify -l $< $@
+	djstubify -l $< $@
+
+.INTERMEDIATE: $(LIBCMD)
 
 # Common rules
 %.o : %.c glob_asmdefs.h

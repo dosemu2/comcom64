@@ -1,5 +1,5 @@
 RELVER = alpha3
-PKG = comcom32-0.1$(RELVER)
+PKG = comcom64-0.1$(RELVER)
 TGZ = $(PKG).tar.gz
 
 all:
@@ -21,7 +21,7 @@ $(TGZ):
 
 tar: $(TGZ)
 
-rpm: comcom32.spec.rpkg
+rpm: comcom64.spec.rpkg
 	git clean -fd
 	rpkg local
 
@@ -32,5 +32,5 @@ checkinstall:
 	checkinstall --nodoc -y -D $(MAKE) -C src install PREFIX=/usr
 
 fetch:
-	curl -O https://dosemu2.github.io/comcom32/files/comcom32.zip
-	unzip -o comcom32.zip -d src
+	curl -O https://dosemu2.github.io/comcom64/files/comcom64.zip
+	unzip -o comcom64.zip -d src
