@@ -274,10 +274,11 @@ void cmdbuf_init(void)
       {
       int cnt = count_lines(his);
       int cnt1 = cnt;
-      if (cnt > MAX_CMDQUEUE_LEN)
+      /* always leave 1 empty slot */
+      if (cnt > (MAX_CMDQUEUE_LEN - 1))
         {
-        seek_to_line(his, cnt - MAX_CMDQUEUE_LEN);
-        cnt = MAX_CMDQUEUE_LEN;
+        seek_to_line(his, cnt - (MAX_CMDQUEUE_LEN - 1));
+        cnt = (MAX_CMDQUEUE_LEN - 1);
         }
       for (cmdqueue_count = 0; cmdqueue_count < cnt; cmdqueue_count++)
         {
@@ -288,7 +289,6 @@ void cmdbuf_init(void)
         cmdqueue[cmdqueue_count][strlen(cmdqueue[cmdqueue_count]) - 1] = '\0';
         }
       fclose(his);
-      cmdqueue_count %= MAX_CMDQUEUE_LEN;
       cmdqueue_index = cmdqueue_count;
       /* if history is too long, rewrite the file */
       if (cnt1 > cnt)
