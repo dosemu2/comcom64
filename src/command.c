@@ -863,11 +863,15 @@ RoutineDone:
 static int ensure_dir_existence(char *dir)
   {
   char *c;
+  size_t len;
   char dir_path[MAXPATH];
 
   strcpy(dir_path, dir);
-  if (*(strchr(dir_path, '\0')-1) == '\\')     // take away ending backslash
-    *(strchr(dir_path, '\0')-1) = '\0';
+  len = strlen(dir_path);
+  if (!len)
+    return -1;
+  if (dir_path[len - 1] == '\\')     // take away ending backslash
+    dir_path[len - 1] = '\0';
 
   if (file_access(dir_path, D_OK) != 0)
     {
@@ -1835,7 +1839,6 @@ static void perform_cd(const char *arg)
     if (chdir(arg) != 0)
       {
       cprintf("Directory does not exist - %s\r\n",arg);
-      reset_batfile_call_stack();
       return;
       }
     }
@@ -1859,13 +1862,11 @@ static void perform_change_drive(void)
   if (cur_drive != drive_set)
     {
     cprintf("Invalid drive specification - %s\r\n", cmd);
-    reset_batfile_call_stack();
     return;
     }
   if (!getcwd(cur_drive_and_path, MAXPATH))
     {
     cprintf("Drive not ready - %s\r\n", cmd);
-    reset_batfile_call_stack();
     setdrive(old_drive, &dummy);
     return;
     }
@@ -2116,7 +2117,6 @@ static void perform_delete(const char *arg)
     else
       {
       cprintf("Access denied - %s\r\n", individual_filespec);
-      reset_batfile_call_stack();
       return;
       }
     }
@@ -2275,7 +2275,6 @@ static void perform_deltree(const char *arg)
             if (remove(full_path_filespec) != 0)
               {
               cprintf("Unable to delete file - %s\r\n", full_path_filespec);
-              reset_batfile_call_stack();
               return;
               }
             if (subdir_level == 0)
@@ -2301,7 +2300,6 @@ static void perform_deltree(const char *arg)
             if (rmdir(full_path_filespec) != 0)
               {
               cprintf("Unable to remove directory - %s\\\r\n", full_path_filespec);
-              reset_batfile_call_stack();
               return;
               }
             if (subdir_level == 1)
@@ -3268,7 +3266,7 @@ static void perform_md(const char *arg)
       if (_mkdir(arg) != 0)
         {
         cprintf("Could not create directory - %s\r\n", arg);
-        reset_batfile_call_stack();
+//        reset_batfile_call_stack();
         }
       }
     else
@@ -3339,7 +3337,6 @@ static void perform_popd(const char *arg)
   if (chdir(pushd_stack[--pushd_stack_level]) != 0)
     {
     cprintf("Directory does not exist - %s\r\n",arg);
-    reset_batfile_call_stack();
     return;
     }
   }
@@ -3372,7 +3369,6 @@ static void perform_pushd(const char *arg)
     if (chdir(arg) != 0)
       {
       cprintf("Directory does not exist - %s\r\n",arg);
-      reset_batfile_call_stack();
       return;
       }
     }
@@ -3404,7 +3400,6 @@ static void perform_rd(const char *arg)
     if (rmdir(arg) != 0)
       {
       cprintf("Could not remove directory - %s\r\n", arg);
-      reset_batfile_call_stack();
       }
     }
   else
@@ -3535,7 +3530,6 @@ static void perform_rename(const char *arg)
       else
         {
         cprintf("Unable to rename %s to %s%s\n", full_from_filespec, new_to_name, new_to_ext);
-        reset_batfile_call_stack();
         return;
         }
       }
@@ -3605,7 +3599,6 @@ static void perform_set(const char *arg)
     if (err != 0)
       {
       cprintf("Error setting environment variable - %s\r\n", var_name);
-      reset_batfile_call_stack();
       return;
       }
     }
@@ -3736,7 +3729,6 @@ static void perform_type(const char *arg)
   else
     {
     cprintf("Unable to open file - %s\r\n", filespec);
-    reset_batfile_call_stack();
     }
   }
 
