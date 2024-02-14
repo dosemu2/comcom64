@@ -13,7 +13,6 @@
 
 int ASMCFUNC do_int23(void);
 void ASMCFUNC do_int0(void);
-int ASMCFUNC main(int argc, const char *argv[], const char *envp[]);
 
 #else
 
