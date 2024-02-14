@@ -6,7 +6,8 @@ DOS_LD = ld -melf_i386 -static
 DOS_STRIP = strip --strip-debug
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
-C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -fpic -ggdb3 -I.
+C_OPT = -Wall -Werror -O2 -Wmissing-declarations -Wwrite-strings -fpic \
+  -ggdb3 -I.
 LINK_OPT = $(shell pkg-config --libs dj64) -shared -Wl,-Bsymbolic \
   -Wl,-rpath=/usr/local/i386-pc-dj64/lib64 \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
