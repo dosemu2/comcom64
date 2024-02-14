@@ -7,7 +7,7 @@
 #define __ASMREF(t) &t
 #define __ASMFSYM(t) t**
 #define __ASYM(x) *(x)
-#include "glob_inc.h"
+#include <dj64/glob_inc.h>
 
 #define ASMCFUNC
 
