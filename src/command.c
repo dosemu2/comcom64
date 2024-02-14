@@ -864,11 +864,15 @@ RoutineDone:
 static int ensure_dir_existence(char *dir)
   {
   char *c;
+  size_t len;
   char dir_path[MAXPATH];
 
   strcpy(dir_path, dir);
-  if (*(strchr(dir_path, '\0')-1) == '\\')     // take away ending backslash
-    *(strchr(dir_path, '\0')-1) = '\0';
+  len = strlen(dir_path);
+  if (!len)
+    return -1;
+  if (dir_path[len - 1] == '\\')     // take away ending backslash
+    dir_path[len - 1] = '\0';
 
   if (file_access(dir_path, D_OK) != 0)
     {
