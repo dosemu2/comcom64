@@ -20,6 +20,13 @@ DBG = dosemu_$(CMD).dbg
 REVISIONID := $(shell git describe --dirty=+)
 srcdir ?= .
 SRC = $(srcdir)
+TGD = $(shell pkg-config --variable=bindir thunk_gen)
+ifeq ($(TGD),)
+$(error thunk_gen not installed)
+endif
+TGS = $(TGD)/tg_m4
+TG = $(TGD)/thunk_gen
+TGM4 = $(shell pkg-config --variable=m4script thunk_gen)
 TFLAGS = -a 4 -p 4
 
 .PHONY: all clean install uninstall
@@ -29,7 +36,6 @@ all: $(CMD)
 clean:
 	$(RM) $(CMD) $(LIBCMD) $(ELF) *.dbg *.o version
 	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h glob_asmdefs.h
-	$(MAKE) -C thunk_gen clean
 
 .PHONY: force
 version: force
@@ -82,14 +88,11 @@ plt.inc: thunk_calls.tmp
 plt_asmc.h plt_asmp.h: thunk_asms.tmp
 	$(pars)
 
-thunk_calls.h: thunk_calls.tmp thunk_gen/thunk_gen
-	thunk_gen/thunk_gen $(TFLAGS) <$< >$@ || ($(RM) $@ ; false)
+thunk_calls.h: thunk_calls.tmp
+	$(TG) $(TFLAGS) <$< >$@ || ($(RM) $@ ; false)
 
 glob_asmdefs.h: $(SRC)/glob_asm.h
 	$(srcdir)/parsers/mkasmdefs.sh $< >$@
-
-thunk_gen/thunk_gen: $(srcdir)/thunk_gen/thunk_gen.y $(srcdir)/thunk_gen/thunk_gen.l
-	+cd thunk_gen && $(MAKE) srcdir=$(abspath $(srcdir))/thunk_gen
 
 ifeq (,$(wildcard $(CMD)))
 install:

@@ -8,10 +8,7 @@ Build-Depends:
     pkgconf,
     djstub,
     dj64-dev,
-    autoconf,
-    flex,
-    bison,
-    gcc,
+    thunk-gen,
     git,
     grep,
     debhelper (>= 9~)
