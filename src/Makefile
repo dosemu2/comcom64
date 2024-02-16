@@ -20,12 +20,13 @@ DBG = dosemu_$(CMD).dbg
 REVISIONID := $(shell git describe --dirty=+)
 srcdir ?= .
 SRC = $(srcdir)
-TGD = $(shell pkg-config --variable=bindir thunk_gen)
-ifeq ($(TGD),)
+TG = $(shell pkg-config --variable=binary thunk_gen)
+ifeq ($(TG),)
+ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error thunk_gen not installed)
 endif
-TGS = $(TGD)/tg_m4
-TG = $(TGD)/thunk_gen
+endif
+TGS = $(shell pkg-config --variable=tgscript thunk_gen)
 TGM4 = $(shell pkg-config --variable=m4script thunk_gen)
 TFLAGS = -a 4 -p 4
 
