@@ -36,7 +36,7 @@ all: $(CMD)
 
 clean:
 	$(RM) $(CMD) $(LIBCMD) $(ELF) *.dbg *.o version
-	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h glob_asmdefs.h
+	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h
 
 .PHONY: force
 version: force
@@ -61,7 +61,7 @@ $(CMD): $(LIBCMD) $(ELF)
 #.INTERMEDIATE: $(LIBCMD)
 
 # Common rules
-%.o : %.c glob_asmdefs.h
+%.o : %.c
 	$(HOST_CC) $(C_OPT) -o $@ -c $<
 
 %.o : %.S
@@ -91,9 +91,6 @@ plt_asmc.h plt_asmp.h: thunk_asms.tmp
 
 thunk_calls.h: thunk_calls.tmp
 	$(TG) $(TFLAGS) <$< >$@ || ($(RM) $@ ; false)
-
-glob_asmdefs.h: $(SRC)/glob_asm.h
-	$(srcdir)/parsers/mkasmdefs.sh $< >$@
 
 ifeq (,$(wildcard $(CMD)))
 install:
