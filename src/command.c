@@ -121,7 +121,7 @@ char **__crt0_glob_function(char *_argument UNUSED) {return NULL;} // prevent wi
 void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading of environment file
 #endif
 
-static const char *version = "0.2";
+static const char *version = "0.1";
 
 #define DP(s, o) (__dpmi_paddr){ .selector = s, .offset32 = o, }
 
