@@ -56,7 +56,7 @@ $(ELF): $(ASOBJS)
 	$(DOS_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ELF)
-	djstubify -l $< -l $(DBG) -o $@ $(ELF)
+	djstubify -l $< -l $(DBG) -n $(CMD) -o $@ $(ELF)
 
 #.INTERMEDIATE: $(LIBCMD)
 
