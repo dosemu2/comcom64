@@ -1676,12 +1676,12 @@ static void perform_call(const char *arg)
 static void perform_license(const char *arg)
   {
   const char *license =
-    "comcom32 - COMMAND.COM-compatible command processor for DOS.\n\n"
+    "comcom64 - COMMAND.COM-compatible command processor for DOS.\n\n"
     "Copyright (C) 1997, CENTROID CORPORATION, HOWARD, PA 16841\n"
     "Copyright (C) Allen S. Cheung (allencheung@fastmail.ca)\n"
     "Copyright (C) 2005, Hanzac Chen\n"
     "Copyright (C) 2019, C. Masloch <pushbx@38.de>\n"
-    "Copyright (C) 2018-2020, stsp@users.sourceforge.net\n"
+    "Copyright (C) 2018-2024, @stsp <stsp2@yandex.ru>\n"
     "\n"
     "This program is free software: you can redistribute it and/or modify\n"
     "it under the terms of the GNU General Public License as published by\n"
@@ -3772,7 +3772,7 @@ static void perform_ver(const char *arg)
     }
 
 
-  printf("comcom32 v%s\n", version);
+  printf("comcom64 v%s\n", version);
 #if 0
   if (strlen(revisionid))
     {
