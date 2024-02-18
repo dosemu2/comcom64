@@ -4399,8 +4399,8 @@ static void setup_break_handling(void)
 static int break_pressed(void)
 {
   int ret = _farpeekb(_dos_ds, 0x471);
-  _farpokeb(_dos_ds, 0x471, 0);
-  return ret;
+  _farpokeb(_dos_ds, 0x471, ret & ~0x80);
+  return (ret & 0x80);
 }
 
 static void setup_int0_handling(void)
