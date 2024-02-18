@@ -94,6 +94,7 @@
 #include <stubinfo.h>
 #include <process.h>
 #include <sys/segments.h>
+#include <sys/farptr.h>
 #include <go32.h>
 
 #include "cmdbuf.h"
@@ -947,9 +948,7 @@ static int copy_single_file(char *source_file, char *dest_file, int transfer_typ
     if (st.st_mode & S_IFCHR)
       {
       char c;
-      set_break(0);
       c = fgetc(source_stream);
-      set_break(1);
       if (!(c == EOF || c == 0x1a || c == 3 || c == 0))
         {
         transfer_buffer[0] = c;
@@ -3036,11 +3035,13 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       unsetenv("SHELL_LOADHIGH_DEFAULT");
     if (lh)
       link_umb(0x80);
+    set_break(1);
 #ifdef HAVE_DOS_EXEC5
     rc = _dos_exec5(full_cmd, cmd_args, environ, NULL, lh ? 0x80 : 0);
 #else
     rc = _dos_exec(full_cmd, cmd_args, environ, NULL);
 #endif
+    set_break(0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
     else
@@ -3718,9 +3719,7 @@ static void perform_type(const char *arg)
     {
     while (1)
       {
-      set_break(0);
       c = fgetc(textfile);
-      set_break(1);
       if (c == EOF || c == 0x1a || c == 3 || c == 0)
         break;
       putchar(c);
@@ -4388,13 +4387,20 @@ static void setup_break_handling(void)
   __djgpp_set_ctrl_c(0);    // disable SIGINT on ^C
   _go32_want_ctrl_break(1); // disable SIGINT on ^Break
 
-  set_break(1);
+  set_break(0);
 
   pa.selector = _my_cs();
   pa.offset32 = (uintptr_t)my_int23_handler;
   __dpmi_set_protected_mode_interrupt_vector(0x23, &pa);
 
   break_on = true;
+}
+
+static int break_pressed(void)
+{
+  int ret = _farpeekb(_dos_ds, 0x471);
+  _farpokeb(_dos_ds, 0x471, 0);
+  return ret;
 }
 
 static void setup_int0_handling(void)
@@ -4581,7 +4587,12 @@ int main(int argc, const char *argv[], const char *envp[])
         set_env_sel();
         }
       else
-        get_cmd_from_bat_file();
+        {
+        if (break_on && break_pressed())
+          reset_batfile_call_stack();
+        else
+          get_cmd_from_bat_file();
+        }
       }
     exec_cmd(false);
     }
