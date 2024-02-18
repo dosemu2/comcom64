@@ -179,6 +179,7 @@ static char for_var;
 static const char *for_val;
 static int exiting;
 static int break_on;
+static int break_enabled;
 
 /*
  * File attribute constants
@@ -4368,7 +4369,7 @@ static void unlink_umb(void)
 
 int do_int23(void)
 {
-  return break_on;
+  return break_enabled;
 }
 
 static void set_break(int on)
@@ -4378,6 +4379,8 @@ static void set_break(int on)
   r.x.ax = 0x3301;          // set break handling
   r.x.dx = on;              // to "on"
   __dpmi_int(0x21, &r);
+
+  break_enabled = on;
 }
 
 static void setup_break_handling(void)
