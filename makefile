@@ -26,7 +26,7 @@ rpm: comcom64.spec.rpkg
 	rpkg local
 
 deb:
-	debuild -i -us -uc -A
+	debuild -i -us -uc -b
 
 checkinstall:
 	checkinstall --nodoc -y -D $(MAKE) -C src install PREFIX=/usr

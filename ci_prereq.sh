@@ -1,12 +1,16 @@
 #!/bin/sh
 
 sudo add-apt-repository ppa:dosemu2/ppa
-sudo add-apt-repository ppa:jwt27/djgpp-toolchain
+sudo add-apt-repository ppa:stsp-0/thunk-gen
+sudo add-apt-repository ppa:stsp-0/dj64
 
 sudo apt update -q
 
 sudo apt install -y \
   acl \
-  gcc-djgpp \
+  dj64-dev \
+  djstub \
+  thunk-gen \
+  pkgconf \
   devscripts \
   debhelper
