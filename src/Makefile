@@ -1,8 +1,8 @@
 HOST_CC = dj64-gcc
 HOST_LD = gcc
-HOST_AS = gcc -m32 -x assembler-with-cpp
+HOST_AS = gcc -E -x assembler-with-cpp $< | i686-linux-gnu-as
 HOST_STRIP ?= strip
-DOS_LD = ld -melf_i386 -static
+DOS_LD = i686-linux-gnu-ld -melf_i386 -static
 DOS_STRIP = strip --strip-debug
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
@@ -65,10 +65,10 @@ $(CMD): $(LIBCMD) $(ELF)
 	$(HOST_CC) $(C_OPT) -o $@ -c $<
 
 %.o : %.S
-	$(HOST_AS) -c $< -o $@
+	$(HOST_AS) -o $@
 
 plt.o: plt.asm
-	$(HOST_AS) -c -o $@ $<
+	$(HOST_AS) -o $@
 
 plt.asm: $(srcdir)/plt.S plt.inc $(SRC)/glob_asm.h
 	$(CPP) -I . -P $< >$@ || ($(RM) $@ ; false)
