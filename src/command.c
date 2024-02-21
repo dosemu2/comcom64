@@ -98,7 +98,12 @@
 #include <go32.h>
 
 #include "cmdbuf.h"
+#ifdef DJ64
 #include <sys/fmemcpy.h>
+#else
+#include "fmemcpy.h"
+#include "memmem.h"
+#endif
 #include "asm.h"
 #include "version.h"
 #include "command.h"
@@ -122,7 +127,7 @@ char **__crt0_glob_function(char *_argument UNUSED) {return NULL;} // prevent wi
 void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading of environment file
 #endif
 
-static const char *version = "0.1";
+static const char *version = "0.3";
 
 #define DP(s, o) (__dpmi_paddr){ .selector = s, .offset32 = o, }
 
@@ -3771,8 +3776,11 @@ static void perform_ver(const char *arg)
     advance_cmd_arg();
     }
 
-
+#ifdef DJ64
   printf("comcom64 v%s\n", version);
+#else
+  printf("comcom32 v%s\n", version);
+#endif
 #if 0
   if (strlen(revisionid))
     {

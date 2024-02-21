@@ -4,12 +4,14 @@ TGZ = $(PKG).tar.gz
 
 all:
 	$(MAKE) -C src
+	$(MAKE) -C 32
 
 install uninstall:
 	$(MAKE) -C src $@
 
 clean:
 	$(MAKE) -C src clean
+	$(MAKE) -C 32 clean
 	$(RM) -f $(TGZ) *.zip
 
 distclean:

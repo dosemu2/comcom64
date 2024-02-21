@@ -11,8 +11,10 @@ C_OPT = -Wall -Werror -O2 -Wmissing-declarations -Wwrite-strings -fpic \
 LINK_OPT = $(shell pkg-config --libs dj64) -shared -Wl,-Bsymbolic \
   -Wl,-rpath=/usr/local/i386-pc-dj64/lib64 \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
-OBJS = command.o cmdbuf.o version.o thunks_a.o thunks_c.o
-ASOBJS = int23.o int0.o asm.o plt.o
+SRCS = command.c cmdbuf.c version.c thunks_a.c thunks_c.c
+OBJS = $(SRCS:.c=.o)
+ASSRCS = int23.S int0.S asm.S plt.S
+ASOBJS = $(ASSRCS:.S=.o)
 LIBCMD = libcomcom64.so
 CMD = comcom64.exe
 ELF = comcom64.elf

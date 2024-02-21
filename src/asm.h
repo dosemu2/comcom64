@@ -2,7 +2,11 @@
 #define ASM_H
 
 #ifndef __ASSEMBLER__
+#ifdef DJ64
 #include <dj64/glob_inc.h>
+#else
+#include "glob_inc.h"
+#endif
 
 #define ASMCFUNC
 
