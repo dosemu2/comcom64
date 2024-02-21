@@ -17,6 +17,7 @@ Homepage: https://github.com/dosemu2/comcom64
 
 Package: comcom64
 Architecture: any
-Depends:
+# Note: ${shlibs:Depends} doesn't work as there are no elf binaries in package
+Depends: ${misc:Depends}, dj64
 Description: 64-bit command.com
  comcom64 is a 64-bit command.com.
