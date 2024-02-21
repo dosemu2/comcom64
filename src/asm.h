@@ -3,9 +3,9 @@
 
 #ifndef __ASSEMBLER__
 #ifdef DJ64
-#include <dj64/glob_inc.h>
+#include <dj64/asm_inc.h>
 #else
-#include "glob_inc.h"
+#include "asm_inc.h"
 #endif
 
 #define ASMCFUNC
