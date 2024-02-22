@@ -1,9 +1,10 @@
+CROSS_PREFIX ?= i686-linux-gnu-
 HOST_CC = dj64-gcc
 HOST_LD = gcc
-HOST_AS = gcc -E -x assembler-with-cpp $< | i686-linux-gnu-as
+HOST_AS = gcc -E -x assembler-with-cpp $< | $(CROSS_PREFIX)as
 HOST_STRIP ?= strip
-DOS_LD = i686-linux-gnu-ld -melf_i386 -static
-DOS_STRIP = i686-linux-gnu-strip --strip-debug
+DOS_LD = $(CROSS_PREFIX)ld -melf_i386 -static
+DOS_STRIP = $(CROSS_PREFIX)strip --strip-debug
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
 C_OPT = -Wall -Werror -O2 -Wmissing-declarations -Wwrite-strings -fpic \
