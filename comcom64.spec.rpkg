@@ -1,0 +1,49 @@
+#
+# spec file for package comcom64
+#
+
+Name: {{{ git_dir_name }}}
+Version: {{{ git_dir_version }}}
+Release: 1%{?dist}
+Summary: 64-bit command.com
+
+Group: System/Emulator
+
+License: GPLv3+
+URL: https://github.com/stsp/comcom64
+VCS: {{{ git_dir_vcs }}}
+Source0: {{{ git_dir_archive }}}
+
+BuildRequires: make
+BuildRequires: pkgconf-pkg-config
+BuildRequires: djstub
+BuildRequires: dj64-devel
+BuildRequires: thunk-gen
+BuildRequires: binutils-x86_64-linux-gnu
+BuildRequires: git
+BuildRequires: grep
+
+%description
+comcom64 is a 64-bit command.com.
+
+%prep
+{{{ git_dir_setup_macro }}}
+
+%build
+make %{?_smp_mflags} CROSS_PREFIX=x86_64-linux-gnu-
+
+%check
+
+%define __arch_install_post export NO_BRP_STRIP_DEBUG=true
+%define debug_package %{nil}
+%define __strip /bin/true
+
+%install
+make install DESTDIR=%{buildroot} PREFIX=%{_prefix}
+
+%files
+%defattr(-,root,root)
+%{_datadir}/comcom64
+
+%changelog
+{{{ git_dir_changelog }}}
