@@ -24,6 +24,8 @@ BuildRequires: binutils-x86_64-linux-gnu
 BuildRequires: git
 BuildRequires: grep
 
+Requires: dj64
+
 %description
 comcom64 is a 64-bit command.com.
 
