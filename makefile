@@ -29,10 +29,3 @@ rpm: comcom64.spec.rpkg
 
 deb:
 	debuild -i -us -uc -b
-
-checkinstall:
-	checkinstall --nodoc -y -D $(MAKE) -C src install PREFIX=/usr
-
-fetch:
-	curl -O https://dosemu2.github.io/comcom64/files/comcom64.zip
-	unzip -o comcom64.zip -d src
