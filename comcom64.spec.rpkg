@@ -15,6 +15,7 @@ VCS: {{{ git_dir_vcs }}}
 Source0: {{{ git_dir_archive }}}
 
 BuildRequires: make
+BuildRequires: gcc
 BuildRequires: pkgconf-pkg-config
 BuildRequires: djstub
 BuildRequires: dj64-devel
