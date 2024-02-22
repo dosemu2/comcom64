@@ -1,7 +1,7 @@
 CROSS_PREFIX ?= i686-linux-gnu-
 HOST_CC = dj64-gcc
 HOST_LD = gcc
-HOST_AS = gcc -E -x assembler-with-cpp $< | $(CROSS_PREFIX)as
+HOST_AS = gcc -E -x assembler-with-cpp $< | $(CROSS_PREFIX)as --32
 HOST_STRIP ?= strip
 DOS_LD = $(CROSS_PREFIX)ld -melf_i386 -static
 DOS_STRIP = $(CROSS_PREFIX)strip --strip-debug
