@@ -11,7 +11,8 @@ You can see the list of them
 or
 [for fedora](https://github.com/stsp/comcom64/blob/master/comcom64.spec.rpkg#L17-L24)
 
-Then just run `make`.
+Then just run `make CROSS_PREFIX=i686-linux-gnu-` on ubuntu, or
+`make CROSS_PREFIX=x86_64-linux-gnu-` on fedora.
 
 To build the 32bit version, install
 [djgpp](https://www.delorie.com/djgpp/)
