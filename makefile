@@ -19,7 +19,7 @@ distclean:
 
 $(TGZ):
 	git archive -o $(CURDIR)/$(TGZ) --prefix=$(PKG)/ HEAD
-.PHONY: $(TGZ)
+.PHONY: $(TGZ) 32
 
 tar: $(TGZ)
 
@@ -29,3 +29,6 @@ rpm: comcom64.spec.rpkg
 
 deb:
 	debuild -i -us -uc -b
+
+32:
+	$(MAKE) -C 32
