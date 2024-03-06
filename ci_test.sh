@@ -8,6 +8,6 @@ sudo dpkg -i ../comcom64*.deb
 
 dosemu -td -E ver
 
-make -j 9
+make 32 -j 9
 # make sure 32bit version also built
 ls -l 32/comcom32.exe

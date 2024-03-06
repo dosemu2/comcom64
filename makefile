@@ -4,6 +4,9 @@ TGZ = $(PKG).tar.gz
 
 all:
 	$(MAKE) -C src
+
+both:
+	$(MAKE) -C src
 	$(MAKE) -C 32
 
 install uninstall:
@@ -19,7 +22,7 @@ distclean:
 
 $(TGZ):
 	git archive -o $(CURDIR)/$(TGZ) --prefix=$(PKG)/ HEAD
-.PHONY: $(TGZ) 32
+.PHONY: $(TGZ) 32 both
 
 tar: $(TGZ)
 
