@@ -32,7 +32,7 @@ comcom64 is a 64-bit command.com.
 {{{ git_dir_setup_macro }}}
 
 %build
-make %{?_smp_mflags} CROSS_PREFIX=x86_64-linux-gnu-
+make %{?_smp_mflags}
 
 %check
 
