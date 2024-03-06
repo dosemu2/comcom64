@@ -30,6 +30,7 @@ $(error thunk_gen not installed)
 endif
 endif
 TGS = $(shell pkg-config --variable=tgscript thunk_gen)
+PDS = $(shell pkg-config --variable=pdscript thunk_gen)
 TGM4 = $(shell pkg-config --variable=m4script thunk_gen)
 TFLAGS = -a 4 -p 4
 
@@ -82,9 +83,7 @@ GEN_TMP = thunk_calls.tmp thunk_asms.tmp plt.inc plt_asmc.h plt_asmp.h
 _pos = $(if $(findstring $1,$2),$(call _pos,$1,\
        $(wordlist 2,$(words $2),$2),x $3),$3)
 pos = $(words $(call _pos,$1,$2))
-pars = srcdir=$(srcdir)/parsers \
-	$(srcdir)/parsers/parse_decls.sh $(call pos,$@,$(GEN_TMP)) $< >$@ || \
-	($(RM) $@ ; false)
+pars = $(PDS) $(call pos,$@,$(GEN_TMP)) $< >$@ || ($(RM) $@ ; false)
 $(filter %.tmp,$(GEN_TMP)): $(SRC)/asm.h
 	$(pars)
 plt.inc: thunk_calls.tmp
