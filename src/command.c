@@ -3776,11 +3776,13 @@ static void perform_ver(const char *arg)
     advance_cmd_arg();
     }
 
+  printf("comcom"
 #ifdef DJ64
-  printf("comcom64 v%s\n", version);
+  "64"
 #else
-  printf("comcom32 v%s\n", version);
+  "32"
 #endif
+  " v%s, %s\n", version, _stubinfo->magic);
 #if 0
   if (strlen(revisionid))
     {
