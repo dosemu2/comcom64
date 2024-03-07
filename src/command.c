@@ -2725,7 +2725,6 @@ static void set_env(const char *variable, const char *value,
   memset(&env[env_size], 0, tail_sz);
   cp = env2 = env;
   l = strlen(variable);
-  len = l + strlen(value) + 2;
   /*
      Delete any existing variable with the name (var).
   */
@@ -2746,6 +2745,7 @@ static void set_env(const char *variable, const char *value,
   /*
      If the variable fits, shovel it in at the end of the envrionment.
   */
+  len = l + (value ? strlen(value) : 0) + 2;
   if (value && value[0] && (env_size - (env2 - env) - tail_sz >= len)) {
     memmove(env2 + len, env2, tail_sz);
     strcpy(env2, variable);
