@@ -3782,7 +3782,7 @@ static void perform_ver(const char *arg)
 #else
   "32"
 #endif
-  " v%s, %s\n", version, _stubinfo->magic);
+  " v%s, %.16s\n", version, _stubinfo->magic);
 #if 0
   if (strlen(revisionid))
     {
