@@ -210,12 +210,16 @@ void cmdbuf_reset(void)
   cur = tail = 0;
 }
 
-void cmdbuf_store(char *cmd_buf)
+void cmdbuf_trunc(char *cmd_buf)
 {
-  int prev_count = (cmdqueue_count - 1) % MAX_CMDQUEUE_LEN;
   cmd_buf[tail] = '\0';
   /* Reset the cmdbuf */
   cur = tail = 0;
+}
+
+void cmdbuf_store(const char *cmd_buf)
+{
+  int prev_count = (cmdqueue_count - 1) % MAX_CMDQUEUE_LEN;
 
   if (cmd_buf[0] == '\0')
     return;

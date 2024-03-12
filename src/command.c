@@ -703,7 +703,7 @@ static void prompt_for_and_get_cmd(void)
   } while (key != KEY_ENTER);
 
   if (need_store)
-    cmdbuf_store(conbuf);
+    cmdbuf_trunc(conbuf);
   else
     cmdbuf_reset();
   strcpy(cmd_line, conbuf);
@@ -727,6 +727,8 @@ static void prompt_for_and_get_cmd(void)
     memmove(cmd_line, cmd_line + len1, len - len1 + 1);
     len -= len1;
     }
+  if (need_store)
+    cmdbuf_store(cmd_line);
   parse_cmd_line();
   cputs("\r\n");
   }
