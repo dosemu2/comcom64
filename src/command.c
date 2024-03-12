@@ -4273,6 +4273,7 @@ static void exec_cmd(int call)
     dup2(old_std_fno[STDOUT_INDEX], STDOUT_INDEX);
     close(old_std_fno[STDOUT_INDEX]);
     setbuf(stdout, NULL);
+    clearerr(stdout);
   }
 
   if (pipe_to_cmd_redir_count > 0)
@@ -4288,6 +4289,7 @@ static void exec_cmd(int call)
     dup2(old_std_fno[STDIN_INDEX], STDIN_INDEX);
     close(old_std_fno[STDIN_INDEX]);
     setbuf(stdin, NULL);
+    clearerr(stdin);
     }
   }
 
