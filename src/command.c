@@ -4,7 +4,7 @@
  *  Copyright (C) 1997, CENTROID CORPORATION, HOWARD, PA 16841
  *  Copyright (C) Allen S. Cheung (RIP)
  *  Copyright (C) 2005-2006 FreeDOS-32 project
- *  Copyright (C) 2018-2021 stsp, dosemu2 project
+ *  Copyright (C) 2018-2024 stsp, dosemu2 project
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -41,34 +41,12 @@
 *   LICENSE:
 *       GNU General Public License
 *
-*   HOW TO COMPILE AND USE WITH FREEDOS:
-*       1) Install DJGPP on your development computer.
-*       2) Install FreeDos on your target FreeDos computer.
-*       3a) Compile the program with the accompanying make file.
-*           type: make -f Makefile
-*       3b) OR, use rhide to build the program with the accompanying
-*           project file (command.gpr).
-*       4) Rename the resultant program from COMMAND.EXE to COMMAND.COM.
-*       5) Copy COMMAND.COM to the root directory
-*          of the boot drive of your target FreeDos computer.
-*       6) Copy CWSDPMI.EXE (from DJGPP distro) to the root directory
-*          of the boot drive of your target FreeDos computer.
-*       7) Reboot said computer.
-*
-*   BUGS, PECULIARITIES, AND/OR UNIMPLEMENTED FEATURES
-*       - Some commands are incomplete: TIME, DATE
-*       - Some built-in commands should really be separate executables
-*         and not built-in. They are: CHOICE, MORE, PAUSE.
-*
 *   COPYRIGHT (C) 1997  CENTROID CORPORATION, HOWARD, PA 16841
 *
 ***/
 
 /* WARNING:	This is not the original version.
  *			modified for FreeDOS-32 by Salvo Isaja and Hanzac Chen
- */
-
-/* DOS environment and /E support by Stas Sergeev
  */
 
 #include <dos.h>
