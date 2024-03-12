@@ -4316,7 +4316,6 @@ static void exec_cmd(int call)
   if (redir_result[STDOUT_INDEX] != -1) {
     dup2(old_std_fno[STDOUT_INDEX], STDOUT_INDEX);
     close(old_std_fno[STDOUT_INDEX]);
-    setbuf(stdout, NULL);
     clearerr(stdout);
   }
 
@@ -4332,7 +4331,6 @@ static void exec_cmd(int call)
   if (redir_result[STDIN_INDEX] != -1) {
     dup2(old_std_fno[STDIN_INDEX], STDIN_INDEX);
     fclose(bkp_stdin);  // closes also fd
-    setbuf(stdin, NULL);
     clearerr(stdin);
     }
   }
