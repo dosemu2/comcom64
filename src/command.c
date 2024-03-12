@@ -133,6 +133,7 @@ static const char *version = "0.3";
 
 static int shell_mode = SHELL_NORMAL;
 static int shell_permanent;
+static int stepping;
 
 /* define to sync RM/PM env data - consumes more memory */
 #define SYNC_ENV 0
@@ -833,6 +834,28 @@ static void get_cmd_from_bat_file(void)
       }
     }
 
+  if (stepping)
+    {
+    int c;
+    printf("%s [Y/N] ", cmd_line);
+    c = getche();
+    puts("");
+    switch (c)
+      {
+      case 'Y':
+      case 'y':
+        break;
+      case 'N':
+      case 'n':
+        return;
+      case 0x1b:  // ESC
+        stepping = 0;
+        break;
+      default:
+        goto ErrorDone;
+      }
+    }
+
   // parse command
   parse_cmd_line();
 
@@ -841,7 +864,7 @@ static void get_cmd_from_bat_file(void)
     memmove(cmd, cmd+1, strlen(cmd));
   else
     {
-    if (echo_on[stack_level])
+    if (echo_on[stack_level] && !stepping)
       {
       output_prompt();
       cputs(cmd_line);
@@ -863,6 +886,8 @@ FileDone:
   echo_on[stack_level] = true;
   if (stack_level > 0)
     stack_level--;
+  if (stack_level == 0 && bat_file_path[stack_level][0] == '\0')
+    stepping = 0;
 RoutineDone:
   if (cmd_file != NULL)
     fclose(cmd_file);
@@ -4543,6 +4568,11 @@ int main(int argc, const char *argv[], const char *envp[])
     if (stricmp(argv[a], "/D") == 0)
       {
       disable_autoexec = 1;
+      }
+
+    if (stricmp(argv[a], "/Y") == 0)
+      {
+      stepping = 1;
       }
 
     // check for command in arguments
