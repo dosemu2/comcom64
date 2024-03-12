@@ -163,6 +163,7 @@ static char pipe_file[2][MAX_CMD_BUFLEN] = {"",""};
 static int pipe_file_redir_count[2];
 static char pipe_to_cmd[MAX_CMD_BUFLEN] = "";
 static int pipe_to_cmd_redir_count;
+static FILE *bkp_stdin;
 
 /*
  * Command interpreter/executor defines/variables
@@ -3291,9 +3292,23 @@ static void perform_md(const char *arg)
 
 static void perform_more(const char *arg)
   {
-  	int c;
-    while ((c = getchar()) != EOF)
-      putchar(c);
+  struct text_info txinfo;
+
+  gettextinfo(&txinfo);
+  int c, cnt = 0;
+  while ((c = getchar()) != EOF)
+    {
+    putchar(c);
+    if (c == '\n')
+      {
+      if (++cnt == txinfo.winbottom - 1)
+        {
+        cnt = 0;
+        printf("--More--");
+        fgetc(bkp_stdin);
+        }
+      }
+    }
   }
 
 static void perform_move(const char *arg)
@@ -4234,6 +4249,8 @@ static void exec_cmd(int call)
         pipe_fno[pipe_index] = -1;
         }
     }
+  if (old_std_fno[STDIN_INDEX] >= 0)
+    bkp_stdin = fdopen(old_std_fno[STDIN_INDEX], "r");
 
   while (cmd[0] != '\0')
     {
@@ -4287,7 +4304,7 @@ static void exec_cmd(int call)
   cmd_line[0] = '\0';
   if (redir_result[STDIN_INDEX] != -1) {
     dup2(old_std_fno[STDIN_INDEX], STDIN_INDEX);
-    close(old_std_fno[STDIN_INDEX]);
+    fclose(bkp_stdin);  // closes also fd
     setbuf(stdin, NULL);
     clearerr(stdin);
     }
