@@ -4497,6 +4497,7 @@ int main(int argc, const char *argv[], const char *envp[])
 
   cmd_path = strdup(argv[0]);
   strupr(cmd_path);
+  conv_unix_path_to_ms_dos(cmd_path);
   setenv("COMSPEC", cmd_path, 1);
   free(cmd_path);
   setenv("COMCOM_VER", version, 1);
