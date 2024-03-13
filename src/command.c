@@ -185,8 +185,45 @@ static void set_env_sel(void);
 static void link_umb(unsigned char strat);
 static void unlink_umb(void);
 static void set_break(int on);
+static void get_env(void);
 
-static int installable_command_check(const char *cmd, const char *tail)
+#define CF 1
+
+struct ae0x {
+  struct {
+    uint8_t cmax;
+    uint8_t clen;
+    char cbuf[256];
+  } __attribute__((packed)) cmdl;
+  struct {
+    uint8_t nlen;
+    char nbuf[11];
+    char _z;
+  } __attribute__((packed)) cmdn;
+};
+
+static int exec_ae01(struct ae0x *s)
+{
+  __dpmi_regs r = {};
+
+  r.d.eax = 0xae01;
+  r.d.edx = 0xffff;
+  r.d.ecx = s->cmdn.nlen;
+  /* dosmemput() was already done before ae00 */
+  r.x.ds = __tb_segment;
+  r.d.ebx = __tb_offset;
+  r.d.esi = __tb_offset + sizeof(s->cmdl);
+  r.d.edi = 0;
+  set_env_seg();
+  __dpmi_int(0x2f, &r);
+  set_env_sel();
+  if (r.x.flags & CF)
+    return -1;
+  dosmemget(__tb, sizeof(*s), s);
+  return s->cmdn.nlen > 0;
+}
+
+static int installable_command_check(char *cmd, const char *tail)
 {
   /* from RBIL
 
@@ -219,25 +256,15 @@ static int installable_command_check(const char *cmd, const char *tail)
 
   */
 
-  const char *p;
+  char *p;
   char *q;
   int i;
-  const char *name;
+  char *name;
   int tlen;
   int nlen;
   __dpmi_regs r = {};
-
-  struct {
-    struct {
-      uint8_t cmax;
-      uint8_t clen;
-      char cbuf[256];
-    } __attribute__((packed)) cmdl;
-    struct {
-      uint8_t nlen;
-      char nbuf[11];
-    } __attribute__((packed)) cmdn;
-  } s;
+  struct ae0x s = {};
+  int rc;
 
   p = strrchr(cmd, '\\');
   if (p)
@@ -256,7 +283,7 @@ static int installable_command_check(const char *cmd, const char *tail)
       continue;
     }
     if (i >= sizeof(s.cmdn.nbuf))
-      return 0;
+      return -1;
     q[i++] = toupper(*p);
   }
   if (i < 11)
@@ -266,7 +293,7 @@ static int installable_command_check(const char *cmd, const char *tail)
   s.cmdn.nlen = nlen;    // does not cover extension
 
   if (strlen(cmd) + strlen(tail) + 2 >= sizeof(s.cmdl.cbuf))
-    return 0;
+    return -1;
   s.cmdl.cmax = sizeof(s.cmdl.cbuf) - 1;
   if (tail[0]) {
     s.cmdl.clen = snprintf(s.cmdl.cbuf, sizeof(s.cmdl.cbuf),
@@ -285,9 +312,39 @@ static int installable_command_check(const char *cmd, const char *tail)
   r.d.esi = __tb_offset + sizeof(s.cmdl);
   r.d.edi = 0;
   dosmemput(&s, sizeof(s), __tb);
+  set_env_seg();
   __dpmi_int(0x2f, &r);
+  set_env_sel();
+  if (r.x.flags & CF)
+    return -1;
   dosmemget(__tb, sizeof(s), &s);
-  return ((r.x.ax & 0xff) == 0xff);
+  if (r.h.al != 0xff)
+    return 1;
+  rc = exec_ae01(&s);
+  if (rc != -1)
+    get_env();
+  if (rc <= 0)
+    return rc;
+  /* dont trust nlen here as it contains the old value */
+  memcpy(name, s.cmdn.nbuf, sizeof(s.cmdn.nbuf));
+  name[sizeof(s.cmdn.nbuf)] = '\0';
+  q = strchr(name, ' ');
+  if (!q)
+    {
+    /* insert dot */
+    memmove(name + 9, name + 8, 4);  // 4 includes \0
+    name[8] = '.';
+    }
+  else
+    {
+    int spn;
+    *q = '.';
+    q++;
+    spn = strspn(q, " ");
+    if (spn)
+      memmove(q, q + spn, strlen(q + spn) + 1);
+    }
+  return 1;
 }
 
 /***
@@ -2669,6 +2726,24 @@ static void perform_for(const char *arg)
   for_var = '\0';
   }
 
+static void get_env(void)
+{
+  char *dos_environ = alloca(env_size);
+  char *cp;
+
+  fmemcpy2(dos_environ, DP(env_selector, 0), env_size);
+  dos_environ[env_size] = 0;
+  cp = dos_environ;
+  do {
+    if (*cp) {
+      char *env = strdup(cp);
+      putenv(env);
+      cp += strlen(env);
+    }
+    cp++; /* skip to next character */
+  } while (*cp); /* repeat until two NULs */
+}
+
 /* this function replaces RM env (pointed to with env_sel) with
  * PM env (environ[]), leaving tail intact */
 static void put_env(unsigned short env_sel)
@@ -2960,8 +3035,6 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     unsigned do_auto_loadfix = 0;
     char el[16];
     int alen;
-    char *cp;
-    char *dos_environ;
     FILE * exefile;
     char *lh_d;
 
@@ -3062,6 +3135,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     if (do_auto_loadfix)
       loadfix_exit();
     set_env_sel();
+    get_env();
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
 #endif
@@ -3071,18 +3145,6 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     reset_text_attrs();
     gppconio_init();  /* video mode could change */
 
-    dos_environ = alloca(env_size);
-    fmemcpy2(dos_environ, DP(env_selector, 0), env_size);
-    dos_environ[env_size] = 0;
-    cp = dos_environ;
-    do {
-      if (*cp) {
-        char *env = strdup(cp);
-        putenv(env);
-        cp += strlen(env);
-      }
-      cp++; /* skip to next character */
-    } while (*cp); /* repeat until two NULs */
     sprintf(el, "%d", error_level);
     setenv("ERRORLEVEL", el, 1);
     }
@@ -4259,6 +4321,11 @@ static void exec_cmd(int call)
 
   while (cmd[0] != '\0')
     {
+    if (!call && installable_command_check(cmd, cmd_args) == 0)
+      {
+      cmd[0] = '\0';
+      break;
+      }
     if (stricmp(cmd, "if") == 0)
       {
       perform_if();
@@ -4466,10 +4533,6 @@ int main(int argc, const char *argv[], const char *envp[])
   int disable_autoexec = 0;
   int inited = 0;
   // initialize the cmd data ...
-
-  // Indicate to Dosemu that the DOS has booted. This may be removed after
-  // comcom32 supports installable commands properly.
-  installable_command_check(argv[0], "");
 
   // reset fpu
   _clear87();
