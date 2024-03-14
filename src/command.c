@@ -1906,7 +1906,13 @@ static void perform_cd(const char *arg)
     advance_cmd_arg();
   if (*arg)
     {
-    if (chdir(arg) != 0)
+    int cur_drive, dummy, rc;
+    if (arg[1] == ':')
+      getdrive(&cur_drive);
+    rc = chdir(arg);
+    if (arg[1] == ':' && toupper(arg[0]) != 'A' + cur_drive - 1)
+      setdrive(cur_drive, &dummy);
+    if (rc != 0)
       {
       cprintf("Directory does not exist - %s\r\n",arg);
       error_level = 1;
