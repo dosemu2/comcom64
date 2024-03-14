@@ -1058,7 +1058,11 @@ FileDone:
   if (stack_level > 0)
     stack_level--;
   if (stack_level == 0 && bat_file_path[stack_level][0] == '\0')
+    {
     stepping = 0;
+    /* send empty cmd to update window title of dosemu2 */
+    installable_command_check(cmd_line, "");
+    }
 RoutineDone:
   if (cmd_file != NULL)
     fclose(cmd_file);
