@@ -4494,11 +4494,6 @@ static void exec_cmd(int call)
 
   while (cmd[0] != '\0')
     {
-    if (!call && installable_command_check(cmd, cmd_args) == 0)
-      {
-      cmd[0] = '\0';
-      break;
-      }
     if (stricmp(cmd, "if") == 0)
       {
       perform_if();
@@ -4513,6 +4508,11 @@ static void exec_cmd(int call)
       perform_change_drive();
     else
       {
+      if (!call && installable_command_check(cmd, cmd_args) == 0)
+        {
+        cmd[0] = '\0';
+        break;
+        }
       for (c = 0; c < CMD_TABLE_COUNT; c++)
         {
         if (stricmp(cmd, cmd_table[c].cmd_name) == 0)
