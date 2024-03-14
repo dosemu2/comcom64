@@ -174,10 +174,49 @@ static const unsigned attrib_values[4] = {_A_RDONLY, _A_ARCH, _A_SYSTEM, _A_HIDD
 /*
  * Some private prototypes
  */
+static void perform_attrib(const char *arg);
+static void perform_break(const char *arg);
+static void perform_call(const char *arg);
+static void perform_cd(const char *arg);
+static void perform_choice(const char *arg);
+static void perform_cls(const char *arg);
+static void perform_copy(const char *arg);
+static void perform_ctty(const char *arg);
+static void perform_date(const char *arg);
+static void perform_delete(const char *arg);
+static void perform_deltree(const char *arg);
+static void perform_dir(const char *arg);
+static void perform_echo_dot(const char *arg);
+static void perform_echo(const char *arg);
+static void perform_exit(const char *arg);
+static void perform_for(const char *arg);
+static void perform_goto(const char *arg);
+static void perform_help(const char *arg);
+static void perform_loadhigh(const char *arg);
+static void perform_license(const char *arg);
+static void perform_loadfix(const char *arg);
+static void perform_md(const char *arg);
+static void perform_move(const char *arg);
+static void perform_more(const char *arg);
+static void perform_path(const char *arg);
+static void perform_pause(const char *arg);
+static void perform_popd(const char *arg);
+static void perform_prompt(const char *arg);
+static void perform_pushd(const char *arg);
+static void perform_r200fix(const char *arg);
+static void perform_rd(const char *arg);
+static void perform_rename(const char *arg);
+static void perform_shift(const char *arg);
+static void perform_time(const char *arg);
+static void perform_timeout(const char *arg);
+static void perform_type(const char *arg);
+static void perform_ver(const char *arg);
+static void perform_xcopy(const char *arg);
 static void parse_cmd_line(void);
 static void perform_external_cmd(int call, int lh, char *ext_cmd);
 static void exec_cmd(int call);
 static void perform_set(const char *arg);
+
 static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
 static void set_env_seg(void);
@@ -186,6 +225,64 @@ static void link_umb(unsigned char strat);
 static void unlink_umb(void);
 static void set_break(int on);
 static void get_env(void);
+static int compl_cmds(const char *prefix, int print, int *r_len, int *r_idx);
+
+struct built_in_cmd
+  {
+  const char *cmd_name;
+  void (*cmd_fn)(const char *);
+  const char *opts;
+  const char *help;
+  };
+
+static struct built_in_cmd cmd_table[] =
+  {
+    {"attrib", perform_attrib, "", "set file attributes"},
+    {"break", perform_break, "", "set ^Break handling"},
+    {"call", perform_call, "", "call batch file"},
+    {"cd", perform_cd, "", "change directory"},
+    {"chdir", perform_cd, "", "change directory"},
+    {"choice", perform_choice, "", "choice prompt sets ERRORLEVEL"},
+    {"cls", perform_cls, "", "clear screen"},
+    {"copy", perform_copy, "", "copy file"},
+    {"ctty", perform_ctty, "", "change tty"},
+    {"date", perform_date, "", "display date"},
+    {"del", perform_delete, "", "delete file"},
+    {"deltree", perform_deltree, "", "delete directory recursively"},
+    {"erase", perform_delete, "", "delete file"},
+    {"dir", perform_dir, "", "directory listing"},
+    {"echo.", perform_echo_dot, "", "terminal output"},  // before normal echo
+    {"echo", perform_echo, "", "terminal output"},
+    {"exit", perform_exit, "", "exit from interpreter"},
+    {"for", perform_for, "", "FOR loop"},
+    {"goto", perform_goto, "", "move to label"},
+    {"help", perform_help, "", "display this help"},
+    {"lh", perform_loadhigh, "", "load program to UMB"},
+    {"license", perform_license, "", "show copyright information"},
+    {"loadfix", perform_loadfix, "", "fix \"packed file is corrupt\""},
+    {"loadhigh", perform_loadhigh, "", "load program to UMB"},
+    {"md", perform_md, "", "create directory"},
+    {"mkdir", perform_md, "", "create directory"},
+    {"move", perform_move, "", "move file"},
+    {"more", perform_more, "", "scroll-pause long output"},
+    {"path", perform_path, "", "set search path"},
+    {"pause", perform_pause, "", "wait for a keypress"},
+    {"popd", perform_popd, "", "pop dir from stack and cd"},
+    {"prompt", perform_prompt, "", "customize prompt string"},
+    {"pushd", perform_pushd, "", "push cwd to stack and cd"},
+    {"r200fix", perform_r200fix, "", "runtime error 200 fix"},
+    {"rd", perform_rd, "", "remove directory"},
+    {"rmdir", perform_rd, "", "remove directory"},
+    {"rename", perform_rename, "", "rename with wildcards"},
+    {"ren", perform_rename, "", "rename with wildcards"},
+    {"set", perform_set, "", "set/unset environment variables"},
+    {"shift", perform_shift, "", "shift arguments"},
+    {"time", perform_time, "", "display time"},
+    {"timeout", perform_timeout, "", "pause execution"},
+    {"type", perform_type, "", "display file content"},
+    {"ver", perform_ver, " [/r]", "display version"},
+    {"xcopy", perform_xcopy, "", "copy large file"},
+  };
 
 #define CF 1
 
@@ -636,7 +733,7 @@ static unsigned short keyb_get_shift_states(void)
 
 static void prompt_for_and_get_cmd(void)
   {
-  int flag = 0, key = 0, len, len1, need_store;
+  int flag = 0, key = 0, len, len1, need_store, got_tab;
   char conbuf[MAX_CMD_BUFLEN+1];
 
   output_prompt();
@@ -648,6 +745,7 @@ static void prompt_for_and_get_cmd(void)
     _setcursortype(_SOLIDCURSOR);
 
   need_store = 0;
+  got_tab = 0;
   conbuf[0] = '\0';
   do {
     /* Wait and get raw key code */
@@ -661,6 +759,8 @@ static void prompt_for_and_get_cmd(void)
       key = KEY_ASCII(key);
     if (key != KEY_ENTER)
       need_store = 1;
+    if (key != KEY_TAB)
+      got_tab = 0;
     switch (key)
     {
       case 0:
@@ -716,17 +816,48 @@ static void prompt_for_and_get_cmd(void)
       case KEY_END:
         cmdbuf_move(conbuf, END);
         break;
-      case '\t':
-      {
-        int i;
-        for (i = 0; i < 4; i++)
+      case KEY_TAB:
         {
-          char c = cmdbuf_putch(conbuf, MAX_CMD_BUFLEN-2, ' ', flag);
-          if (c)
-            putch(c);
-        }
+        int rc, need_prn = got_tab, l = 0, idx;
+        const char *p;
+
+        cmdbuf_trunc(conbuf);
+        if (need_prn)
+          putchar('\n');
+        rc = compl_cmds(conbuf, got_tab, &l, &idx);
+        if (need_prn)
+          output_prompt();
+        got_tab = 0;
+        switch (rc)
+          {
+          case -1:
+            putchar('\a');
+            break;
+          case 0:
+            if (!need_prn && !l)
+              putchar('\a');
+            if (strlen(conbuf))
+              got_tab++;
+            if (l)
+              {
+              p = cmd_table[idx].cmd_name + strlen(conbuf);
+              printf("%.*s", l, p);
+              strncat(conbuf, p, l);
+              cmdbuf_puts(conbuf);
+              }
+            break;
+          case 1:
+            p = cmd_table[idx].cmd_name + strlen(conbuf);
+            printf("%s ", p);
+            strcat(conbuf, p);
+            strcat(conbuf, " ");
+            cmdbuf_puts(conbuf);
+            break;
+          }
+        if (need_prn)
+          printf("%s", conbuf);
         break;
-      }
+        }
       default:
         if (KEY_ASCII(key) != 0x00/* && KEY_ASCII(key) != 0xE0*/) {
           char c = cmdbuf_putch(conbuf, MAX_CMD_BUFLEN-2, KEY_ASCII(key), flag);
@@ -738,7 +869,10 @@ static void prompt_for_and_get_cmd(void)
   } while (key != KEY_ENTER);
 
   if (need_store)
+    {
     cmdbuf_trunc(conbuf);
+    cmdbuf_eol();
+    }
   else
     cmdbuf_reset();
   strcpy(cmd_line, conbuf);
@@ -4004,63 +4138,6 @@ static void perform_unimplemented_cmd(void)
 
 //////////////////////////////////////////////////////////////////////////////////
 
-struct built_in_cmd
-  {
-  const char *cmd_name;
-  void (*cmd_fn)(const char *);
-  const char *opts;
-  const char *help;
-  };
-
-static struct built_in_cmd cmd_table[] =
-  {
-    {"attrib", perform_attrib, "", "set file attributes"},
-    {"break", perform_break, "", "set ^Break handling"},
-    {"call", perform_call, "", "call batch file"},
-    {"cd", perform_cd, "", "change directory"},
-    {"chdir", perform_cd, "", "change directory"},
-    {"choice", perform_choice, "", "choice prompt sets ERRORLEVEL"},
-    {"cls", perform_cls, "", "clear screen"},
-    {"copy", perform_copy, "", "copy file"},
-    {"ctty", perform_ctty, "", "change tty"},
-    {"date", perform_date, "", "display date"},
-    {"del", perform_delete, "", "delete file"},
-    {"deltree", perform_deltree, "", "delete directory recursively"},
-    {"erase", perform_delete, "", "delete file"},
-    {"dir", perform_dir, "", "directory listing"},
-    {"echo.", perform_echo_dot, "", "terminal output"},  // before normal echo
-    {"echo", perform_echo, "", "terminal output"},
-    {"exit", perform_exit, "", "exit from interpreter"},
-    {"for", perform_for, "", "FOR loop"},
-    {"goto", perform_goto, "", "move to label"},
-    {"help", perform_help, "", "display this help"},
-    {"lh", perform_loadhigh, "", "load program to UMB"},
-    {"license", perform_license, "", "show copyright information"},
-    {"loadfix", perform_loadfix, "", "fix \"packed file is corrupt\""},
-    {"loadhigh", perform_loadhigh, "", "load program to UMB"},
-    {"md", perform_md, "", "create directory"},
-    {"mkdir", perform_md, "", "create directory"},
-    {"move", perform_move, "", "move file"},
-    {"more", perform_more, "", "scroll-pause long output"},
-    {"path", perform_path, "", "set search path"},
-    {"pause", perform_pause, "", "wait for a keypress"},
-    {"popd", perform_popd, "", "pop dir from stack and cd"},
-    {"prompt", perform_prompt, "", "customize prompt string"},
-    {"pushd", perform_pushd, "", "push cwd to stack and cd"},
-    {"r200fix", perform_r200fix, "", "runtime error 200 fix"},
-    {"rd", perform_rd, "", "remove directory"},
-    {"rmdir", perform_rd, "", "remove directory"},
-    {"rename", perform_rename, "", "rename with wildcards"},
-    {"ren", perform_rename, "", "rename with wildcards"},
-    {"set", perform_set, "", "set/unset environment variables"},
-    {"shift", perform_shift, "", "shift arguments"},
-    {"time", perform_time, "", "display time"},
-    {"timeout", perform_timeout, "", "pause execution"},
-    {"type", perform_type, "", "display file content"},
-    {"ver", perform_ver, " [/r]", "display version"},
-    {"xcopy", perform_xcopy, "", "copy large file"},
-  };
-
 static void list_cmds(void)
   {
   int i, j;
@@ -4078,6 +4155,44 @@ static void list_cmds(void)
         printf("\n");
   }
   printf("\n");
+  }
+
+static int cmpstr(const char *s1, const char *s2)
+{
+  int cnt = 0;
+  while (s1[cnt] && s2[cnt] && s1[cnt] == s2[cnt])
+    cnt++;
+  return cnt;
+}
+
+static int compl_cmds(const char *prefix, int print, int *r_len, int *r_idx)
+  {
+  int i, cnt = 0, idx = -1;
+  char suff[MAX_CMD_BUFLEN] = "";
+
+  for (i = 0; i < CMD_TABLE_COUNT; i++)
+    {
+    if (strncmp(prefix, cmd_table[i].cmd_name, strlen(prefix)) == 0)
+      {
+      const char *p = cmd_table[i].cmd_name + strlen(prefix);
+      int l = cmpstr(p, suff);
+
+      strcpy(suff, p);
+      if (cnt)
+        suff[l] = '\0';
+      cnt++;
+      idx = i;
+      if (print)
+        puts(cmd_table[i].cmd_name);
+      }
+    }
+  if (cnt == 0)
+    return -1;
+  *r_len = strlen(suff);
+  *r_idx = idx;
+  if (cnt == 1)
+    return 1;
+  return 0;
   }
 
 static bool is_valid_DOS_char(int c)

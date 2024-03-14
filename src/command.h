@@ -53,6 +53,7 @@
 #define KEY_ESC          KEY_ASCII(0x011B)
 #define KEY_ENTER        KEY_ASCII(0x1C0D)
 #define KEY_BACKSPACE    KEY_ASCII(0x0E08)
+#define KEY_TAB          KEY_ASCII(0x0F09)
 #define KEY_HOME         KEY_EXTM(0x47E0)
 #define KEY_UP           KEY_EXTM(0x48E0)
 #define KEY_LEFT         KEY_EXTM(0x4BE0)

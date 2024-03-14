@@ -13,6 +13,8 @@ void cmdbuf_delch(char *cmd_buf);
 int cmdbuf_bksp(char *cmd_buf);
 void cmdbuf_clear(char *cmd_buf);
 void cmdbuf_trunc(char *cmd_buf);
+void cmdbuf_eol(void);
+void cmdbuf_puts(const char *cmd_buf);
 char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag);
 void cmdbuf_store(const char *cmd_buf);
 void cmdbuf_reset(void);

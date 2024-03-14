@@ -213,6 +213,15 @@ void cmdbuf_reset(void)
 void cmdbuf_trunc(char *cmd_buf)
 {
   cmd_buf[tail] = '\0';
+}
+
+void cmdbuf_puts(const char *cmd_buf)
+{
+  cur = tail = strlen(cmd_buf);
+}
+
+void cmdbuf_eol(void)
+{
   /* Reset the cmdbuf */
   cur = tail = 0;
 }
