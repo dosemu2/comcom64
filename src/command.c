@@ -965,7 +965,8 @@ static int ensure_dir_existence(char *dir)
   return 0;
   }
 
-static int copy_single_file(char *source_file, char *dest_file, int transfer_type)
+static int copy_single_file(char *source_file, char *dest_file,
+    int transfer_type, int append)
   {
   FILE *source_stream;
   FILE *dest_stream;
@@ -1001,7 +1002,7 @@ static int copy_single_file(char *source_file, char *dest_file, int transfer_typ
     cprintf("Unable to open source file - %s\r\n", source_file);
     return -1;
     }
-  dest_stream = fopen(dest_file, "wb");
+  dest_stream = fopen(dest_file, append ? "ab" : "wb");
   if (dest_stream == NULL)
     {
     cprintf("Unable to open destination file - %s\r\n", dest_file);
@@ -1169,7 +1170,7 @@ static void expand_wildcard(char *spec, const char *fname, const char *fext)
     }
   }
 
-static void general_file_transfer(int transfer_type)
+static void general_file_transfer(int transfer_type, int append)
   {
   int xfer_count = 0;
   int ffrc;
@@ -1461,7 +1462,7 @@ static void general_file_transfer(int transfer_type)
               }
             }
           if (copy_single_file(full_source_filespec,
-                               full_dest_filespec, transfer_type) != 0)
+                               full_dest_filespec, transfer_type, append) != 0)
             {
             reset_batfile_call_stack();
             goto ExitOperation;
@@ -1486,7 +1487,8 @@ static void general_file_transfer(int transfer_type)
             }
           printf("%s %s to %s\n",
             FINDDATA_T_FILENAME(ff[subdir_level]),
-            transfer_type == FILE_XFER_MOVE?"moved":"copied",
+            append ? "appended" : (
+            transfer_type == FILE_XFER_MOVE?"moved":"copied"),
             strcmp(dest_filespec, "*.*")==0?full_dest_dirspec:full_dest_filespec);
           xfer_count++;
           }
@@ -1996,12 +1998,46 @@ static void perform_choice(const char *arg)
 
 static void perform_copy(const char *arg)
   {
-  general_file_transfer(FILE_XFER_COPY);
+  char cmd_line_bkp[MAX_CMD_BUFLEN] = "";
+  char *p, *p2;
+  if ((p = strchr(cmd_line, '+')))
+    {
+    strcpy(cmd_line_bkp, cmd_line);
+    p2 = p + 1 + strspn(p + 1, " ");
+    p2 = strchr(p2, ' ');
+    if (!p2)
+      {
+      cprintf("syntax error\n");
+      return;
+      }
+    memmove(p, p2, strlen(p2) + 1);
+    parse_cmd_line();
+    }
+  general_file_transfer(FILE_XFER_COPY, 0);
+  if (p)
+    {
+    strcpy(cmd_line, cmd_line_bkp);
+    p2 = p - 1;
+    while (p2 > cmd_line && *p2 == ' ')
+      p2--;
+    while (p2 > cmd_line && *p2 != ' ')
+      p2--;
+    if (p2 <= cmd_line)
+      {
+      cprintf("syntax error\n");
+      return;
+      }
+      p++;
+      p += strspn(p, " ");
+    memmove(p2 + 1, p, strlen(p) + 1);
+    parse_cmd_line();
+    general_file_transfer(FILE_XFER_COPY, 1);
+    }
   }
 
 static void perform_xcopy(const char *arg)
   {
-  general_file_transfer(FILE_XFER_XCOPY);
+  general_file_transfer(FILE_XFER_XCOPY, 0);
   }
 
 #define IS_CHRDEV(d) ((d) & _DEV_CDEV)
@@ -3380,7 +3416,7 @@ static void perform_more(const char *arg)
 
 static void perform_move(const char *arg)
   {
-  general_file_transfer(FILE_XFER_MOVE);
+  general_file_transfer(FILE_XFER_MOVE, 0);
   }
 
 static void perform_null_cmd(void)
