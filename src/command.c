@@ -225,7 +225,8 @@ static void link_umb(unsigned char strat);
 static void unlink_umb(void);
 static void set_break(int on);
 static void get_env(void);
-static int compl_cmds(const char *prefix, int print, int *r_len, int *r_idx);
+static int compl_cmds(const char *prefix, int print, int *r_len,
+    const char **r_p);
 
 struct built_in_cmd
   {
@@ -818,13 +819,13 @@ static void prompt_for_and_get_cmd(void)
         break;
       case KEY_TAB:
         {
-        int rc, need_prn = got_tab, l = 0, idx;
-        const char *p;
+        int rc, need_prn = got_tab, l = 0;
+        const char *p = NULL;
 
         cmdbuf_trunc(conbuf);
         if (need_prn)
           putchar('\n');
-        rc = compl_cmds(conbuf, got_tab, &l, &idx);
+        rc = compl_cmds(conbuf, got_tab, &l, &p);
         if (need_prn)
           output_prompt();
         got_tab = 0;
@@ -840,14 +841,12 @@ static void prompt_for_and_get_cmd(void)
               got_tab++;
             if (l)
               {
-              p = cmd_table[idx].cmd_name + strlen(conbuf);
               printf("%.*s", l, p);
               strncat(conbuf, p, l);
               cmdbuf_puts(conbuf);
               }
             break;
           case 1:
-            p = cmd_table[idx].cmd_name + strlen(conbuf);
             printf("%s ", p);
             strcat(conbuf, p);
             strcat(conbuf, " ");
@@ -4171,16 +4170,17 @@ static int cmpstr(const char *s1, const char *s2)
   return cnt;
 }
 
-static int compl_cmds(const char *prefix, int print, int *r_len, int *r_idx)
+static int compl_cmds(const char *prefix, int print, int *r_len,
+    const char **r_p)
   {
-  int i, cnt = 0, idx = -1;
+  int i, cnt = 0, idx = -1, len = strlen(prefix);
   char suff[MAX_CMD_BUFLEN] = "";
 
   for (i = 0; i < CMD_TABLE_COUNT; i++)
     {
-    if (strncmp(prefix, cmd_table[i].cmd_name, strlen(prefix)) == 0)
+    if (strncmp(prefix, cmd_table[i].cmd_name, len) == 0)
       {
-      const char *p = cmd_table[i].cmd_name + strlen(prefix);
+      const char *p = cmd_table[i].cmd_name + len;
       int l = cmpstr(p, suff);
 
       strcpy(suff, p);
@@ -4195,7 +4195,7 @@ static int compl_cmds(const char *prefix, int print, int *r_len, int *r_idx)
   if (cnt == 0)
     return -1;
   *r_len = strlen(suff);
-  *r_idx = idx;
+  *r_p = cmd_table[idx].cmd_name + len;
   if (cnt == 1)
     return 1;
   return 0;
