@@ -2044,7 +2044,9 @@ static void perform_cd(const char *arg)
     advance_cmd_arg();
   if (*arg)
     {
-    int cur_drive, dummy, rc;
+    unsigned cur_drive, dummy;
+    int rc;
+
     if (arg[1] == ':')
       getdrive(&cur_drive);
     rc = chdir(arg);
