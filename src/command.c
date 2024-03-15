@@ -225,8 +225,8 @@ static void link_umb(unsigned char strat);
 static void unlink_umb(void);
 static void set_break(int on);
 static void get_env(void);
-static int compl_cmds(const char *prefix, int print, int *r_len,
-    const char **r_p);
+static int compl_cmds(const char *prefix, int print, int *r_len, char *r_p);
+static int compl_fname(const char *prefix, int print, int *r_len, char *r_p);
 
 struct built_in_cmd
   {
@@ -820,12 +820,34 @@ static void prompt_for_and_get_cmd(void)
       case KEY_TAB:
         {
         int rc, need_prn = got_tab, l = 0;
-        const char *p = NULL;
+        char p[MAXPATH];
+        const char *p1;
 
         cmdbuf_trunc(conbuf);
         if (need_prn)
           putchar('\n');
-        rc = compl_cmds(conbuf, got_tab, &l, &p);
+        if ((p1 = strrchr(conbuf, ' ')))
+          {
+          p1++;
+          rc = compl_fname(p1, got_tab, &l, p);
+          /* fixup for directories */
+          if (rc == 1)
+            {
+            char buf[MAXPATH];
+            struct stat sb;
+            strcpy(buf, p1);
+            strcat(buf, p);
+            int err = stat(buf, &sb);
+            if (!err && (sb.st_mode & S_IFMT) == S_IFDIR)
+              {
+              strcat(p, "\\");
+              l++;
+              rc = 0;
+              }
+            }
+          }
+        else
+          rc = compl_cmds(conbuf, got_tab, &l, p);
         if (need_prn)
           output_prompt();
         got_tab = 0;
@@ -4170,17 +4192,33 @@ static int cmpstr(const char *s1, const char *s2)
   return cnt;
 }
 
-static int compl_cmds(const char *prefix, int print, int *r_len,
-    const char **r_p)
+static const char *get_cmd_name(int idx, void *arg)
+{
+  struct built_in_cmd *cmd = arg;
+  return cmd[idx].cmd_name;
+}
+
+static const char *get_fname(int idx, void *arg)
+{
+  glob_t *gl = arg;
+  if (idx >= gl->gl_pathc)
+   return NULL;
+  return gl->gl_pathv[idx];
+}
+
+static int do_compl(const char *prefix, int print, int *r_len,
+    char *r_p, const char *(*get)(int idx, void *arg), void *arg,
+    int num)
   {
   int i, cnt = 0, idx = -1, len = strlen(prefix);
   char suff[MAX_CMD_BUFLEN] = "";
 
-  for (i = 0; i < CMD_TABLE_COUNT; i++)
+  for (i = 0; i < num; i++)
     {
-    if (strncmp(prefix, cmd_table[i].cmd_name, len) == 0)
+    const char *c = get(i, arg);
+    if (strncmp(prefix, c, len) == 0)
       {
-      const char *p = cmd_table[i].cmd_name + len;
+      const char *p = c + len;
       int l = cmpstr(p, suff);
 
       strcpy(suff, p);
@@ -4189,16 +4227,37 @@ static int compl_cmds(const char *prefix, int print, int *r_len,
       cnt++;
       idx = i;
       if (print)
-        puts(cmd_table[i].cmd_name);
+        puts(c);
       }
     }
   if (cnt == 0)
     return -1;
   *r_len = strlen(suff);
-  *r_p = cmd_table[idx].cmd_name + len;
+  strcpy(r_p, get(idx, arg) + len);
   if (cnt == 1)
     return 1;
   return 0;
+  }
+
+static int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
+  {
+  return do_compl(prefix, print, r_len, r_p, get_cmd_name, cmd_table,
+      CMD_TABLE_COUNT);
+  }
+
+static int compl_fname(const char *prefix, int print, int *r_len, char *r_p)
+  {
+  char buf[MAXPATH];
+  glob_t gl;
+  int err, ret;
+
+  snprintf(buf, MAXPATH, "%s*", prefix);
+  err = glob(buf, GLOB_ERR, NULL, &gl);
+  if (err)
+    return -1;
+  ret = do_compl(prefix, print, r_len, r_p, get_fname, &gl, gl.gl_pathc);
+  globfree(&gl);
+  return ret;
   }
 
 static bool is_valid_DOS_char(int c)
