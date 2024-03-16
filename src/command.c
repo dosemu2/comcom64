@@ -4798,6 +4798,7 @@ int main(int argc, const char *argv[], const char *envp[])
   setenv("COMSPEC", cmd_path, 1);
   free(cmd_path);
   setenv("COMCOM_VER", version, 1);
+  setenv("ERRORLEVEL", "0", 1);
 
   // process arguments
   for (a = 1; a < argc; a++)
