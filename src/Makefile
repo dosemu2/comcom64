@@ -26,7 +26,7 @@ LINK_OPT = $(shell pkg-config --libs dj64) -shared -Wl,-Bsymbolic \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
 SRCS = command.c cmdbuf.c version.c thunks_a.c thunks_c.c
 OBJS = $(SRCS:.c=.o)
-ASSRCS = int23.S int0.S asm.S plt.S
+ASSRCS = int23.S int0.S asm.S plt.S mouse.S
 ASOBJS = $(ASSRCS:.S=.o)
 LIBCMD = libcomcom64.so
 CMD = comcom64.exe

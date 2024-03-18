@@ -12,6 +12,7 @@
 
 int ASMCFUNC do_int23(void);
 void ASMCFUNC do_int0(void);
+void ASMCFUNC do_mouse(void);
 
 #else
 

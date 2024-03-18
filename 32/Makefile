@@ -12,7 +12,7 @@ C_OPT += -march=i386
 LINK_OPT =
 SRCS = $(SRCDIR)/command.c $(SRCDIR)/cmdbuf.c $(SRCDIR)/version.c \
   memmem.c fmemcpy.c
-ASSRCS = $(SRCDIR)/asm.S $(SRCDIR)/int23.S $(SRCDIR)/int0.S
+ASSRCS = $(SRCDIR)/asm.S $(SRCDIR)/int23.S $(SRCDIR)/int0.S $(SRCDIR)/mouse.S
 OBJS = $(notdir $(SRCS:.c=.o)) $(notdir $(ASSRCS:.S=.o))
 CMD = comcom32.exe
 REVISIONID := $(shell git describe --dirty=+)

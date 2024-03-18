@@ -73,6 +73,7 @@
 #include <process.h>
 #include <sys/segments.h>
 #include <sys/farptr.h>
+#include <sys/nearptr.h>
 #include <go32.h>
 
 #include "cmdbuf.h"
@@ -4767,6 +4768,86 @@ void do_int0(void)
     __dpmi_set_real_mode_interrupt_vector(0, &int0_vec);
 }
 
+#ifdef DJ64
+static unsigned mouse_regs;
+#else
+static __dpmi_regs *mouse_regs;
+#define djaddr2ptr(a) ((unsigned char *)((a) - __djgpp_base_address))
+#endif
+static __dpmi_meminfo mregs = { .size = sizeof(__dpmi_regs) };
+static __dpmi_raddr newm;
+static __dpmi_raddr oldm;
+static unsigned old_mask;
+
+static unsigned short popw(__dpmi_regs *r)
+{
+  unsigned lina = (r->x.ss << 4) + r->x.sp;
+  unsigned short ret = _farpeekw(_dos_ds, lina);
+  r->x.sp += 2;
+  return ret;
+}
+
+static void do_retf(__dpmi_regs *r)
+{
+  r->x.ip = popw(r);
+  r->x.cs = popw(r);
+}
+
+static void mlb(void)
+{
+  // TODO!
+}
+
+static void mrb(void)
+{
+  __dpmi_regs r = {};
+
+  r.x.ax = 0x500;
+  r.x.cx = 0x0F09;  // TAB
+  __dpmi_int(0x16, &r);
+}
+
+static void mmb(void)
+{
+  /* used for pasting by dosemu2, so leave it alone? */
+}
+
+static void mw(int delta)
+{
+  __dpmi_regs r = {};
+
+  r.x.ax = 0x500;
+  if (delta < 0)
+    r.x.cx = 0x48E0;  // UP
+  else
+    r.x.cx = 0x50E0;  // DOWN
+  __dpmi_int(0x16, &r);
+}
+
+void do_mouse(void)
+{
+  __dpmi_regs *r;
+
+#ifndef DJ64
+  __djgpp_nearptr_enable();
+#endif
+  r = (__dpmi_regs *)djaddr2ptr(mregs.address);
+  do_retf(r);
+
+  if (r->x.ax & 2)
+    mlb();
+  if (r->x.ax & 8)
+    mrb();
+  if (r->x.ax & 0x20)
+    mmb();
+  if (r->x.ax & 0x80)
+    mw((char)r->h.bh);
+
+#ifndef DJ64
+  __djgpp_nearptr_disable();
+#endif
+}
+
 static int mouse_init(void)
 {
   __dpmi_regs r = {};
@@ -4786,7 +4867,39 @@ static int mouse_init(void)
 //    return 0;
     }
 
+  __dpmi_allocate_memory(&mregs);
+#ifdef DJ64
+  mouse_regs = mregs.address - __djgpp_base_address;
+#else
+  mouse_regs = (__dpmi_regs *)djaddr2ptr(mregs.address);
+#endif
+  __dpmi_allocate_real_mode_callback(my_mouse_handler, mouse_regs, &newm);
+  r.x.ax = 0x14;
+  r.x.cx = 0xaa;  // wheel, no movement, no releases
+  r.x.es = newm.segment;
+  r.x.dx = newm.offset16;
+  __dpmi_int(0x33, &r);
+  oldm.segment = r.x.es;
+  oldm.offset16 = r.x.dx;
+  old_mask = r.x.cx;
+
+  mouse_show();
   return 1;
+}
+
+static void mouse_done(void)
+{
+  __dpmi_regs r = {};
+
+  mouse_hide();
+
+  r.x.ax = 0x0c;
+  r.x.cx = old_mask;
+  r.x.es = oldm.segment;
+  r.x.dx = oldm.offset16;
+  __dpmi_int(0x33, &r);
+  __dpmi_free_real_mode_callback(&newm);
+  __dpmi_free_memory(mregs.handle);
 }
 
 static void mouse_show(void)
@@ -4900,8 +5013,6 @@ int main(int argc, const char *argv[], const char *envp[])
     if (stricmp(argv[a], "/M") == 0)
       {
       mouse_en = mouse_init();
-      if (mouse_en)
-        mouse_show();
       }
 
     // check for command in arguments
@@ -4990,6 +5101,8 @@ int main(int argc, const char *argv[], const char *envp[])
     }
 
   loadhigh_done();
+  if (mouse_en)
+    mouse_done();
   if (shell_permanent)
     restore_psp_parent();
   return error_level;
