@@ -1,4 +1,16 @@
-CROSS_PREFIX ?= i686-linux-gnu-
+AS = $(CROSS_PREFIX)as
+CROSS_PREFIX := i686-linux-gnu-
+ifeq ($(shell $(AS) --version 2>/dev/null),)
+CROSS_PREFIX := x86_64-linux-gnu-
+endif
+ifeq ($(shell $(AS) --version 2>/dev/null),)
+ifeq ($(shell uname -m),x86_64)
+CROSS_PREFIX :=
+else
+$(error cross-binutils not installed)
+endif
+endif
+
 HOST_CC = dj64-gcc
 HOST_LD = gcc
 HOST_AS = gcc -E -x assembler-with-cpp $< | $(CROSS_PREFIX)as --32
