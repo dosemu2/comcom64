@@ -112,6 +112,7 @@ static const char *version = "0.3";
 static int shell_mode = SHELL_NORMAL;
 static int shell_permanent;
 static int stepping;
+static int mouse_en;
 
 /* define to sync RM/PM env data - consumes more memory */
 #define SYNC_ENV 0
@@ -227,6 +228,8 @@ static void set_break(int on);
 static void get_env(void);
 static int compl_cmds(const char *prefix, int print, int *r_len, char *r_p);
 static int compl_fname(const char *prefix, int print, int *r_len, char *r_p);
+static void mouse_show(void);
+static void mouse_hide(void);
 
 struct built_in_cmd
   {
@@ -3247,6 +3250,8 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     FILE * exefile;
     char *lh_d;
 
+    if (mouse_en)
+      mouse_hide();
 #if SYNC_ENV
     /* the below is disabled because it seems we don't need
      * to update our copy of env. djgpp creates the env segment
@@ -3353,6 +3358,8 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     _fpreset();
     reset_text_attrs();
     gppconio_init();  /* video mode could change */
+    if (mouse_en)
+      mouse_show();
 
     sprintf(el, "%d", error_level);
     setenv("ERRORLEVEL", el, 1);
@@ -4760,6 +4767,44 @@ void do_int0(void)
     __dpmi_set_real_mode_interrupt_vector(0, &int0_vec);
 }
 
+static int mouse_init(void)
+{
+  __dpmi_regs r = {};
+
+  __dpmi_int(0x33, &r);
+  if ((r.x.flags & CF) || r.x.ax != 0xffff || r.x.bx != 3)
+    {
+    puts("mouse not detected");
+    return 0;
+    }
+  /* check the wheel */
+  r.x.ax = 0x11;
+  __dpmi_int(0x33, &r);
+  if ((r.x.flags & CF) || r.x.ax != 0x574d || (r.x.cx & 1) == 0)
+    {
+    puts("mouse wheel not supported");
+//    return 0;
+    }
+
+  return 1;
+}
+
+static void mouse_show(void)
+{
+  __dpmi_regs r = {};
+
+  r.x.ax = 1;
+  __dpmi_int(0x33, &r);
+}
+
+static void mouse_hide(void)
+{
+  __dpmi_regs r = {};
+
+  r.x.ax = 2;
+  __dpmi_int(0x33, &r);
+}
+
 int main(int argc, const char *argv[], const char *envp[])
   {
   int a;
@@ -4850,6 +4895,13 @@ int main(int argc, const char *argv[], const char *envp[])
     if (stricmp(argv[a], "/Y") == 0)
       {
       stepping = 1;
+      }
+
+    if (stricmp(argv[a], "/M") == 0)
+      {
+      mouse_en = mouse_init();
+      if (mouse_en)
+        mouse_show();
       }
 
     // check for command in arguments
