@@ -132,7 +132,7 @@ static void mw(int delta)
 void do_mouse(void)
 {
     __dpmi_regs *r;
-    unsigned char rows = _farpeekb(_dos_ds, 0x484) + 1;
+    unsigned char rows = wherey();
     static unsigned char prev_col, prev_row;
     unsigned char col, row;
     int dragged;
