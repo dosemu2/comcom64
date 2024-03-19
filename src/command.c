@@ -4793,23 +4793,40 @@ static void do_retf(__dpmi_regs *r)
   r->x.cs = popw(r);
 }
 
-static void mlb(void)
+static void mlb(int alt_fn, int x, int y)
 {
-  // TODO!
+  __dpmi_regs r = {};
+  short c;
+
+  if (alt_fn)
+    return;  // TODO!
+
+  _conio_gettext(x, y, x, y, &c);
+
+  r.x.ax = 0x500;
+  r.x.cx = c & 0xff;
+  __dpmi_int(0x16, &r);
 }
 
-static void mrb(void)
+static void mrb(int alt_fn)
 {
   __dpmi_regs r = {};
 
   r.x.ax = 0x500;
-  r.x.cx = 0x0F09;  // TAB
+  r.x.cx = alt_fn ? 0x3 : 0x0F09;  // ^C or TAB
   __dpmi_int(0x16, &r);
 }
 
-static void mmb(void)
+static void mmb(int alt_fn)
 {
-  /* used for pasting by dosemu2, so leave it alone? */
+  __dpmi_regs r = {};
+
+  if (alt_fn)
+    return;  // TODO!
+
+  r.x.ax = 0x500;
+  r.x.cx = 0x1c0d;  // ENTER
+  __dpmi_int(0x16, &r);
 }
 
 static void mw(int delta)
@@ -4827,6 +4844,10 @@ static void mw(int delta)
 void do_mouse(void)
 {
   __dpmi_regs *r;
+  unsigned char rows = _farpeekb(_dos_ds, 0x484) + 1;
+  static unsigned char prev_col, prev_row;
+  unsigned char col, row;
+  int dragged;
 
 #ifndef DJ64
   __djgpp_nearptr_enable();
@@ -4834,14 +4855,21 @@ void do_mouse(void)
   r = (__dpmi_regs *)djaddr2ptr(mregs.address);
   do_retf(r);
 
-  if (r->x.ax & 2)
-    mlb();
+  col = r->x.cx / 8 + 1;
+  row = r->x.dx / 8 + 1;
+  dragged = (r->x.ax & r->x.bx & 1) && (col != prev_col || row != prev_row);
+
+  if ((r->x.ax & 2) || dragged)
+    mlb(row  == rows, col, row);
   if (r->x.ax & 8)
-    mrb();
+    mrb(row  == rows);
   if (r->x.ax & 0x20)
-    mmb();
+    mmb(row  == rows);
   if (r->x.ax & 0x80)
     mw((char)r->h.bh);
+
+  prev_col = r->x.cx / 8 + 1;
+  prev_row = r->x.dx / 8 + 1;
 
 #ifndef DJ64
   __djgpp_nearptr_disable();
@@ -4875,7 +4903,7 @@ static int mouse_init(void)
 #endif
   __dpmi_allocate_real_mode_callback(my_mouse_handler, mouse_regs, &newm);
   r.x.ax = 0x14;
-  r.x.cx = 0xaa;  // wheel, no movement, no releases
+  r.x.cx = 0xab;  // wheel, buttons, move
   r.x.es = newm.segment;
   r.x.dx = newm.offset16;
   __dpmi_int(0x33, &r);
