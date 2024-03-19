@@ -231,6 +231,7 @@ static int compl_cmds(const char *prefix, int print, int *r_len, char *r_p);
 static int compl_fname(const char *prefix, int print, int *r_len, char *r_p);
 static void mouse_show(void);
 static void mouse_hide(void);
+static void mouse_reset(void);
 
 struct built_in_cmd
   {
@@ -3391,7 +3392,10 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     reset_text_attrs();
     gppconio_init();  /* video mode could change */
     if (mouse_en)
+      {
+      mouse_reset();
       mouse_show();
+      }
 
     sprintf(el, "%d", error_level);
     setenv("ERRORLEVEL", el, 1);
@@ -4809,6 +4813,7 @@ static __dpmi_meminfo mregs = { .size = sizeof(__dpmi_regs) };
 static __dpmi_raddr newm;
 static __dpmi_raddr oldm;
 static unsigned old_mask;
+#define MEV_MASK 0xab
 
 static unsigned short popw(__dpmi_regs *r)
 {
@@ -4967,7 +4972,7 @@ static int mouse_init(void)
 #endif
   __dpmi_allocate_real_mode_callback(my_mouse_handler, mouse_regs, &newm);
   r.x.ax = 0x14;
-  r.x.cx = 0xab;  // wheel, buttons, move
+  r.x.cx = MEV_MASK;
   r.x.es = newm.segment;
   r.x.dx = newm.offset16;
   __dpmi_int(0x33, &r);
@@ -4977,6 +4982,17 @@ static int mouse_init(void)
 
   mouse_show();
   return 1;
+}
+
+static void mouse_reset(void)
+{
+  __dpmi_regs r = {};
+
+  r.x.ax = 0x0c;
+  r.x.cx = MEV_MASK;
+  r.x.es = newm.segment;
+  r.x.dx = newm.offset16;
+  __dpmi_int(0x33, &r);
 }
 
 static void mouse_done(void)
