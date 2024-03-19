@@ -4817,13 +4817,46 @@ static void do_retf(__dpmi_regs *r)
   r->x.cs = popw(r);
 }
 
+static void mvxl(int d)
+{
+  __dpmi_regs r = {};
+
+  while (d--)
+    {
+    r.x.ax = 0x500;
+    r.x.cx = 0x4BE0;
+    __dpmi_int(0x16, &r);
+    }
+}
+
+static void mvxr(int d)
+{
+  __dpmi_regs r = {};
+
+  while (d--)
+    {
+    r.x.ax = 0x500;
+    r.x.cx = 0x4DE0;
+    __dpmi_int(0x16, &r);
+    }
+}
+
 static void mlb(int alt_fn, int x, int y)
 {
   __dpmi_regs r = {};
   short c;
 
   if (alt_fn)
-    return;  // TODO!
+    {
+    int cx = wherex();
+    if (cx == x)
+      return;
+    if (x < cx)
+      mvxl(cx - x);
+    else
+      mvxr(x - cx);
+    return;
+    }
 
   _conio_gettext(x, y, x, y, &c);
 
