@@ -226,6 +226,11 @@ void cmdbuf_eol(void)
   cur = tail = 0;
 }
 
+void cmdbuf_store_tmp(const char *cmd_buf)
+{
+  strcpy(cmdqueue[cmdqueue_count], cmd_buf);
+}
+
 void cmdbuf_store(const char *cmd_buf)
 {
   int prev_count = (cmdqueue_count - 1) % MAX_CMDQUEUE_LEN;

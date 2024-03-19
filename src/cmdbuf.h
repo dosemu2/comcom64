@@ -17,6 +17,7 @@ void cmdbuf_eol(void);
 void cmdbuf_puts(const char *cmd_buf);
 char cmdbuf_putch(char *cmd_buf, unsigned int buf_size, char ch, unsigned short flag);
 void cmdbuf_store(const char *cmd_buf);
+void cmdbuf_store_tmp(const char *cmd_buf);
 void cmdbuf_reset(void);
 void cmdbuf_init(void);
 

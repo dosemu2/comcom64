@@ -794,6 +794,12 @@ static void prompt_for_and_get_cmd(void)
           _setcursortype(_SOLIDCURSOR);
         break;
       case KEY_UP:
+        if (conbuf[0])
+          {
+          cmdbuf_trunc(conbuf);
+          cmdbuf_store_tmp(conbuf);
+          cmdbuf_clear(conbuf);
+          }
         if (cmdbuf_move(conbuf, UP))
           need_store = 0;
         break;
@@ -804,14 +810,32 @@ static void prompt_for_and_get_cmd(void)
         cmdbuf_move(conbuf, RIGHT);
         break;
       case KEY_DOWN:
+        if (conbuf[0])
+          {
+          cmdbuf_trunc(conbuf);
+          cmdbuf_store_tmp(conbuf);
+          cmdbuf_clear(conbuf);
+          }
         if (cmdbuf_move(conbuf, DOWN))
           need_store = 0;
         break;
       case KEY_PGUP:
+        if (conbuf[0])
+          {
+          cmdbuf_trunc(conbuf);
+          cmdbuf_store_tmp(conbuf);
+          cmdbuf_clear(conbuf);
+          }
         if (cmdbuf_move(conbuf, PGUP))
           need_store = 0;
         break;
       case KEY_PGDN:
+        if (conbuf[0])
+          {
+          cmdbuf_trunc(conbuf);
+          cmdbuf_store_tmp(conbuf);
+          cmdbuf_clear(conbuf);
+          }
         if (cmdbuf_move(conbuf, PGDN))
           need_store = 0;
         break;
