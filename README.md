@@ -25,3 +25,23 @@ for the use with [dosemu2](https://github.com/dosemu2/dosemu2).
 ## running
 
 Just run `dosemu` and it should boot the installed comcom64.
+
+## mouse control
+
+You can navigate the command history with mouse wheel.
+
+All buttons have 2 functions: one activates when you click on a text
+area outside of a cursor row, and another activates when you click
+inside the cursor row.
+
+Left button:
+  - types clicked char
+  - moves the cursor to the clicked location
+
+Middle button:
+  - Enter
+  - no function yet
+
+Right button:
+  - Tab completion
+  - truncate or clear line
