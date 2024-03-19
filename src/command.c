@@ -4890,11 +4890,8 @@ static void mmb(int alt_fn)
 {
   __dpmi_regs r = {};
 
-  if (alt_fn)
-    return;  // TODO!
-
   r.x.ax = 0x500;
-  r.x.cx = 0x1c0d;  // ENTER
+  r.x.cx = alt_fn ? 0x0E08 : 0x1c0d;  // BkSp or ENTER
   __dpmi_int(0x16, &r);
 }
 

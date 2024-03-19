@@ -40,7 +40,7 @@ Left button:
 
 Middle button:
   - Enter
-  - no function yet
+  - BackSpace
 
 Right button:
   - Tab completion
