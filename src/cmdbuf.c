@@ -153,6 +153,13 @@ void cmdbuf_delch(char *cmd_buf)
   }
 }
 
+void cmdbuf_clreol(char *cmd_buf)
+{
+  clreol();
+  tail = cur;
+  cmdbuf_trunc(cmd_buf);
+}
+
 int cmdbuf_bksp(char *cmd_buf)
 {
   if (cur == 0)
@@ -221,6 +228,16 @@ void cmdbuf_eol(void)
 {
   /* Reset the cmdbuf */
   cur = tail = 0;
+}
+
+int cmdbuf_getcur(void)
+{
+  return cur;
+}
+
+int cmdbuf_gettail(void)
+{
+  return tail;
 }
 
 void cmdbuf_store_tmp(const char *cmd_buf)

@@ -772,8 +772,15 @@ static void prompt_for_and_get_cmd(void)
         break;
       case 3:
       case 0x100:
-        cmdbuf_clear(conbuf);
+        {
+        int cur = cmdbuf_getcur();
+        int tail = cmdbuf_gettail();
+        if (tail > cur)
+          cmdbuf_clreol(conbuf);
+        else if (tail > 0)
+          cmdbuf_clear(conbuf);
         break;
+        }
       case KEY_ENTER:
         break;
       case KEY_BACKSPACE:
