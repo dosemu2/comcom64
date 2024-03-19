@@ -59,14 +59,11 @@ int cmdbuf_move(char *cmd_buf, int direction)
   switch (direction)
   {
     case UP:
-      cmdqueue_index --;
-      cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
-      ret++;
-      if (cmdqueue[cmdqueue_index][0] == '\0') {
-        cmdqueue_index ++;
-        cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
-        ret--;
-      }
+      if (cmdqueue_index && cmdqueue[cmdqueue_index - 1][0] != '\0')
+        {
+        cmdqueue_index--;
+        ret++;
+        }
       break;
     case LEFT:
       if (cur != 0) {
@@ -83,10 +80,10 @@ int cmdbuf_move(char *cmd_buf, int direction)
       }
       break;
     case DOWN:
-      if (cmdqueue[cmdqueue_index][0] == '\0')
+      if (cmdqueue[cmdqueue_index][0] == '\0' ||
+          cmdqueue_index == cmdqueue_count)
         break;
-      cmdqueue_index ++;
-      cmdqueue_index = cmdqueue_index%MAX_CMDQUEUE_LEN;
+      cmdqueue_index++;
       ret++;
       break;
     case HOME:
@@ -104,7 +101,7 @@ int cmdbuf_move(char *cmd_buf, int direction)
       }
       break;
     case PGUP:
-      if (cmdqueue_index && cmdqueue[0][0]) {
+      if (cmdqueue_index && cmdqueue[0][0] != '\0') {
         cmdqueue_index = 0;
         direction = UP;
         ret++;
@@ -121,7 +118,7 @@ int cmdbuf_move(char *cmd_buf, int direction)
 
   if (direction == UP || direction == DOWN) {
     _cmdbuf_clr_line(cmd_buf);
-    if (cmdqueue[cmdqueue_index][0]) {
+    if (cmdqueue[cmdqueue_index][0] != '\0') {
       /* Reinput the command from the queue */
       cputs(cmdqueue[cmdqueue_index]);
       strcpy(cmd_buf, cmdqueue[cmdqueue_index]);
@@ -228,16 +225,14 @@ void cmdbuf_eol(void)
 
 void cmdbuf_store_tmp(const char *cmd_buf)
 {
-  strcpy(cmdqueue[cmdqueue_count], cmd_buf);
+  strcpy(cmdqueue[cmdqueue_index], cmd_buf);
 }
 
 void cmdbuf_store(const char *cmd_buf)
 {
-  int prev_count = (cmdqueue_count - 1) % MAX_CMDQUEUE_LEN;
-
   if (cmd_buf[0] == '\0')
     return;
-  if (strcmp(cmd_buf, cmdqueue[prev_count]) != 0)
+  if (!cmdqueue_count || strcmp(cmd_buf, cmdqueue[cmdqueue_count - 1]) != 0)
     {
     const char *tmp;
     /* Enqueue the cmdbuf and save the current index */
