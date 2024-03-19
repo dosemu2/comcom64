@@ -24,6 +24,7 @@ C_OPT = -Wall -Og -Wmissing-declarations -Wwrite-strings -fpic \
 LINK_OPT = $(shell pkg-config --libs dj64) -shared -Wl,-Bsymbolic \
   -Wl,-rpath=/usr/local/i386-pc-dj64/lib64 \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
+DOSLDFLAGS = --whole-archive $(shell pkg-config --static --libs dj64static)
 SRCS = command.c cmdbuf.c ms.c version.c thunks_a.c thunks_c.c
 OBJS = $(SRCS:.c=.o)
 ASSRCS = int23.S int0.S asm.S plt.S mouse.S
@@ -68,7 +69,7 @@ $(LIBCMD): $(OBJS)
 	objcopy --add-gnu-debuglink=$(DBG) $@ || $(RM) $@
 
 $(ELF): $(ASOBJS)
-	$(DOS_LD) $(ASOBJS) --whole-archive $(shell pkg-config --static --libs dj64static) -o $@
+	$(DOS_LD) $^ $(DOSLDFLAGS) -o $@
 	$(DOS_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ELF)
