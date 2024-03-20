@@ -89,6 +89,7 @@
 #include "psp.h"
 #include "umb.h"
 #include "ae0x.h"
+#include "compl.h"
 #include "command.h"
 
 /*
@@ -219,18 +220,8 @@ static void perform_set(const char *arg);
 static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
 static void set_break(int on);
-static int compl_cmds(const char *prefix, int print, int *r_len, char *r_p);
-static int compl_fname(const char *prefix, int print, int *r_len, char *r_p);
 
-struct built_in_cmd
-  {
-  const char *cmd_name;
-  void (*cmd_fn)(const char *);
-  const char *opts;
-  const char *help;
-  };
-
-static struct built_in_cmd cmd_table[] =
+struct built_in_cmd cmd_table[] =
   {
     {"attrib", perform_attrib, "", "set file attributes"},
     {"break", perform_break, "", "set ^Break handling"},
@@ -278,6 +269,11 @@ static struct built_in_cmd cmd_table[] =
     {"ver", perform_ver, " [/r]", "display version"},
     {"xcopy", perform_xcopy, "", "copy large file"},
   };
+
+/*
+ * Count of the number of valid commands
+ */
+const int CMD_TABLE_COUNT = sizeof(cmd_table) / sizeof(struct built_in_cmd);
 
 /***
 *
@@ -3933,82 +3929,6 @@ static void list_cmds(void)
         printf("\n");
   }
   printf("\n");
-  }
-
-static int cmpstr(const char *s1, const char *s2)
-{
-  int cnt = 0;
-  while (s1[cnt] && s2[cnt] && s1[cnt] == s2[cnt])
-    cnt++;
-  return cnt;
-}
-
-static const char *get_cmd_name(int idx, void *arg)
-{
-  struct built_in_cmd *cmd = arg;
-  return cmd[idx].cmd_name;
-}
-
-static const char *get_fname(int idx, void *arg)
-{
-  glob_t *gl = arg;
-  if (idx >= gl->gl_pathc)
-   return NULL;
-  return gl->gl_pathv[idx];
-}
-
-static int do_compl(const char *prefix, int print, int *r_len,
-    char *r_p, const char *(*get)(int idx, void *arg), void *arg,
-    int num)
-  {
-  int i, cnt = 0, idx = -1, len = strlen(prefix);
-  char suff[MAX_CMD_BUFLEN] = "";
-
-  for (i = 0; i < num; i++)
-    {
-    const char *c = get(i, arg);
-    if (strncmp(prefix, c, len) == 0)
-      {
-      const char *p = c + len;
-      int l = cmpstr(p, suff);
-
-      strcpy(suff, p);
-      if (cnt)
-        suff[l] = '\0';
-      cnt++;
-      idx = i;
-      if (print)
-        puts(c);
-      }
-    }
-  if (cnt == 0)
-    return -1;
-  *r_len = strlen(suff);
-  strcpy(r_p, get(idx, arg) + len);
-  if (cnt == 1)
-    return 1;
-  return 0;
-  }
-
-static int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
-  {
-  return do_compl(prefix, print, r_len, r_p, get_cmd_name, cmd_table,
-      CMD_TABLE_COUNT);
-  }
-
-static int compl_fname(const char *prefix, int print, int *r_len, char *r_p)
-  {
-  char buf[MAXPATH];
-  glob_t gl;
-  int err, ret;
-
-  snprintf(buf, MAXPATH, "%s*", prefix);
-  err = glob(buf, GLOB_ERR, NULL, &gl);
-  if (err)
-    return -1;
-  ret = do_compl(prefix, print, r_len, r_p, get_fname, &gl, gl.gl_pathc);
-  globfree(&gl);
-  return ret;
   }
 
 static bool is_valid_DOS_char(int c)

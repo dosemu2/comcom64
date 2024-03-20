@@ -38,11 +38,6 @@
 #define FILE_XFER_MOVE         2
 
 /*
- * Count of the number of valid commands
- */
-#define CMD_TABLE_COUNT        (sizeof(cmd_table) / sizeof(struct built_in_cmd))
-
-/*
  * Temporarily and Slightly FIX the keyboard problem
  */
 #define GET_ENHANCED_KEYSTROKE                0x10
@@ -448,5 +443,16 @@ static inline int get_segment_base_address(int selector, unsigned *addr)
 }
 
 #endif
+
+struct built_in_cmd
+  {
+  const char *cmd_name;
+  void (*cmd_fn)(const char *);
+  const char *opts;
+  const char *help;
+  };
+
+extern struct built_in_cmd cmd_table[];
+extern const int CMD_TABLE_COUNT;
 
 #endif
