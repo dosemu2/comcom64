@@ -5,6 +5,8 @@
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
 
+#include <sys/version.h>
+
 #ifdef __GNUC__
 #define __CMD_COMPILER__ "GCC "
 #endif
