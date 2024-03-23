@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <glob.h>
+#include <assert.h>
 #include "command.h"
 #include "cmdbuf.h"
 #include "compl.h"
@@ -27,7 +28,7 @@
 struct compl_s {
     void *opaque;
     const char *(*get_name)(int idx, void *arg);
-    int (*get_num)(void *arg);
+    int num;
 };
 
 #define MAX_COMPLS 10
@@ -47,26 +48,15 @@ static int cmpstr(const char *s1, const char *s2)
 static const char *get_cmd_name(int idx, void *arg)
 {
     struct built_in_cmd *cmd = arg;
+    assert(idx < CMD_TABLE_COUNT);
     return cmd[idx].cmd_name;
-}
-
-static int get_cmd_num(void *arg)
-{
-    return CMD_TABLE_COUNT;
 }
 
 static const char *get_fname(int idx, void *arg)
 {
     glob_t *gl = arg;
-    if (idx >= gl->gl_pathc)
-	return NULL;
+    assert(idx < gl->gl_pathc);
     return gl->gl_pathv[idx];
-}
-
-static int get_glb_num(void *arg)
-{
-    glob_t *gl = arg;
-    return gl->gl_pathc;
 }
 
 static const char *get_compl_name(int idx, void *arg)
@@ -76,9 +66,8 @@ static const char *get_compl_name(int idx, void *arg)
 
     for (i = 0; i < cmpl->num; i++) {
 	struct compl_s *c = &cmpl->compls[i];
-	int num = c->get_num(c->opaque);
-	if (idx >= num) {
-	    idx -= num;
+	if (idx >= c->num) {
+	    idx -= c->num;
 	    continue;
 	}
 	return c->get_name(idx, c->opaque);
@@ -117,14 +106,13 @@ static int do_compl(const char *prefix, int print, int *r_len,
     return 0;
 }
 
-static int glb_add(struct cmpl_s *cmpl, glob_t *gl)
+static void glb_add(struct cmpl_s *cmpl, glob_t *gl)
 {
     struct compl_s *c = &cmpl->compls[cmpl->num++];
 
     c->opaque = gl;
     c->get_name = get_fname;
-    c->get_num = get_glb_num;
-    return gl->gl_pathc;
+    c->num = gl->gl_pathc;
 }
 
 int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
@@ -138,24 +126,30 @@ int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
     err = glob(buf, GLOB_ERR, NULL, &gl_bat);
     if (err && err != GLOB_NOMATCH)
 	return -1;
-    if (!err)
-	cnt += glb_add(&cmpl, &gl_bat);
+    if (!err) {
+	glb_add(&cmpl, &gl_bat);
+	cnt += gl_bat.gl_pathc;
+    }
     snprintf(buf, MAXPATH, "%s*.exe", prefix);
     err = glob(buf, GLOB_ERR, NULL, &gl_exe);
     if (err && err != GLOB_NOMATCH)
 	goto err1;
-    if (!err)
-	cnt += glb_add(&cmpl, &gl_exe);
+    if (!err) {
+	glb_add(&cmpl, &gl_exe);
+	cnt += gl_exe.gl_pathc;
+    }
     snprintf(buf, MAXPATH, "%s*.com", prefix);
     err = glob(buf, GLOB_ERR, NULL, &gl_com);
     if (err && err != GLOB_NOMATCH)
 	goto err2;
-    if (!err)
-	cnt += glb_add(&cmpl, &gl_com);
+    if (!err) {
+	glb_add(&cmpl, &gl_com);
+	cnt += gl_com.gl_pathc;
+    }
 
     cmpl.compls[cmpl.num].opaque = cmd_table;
     cmpl.compls[cmpl.num].get_name = get_cmd_name;
-    cmpl.compls[cmpl.num].get_num = get_cmd_num;
+    cmpl.compls[cmpl.num].num = CMD_TABLE_COUNT;
     cmpl.num++;
 
     ret = do_compl(prefix, print, r_len, r_p, get_compl_name, &cmpl,
