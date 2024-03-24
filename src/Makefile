@@ -25,6 +25,7 @@ LINK_OPT = $(shell pkg-config --libs dj64) -shared -Wl,-Bsymbolic \
   -Wl,-rpath=/usr/local/i386-pc-dj64/lib64 \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
 DOSLDFLAGS = --whole-archive $(shell pkg-config --static --libs dj64static)
+CPPFLAGS = -I. $(shell pkg-config --cflags dj64)
 SRCS = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
   version.c thunks_a.c thunks_c.c
 OBJS = $(SRCS:.c=.o)
@@ -89,7 +90,7 @@ plt.o: plt.asm
 	$(HOST_AS) -o $@
 
 plt.asm: $(srcdir)/plt.S plt.inc $(SRC)/glob_asm.h
-	$(CPP) -I . -P $< >$@ || ($(RM) $@ ; false)
+	$(CPP) $(CPPFLAGS) -P $< >$@ || ($(RM) $@ ; false)
 
 thunks_c.o: thunk_calls.h
 
