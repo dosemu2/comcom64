@@ -59,6 +59,7 @@ clean:
 
 .PHONY: force
 version: force
+	test -f "$@" || touch "$@"
 	echo '"$(REVISIONID)"' | cmp -s - "$@" || echo '"$(REVISIONID)"' > "$@"
 
 version.o: version
