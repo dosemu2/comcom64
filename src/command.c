@@ -80,7 +80,6 @@
 #include <sys/fmemcpy.h>
 #else
 #include "fmemcpy.h"
-#include "memmem.h"
 #endif
 #include "asm.h"
 #include "version.h"
