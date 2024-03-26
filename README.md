@@ -7,9 +7,9 @@ This repository also contains the build recipe for 32bit version.
 
 Install the needed build tools.<br/>
 You can see the list of them
-[for ubuntu](https://github.com/stsp/comcom64/blob/master/debian/control#L7-L14)
+[for ubuntu](https://github.com/dosemu2/comcom64/blob/master/debian/control#L7-L14)
 or
-[for fedora](https://github.com/stsp/comcom64/blob/master/comcom64.spec.rpkg#L17-L24)
+[for fedora](https://github.com/dosemu2/comcom64/blob/master/comcom64.spec.rpkg#L17-L24)
 
 Then just run `make`.
 
