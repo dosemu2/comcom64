@@ -118,6 +118,8 @@ static int shell_mode = SHELL_NORMAL;
 static int shell_permanent;
 static int stepping;
 static int mouse_en;
+static int mouseopt_extctl;
+static int mouseopt_disabled;
 
 #define DEBUG 0
 
@@ -197,6 +199,7 @@ static void perform_loadfix(const char *arg);
 static void perform_md(const char *arg);
 static void perform_move(const char *arg);
 static void perform_more(const char *arg);
+static void perform_mouseopt(const char *arg);
 static void perform_path(const char *arg);
 static void perform_pause(const char *arg);
 static void perform_popd(const char *arg);
@@ -250,6 +253,7 @@ struct built_in_cmd cmd_table[] =
     {"mkdir", perform_md, "", "create directory"},
     {"move", perform_move, "", "move file"},
     {"more", perform_more, "", "scroll-pause long output"},
+    {"mouseopt", perform_mouseopt, "", "mouse options"},
     {"path", perform_path, "", "set search path"},
     {"pause", perform_pause, "", "wait for a keypress"},
     {"popd", perform_popd, "", "pop dir from stack and cd"},
@@ -2986,7 +2990,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     FILE * exefile;
     char *lh_d;
 
-    if (mouse_en)
+    if (mouse_en && !mouseopt_extctl)
       mouse_disable();
 #if SYNC_ENV
     /* the below is disabled because it seems we don't need
@@ -3094,7 +3098,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     _fpreset();
     reset_text_attrs();
     gppconio_init();  /* video mode could change */
-    if (mouse_en)
+    if (mouse_en && !mouseopt_disabled)
       mouse_enable();
 
     sprintf(el, "%d", error_level);
@@ -3327,6 +3331,42 @@ static void perform_more(const char *arg)
         fgetc(bkp_stdin);
         }
       }
+    }
+  }
+
+static void perform_mouseopt(const char *arg)
+  {
+  if (arg[0] != '\0')
+    {
+    if (stricmp(arg, "/C") == 0)
+      mouseopt_extctl = 1;
+    if (stricmp(arg, "/D") == 0)
+      {
+      if (mouse_en)
+        {
+        mouse_disable();
+        mouseopt_disabled = 1;
+        }
+      }
+    if (stricmp(arg, "/E") == 0)
+      {
+      if (mouseopt_disabled)
+        {
+        mouseopt_disabled = 0;
+        mouse_enable();
+        }
+      }
+    if (stricmp(arg, "/M") == 0)
+      {
+      if (!mouse_en)
+        mouse_en = mouse_init();
+      }
+    }
+  else
+    {
+    printf("mouse initialized (/M):\t\t\t%i\n", mouse_en);
+    printf("mouse disabled (/D, /E - enable):\t%i\n", mouseopt_disabled);
+    printf("mouse external control (/C):\t\t%i\n", mouseopt_extctl);
     }
   }
 
