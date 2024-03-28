@@ -203,7 +203,7 @@ int mouse_init(void)
     return 1;
 }
 
-void mouse_reset(void)
+void mouse_enable(void)
 {
     __dpmi_regs r = { };
 
@@ -212,9 +212,11 @@ void mouse_reset(void)
     r.x.es = newm.segment;
     r.x.dx = newm.offset16;
     __dpmi_int(0x33, &r);
+
+    mouse_show();
 }
 
-void mouse_done(void)
+void mouse_disable(void)
 {
     __dpmi_regs r = { };
 
@@ -225,6 +227,11 @@ void mouse_done(void)
     r.x.es = oldm.segment;
     r.x.dx = oldm.offset16;
     __dpmi_int(0x33, &r);
+}
+
+void mouse_done(void)
+{
+    mouse_disable();
     __dpmi_free_real_mode_callback(&newm);
     __dpmi_free_memory(mregs.handle);
 }

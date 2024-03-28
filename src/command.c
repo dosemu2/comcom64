@@ -2987,7 +2987,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     char *lh_d;
 
     if (mouse_en)
-      mouse_hide();
+      mouse_disable();
 #if SYNC_ENV
     /* the below is disabled because it seems we don't need
      * to update our copy of env. djgpp creates the env segment
@@ -3095,10 +3095,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     reset_text_attrs();
     gppconio_init();  /* video mode could change */
     if (mouse_en)
-      {
-      mouse_reset();
-      mouse_show();
-      }
+      mouse_enable();
 
     sprintf(el, "%d", error_level);
     setenv("ERRORLEVEL", el, 1);
