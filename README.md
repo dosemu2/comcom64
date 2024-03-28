@@ -45,3 +45,16 @@ Middle button:
 Right button:
   - Tab completion
   - truncate or clear line
+
+There is a `mouseopt` command that controls mouse behavior.
+It has the following switches:
+
+ - /M - initialize mouse (if /M was not passed to comcom on start)
+ - /D - disable mouse
+ - /E - enable mouse previously disabled with /D
+ - /C - enable external control
+
+External control allows to control other programs with mouse.
+For example you can execute `mouseopt /c`, then run freecom and
+control it with mouse similar to comcom64, even though freecom
+is mouse-unaware by itself.
