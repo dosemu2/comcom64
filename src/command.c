@@ -4343,7 +4343,7 @@ void do_int0(void)
 int main(int argc, const char *argv[], const char *envp[])
   {
   int a;
-  char *cmd_path;
+  char *cmd_path, *v;
   int disable_autoexec = 0;
   int inited = 0;
   // initialize the cmd data ...
@@ -4379,6 +4379,9 @@ int main(int argc, const char *argv[], const char *envp[])
   free(cmd_path);
   setenv("COMCOM_VER", version, 1);
   setenv("ERRORLEVEL", "0", 1);
+
+  if ((v = getenv("COMCOM_MOUSE")) && v[0] == '1')
+    mouse_en = mouse_init();
 
   // process arguments
   for (a = 1; a < argc; a++)
@@ -4416,9 +4419,11 @@ int main(int argc, const char *argv[], const char *envp[])
       stepping = 1;
       }
 
-    if (stricmp(argv[a], "/M") == 0)
+    if (stricmp(argv[a], "/M") == 0 && !mouse_en)
       {
       mouse_en = mouse_init();
+      if (mouse_en)
+        setenv("COMCOM_MOUSE", "1", 1);
       }
 
     // check for command in arguments
