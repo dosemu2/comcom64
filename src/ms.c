@@ -207,6 +207,12 @@ void mouse_enable(void)
 {
     __dpmi_regs r = { };
 
+    __dpmi_int(0x33, &r);  // reset the visibility counter
+    if ((r.x.flags & CF) || r.x.ax != 0xffff || r.x.bx != 3) {
+	puts("mouse not detected");
+	return;
+    }
+
     r.x.ax = 0x0c;
     r.x.cx = MEV_MASK;
     r.x.es = newm.segment;
