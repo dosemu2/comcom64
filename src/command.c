@@ -119,7 +119,7 @@ static int shell_permanent;
 static int stepping;
 static int mouse_en;
 static int mouseopt_extctl;
-static int mouseopt_disabled;
+static int mouseopt_enabled = 1;
 
 #define DEBUG 0
 
@@ -3098,7 +3098,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     _fpreset();
     reset_text_attrs();
     gppconio_init();  /* video mode could change */
-    if (mouse_en && !mouseopt_disabled)
+    if (mouse_en && mouseopt_enabled)
       mouse_enable();
 
     sprintf(el, "%d", error_level);
@@ -3338,25 +3338,29 @@ static void perform_mouseopt(const char *arg)
   {
   if (arg[0] != '\0')
     {
-    if (stricmp(arg, "/C") == 0)
-      mouseopt_extctl = 1;
-    if (stricmp(arg, "/D") == 0)
+    int opt = 1;
+    if (isdigit(arg[2]))
+      opt = arg[2] - '0';
+
+    if (strnicmp(arg, "/C", 2) == 0 && mouseopt_extctl != opt)
+      mouseopt_extctl = opt;
+    if (strnicmp(arg, "/E", 2) == 0 && mouseopt_enabled != opt)
       {
       if (mouse_en)
         {
-        mouse_disable();
-        mouseopt_disabled = 1;
+        if (opt)
+          {
+          mouse_enable();
+          mouseopt_enabled = 1;
+          }
+        else
+          {
+          mouseopt_enabled = 0;
+          mouse_disable();
+          }
         }
       }
-    if (stricmp(arg, "/E") == 0)
-      {
-      if (mouseopt_disabled)
-        {
-        mouseopt_disabled = 0;
-        mouse_enable();
-        }
-      }
-    if (stricmp(arg, "/M") == 0)
+    if (stricmp(arg, "/M") == 0 && opt == 1)
       {
       if (!mouse_en)
         mouse_en = mouse_init();
@@ -3364,9 +3368,10 @@ static void perform_mouseopt(const char *arg)
     }
   else
     {
-    printf("mouse initialized (/M):\t\t\t%i\n", mouse_en);
-    printf("mouse disabled (/D, /E - enable):\t%i\n", mouseopt_disabled);
-    printf("mouse external control (/C):\t\t%i\n", mouseopt_extctl);
+    printf("mouseopt [/M] [/C[0|1]] [/E[1|0]]\n\n");
+    printf("mouse initialized (/M):\t\t%i\n", mouse_en);
+    printf("mouse enabled (/E):\t\t%i\n", mouseopt_enabled);
+    printf("mouse external control (/C):\t%i\n", mouseopt_extctl);
     }
   }
 
