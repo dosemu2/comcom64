@@ -4425,9 +4425,6 @@ int main(int argc, const char *argv[], const char *envp[])
   setenv("COMCOM_VER", version, 1);
   setenv("ERRORLEVEL", "0", 1);
 
-  if ((v = getenv("COMCOM_MOUSE")) && v[0] == '1')
-    mouse_en = mouse_init();
-
   // process arguments
   for (a = 1; a < argc; a++)
     {
@@ -4464,11 +4461,28 @@ int main(int argc, const char *argv[], const char *envp[])
       stepping = 1;
       }
 
-    if (stricmp(argv[a], "/M") == 0 && !mouse_en)
+    if (strnicmp(argv[a], "/M", 2) == 0)
       {
-      mouse_en = mouse_init();
-      if (mouse_en)
-        setenv("COMCOM_MOUSE", "1", 1);
+      int opt = 1;
+      char copt[2];
+      if (isdigit(argv[a][2]))
+        opt = argv[a][2] - '0';
+      copt[0] = opt + '0';
+      copt[1] = '\0';
+      unsetenv("COMCOM_MOUSE");
+      switch (opt)
+        {
+        case 0:
+          break;
+        default:
+          mouse_en = mouse_init();
+          if (mouse_en)
+            {
+            mouseopt_extctl = (opt == 2);
+            setenv("COMCOM_MOUSE", copt, 1);
+            }
+        break;
+        }
       }
 
     // check for command in arguments
@@ -4513,6 +4527,13 @@ int main(int argc, const char *argv[], const char *envp[])
     sync_env();
 #endif
   }
+
+  if (!mouse_en && (v = getenv("COMCOM_MOUSE")) && v[0] >= '1')
+    {
+    mouse_en = mouse_init();
+    if (mouse_en && v[0] == '2')
+      mouseopt_extctl = 1;
+    }
 
   if (shell_permanent && !disable_autoexec)
     {
