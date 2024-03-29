@@ -119,7 +119,7 @@ static int shell_permanent;
 static int stepping;
 static int mouse_en;
 static int mouseopt_extctl;
-static int mouseopt_enabled = 1;
+static int mouseopt_enabled;
 
 #define DEBUG 0
 
@@ -4478,6 +4478,7 @@ int main(int argc, const char *argv[], const char *envp[])
           mouse_en = mouse_init();
           if (mouse_en)
             {
+            mouseopt_enabled = 1;
             mouseopt_extctl = (opt == 2);
             setenv("COMCOM_MOUSE", copt, 1);
             }
@@ -4531,8 +4532,12 @@ int main(int argc, const char *argv[], const char *envp[])
   if (!mouse_en && (v = getenv("COMCOM_MOUSE")) && v[0] >= '1')
     {
     mouse_en = mouse_init();
-    if (mouse_en && v[0] == '2')
-      mouseopt_extctl = 1;
+    if (mouse_en)
+      {
+      mouseopt_enabled = 1;
+      if (v[0] == '2')
+        mouseopt_extctl = 1;
+      }
     }
 
   if (shell_permanent && !disable_autoexec)
