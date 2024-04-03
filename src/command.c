@@ -2800,6 +2800,7 @@ static void perform_for(const char *arg)
   }
 
 #define VIDADDR(r,c) (0xb8000 + 2*(((r) * txinfo.screenwidth) + (c)))
+#if 0
 static void reset_text_attrs(void)
 {
   char attr = 7;
@@ -2813,6 +2814,7 @@ static void reset_text_attrs(void)
       dosmemput(&attr, 1, VIDADDR(row, txinfo.winleft - 1 + col) + 1);
     }
 }
+#endif
 
 static int orig_strat, orig_umblink;
 
@@ -3096,7 +3098,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     _control87(0x033f, 0xffff);
     _clear87();
     _fpreset();
-    reset_text_attrs();
+//    reset_text_attrs();
     gppconio_init();  /* video mode could change */
     if (mouse_en && mouseopt_enabled)
       mouse_enable();
@@ -4400,7 +4402,7 @@ int main(int argc, const char *argv[], const char *envp[])
   loadhigh_init();	// save initial umb link and strat
   unlink_umb();		// in case we loaded with shellhigh or lh
   set_env_size();
-  reset_text_attrs();
+//  reset_text_attrs();
 
 #ifdef __spawn_leak_workaround
   __spawn_flags &= ~__spawn_leak_workaround;
