@@ -400,7 +400,11 @@ static inline int findnext_f(finddata_t *ff, long handle)
 }
 static inline int findclose_f(long handle)
 {
+#ifdef HAVE_FINDCLOSE
+    return findclose(handle);
+#else
     return 0;
+#endif
 }
 /* File attributes */
 static inline unsigned int setfileattr(const char *filename, unsigned int attr)
