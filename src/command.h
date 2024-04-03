@@ -361,6 +361,9 @@ static inline int file_copytime(int desc_handle, int src_handle)
 #include <unistd.h>
 #include <sys/exceptn.h>
 #include <dpmi.h>
+#ifndef DJ64
+#include "findclos.h"
+#endif
 
 #ifndef USE_CONIO_OUT
 #define cprintf printf
