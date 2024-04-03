@@ -3162,9 +3162,13 @@ static void perform_if(void)
       if (stricmp(s,"\\nul") == 0)
         *s = '\0';
       }
-    if (file_access(cmd_arg, F_OK) == 0 || file_access(cmd_arg, D_OK) == 0 ||
-        findfirst_f(cmd_arg, &ff, 0, &ffhandle) == 0)
+    if (file_access(cmd_arg, F_OK) == 0 || file_access(cmd_arg, D_OK) == 0)
       condition_fulfilled = true;
+    else if (findfirst_f(cmd_arg, &ff, 0, &ffhandle) == 0)
+      {
+      findclose_f(ffhandle);
+      condition_fulfilled = true;
+      }
     }
   else if (strnicmp(cmd_args, "errorlevel", 10) == 0) //conditional is "errolevel x"
     {
