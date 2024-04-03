@@ -380,13 +380,18 @@ typedef struct ffblk finddata_t;
 #define FINDDATA_T_WDATE_DAY(f) ((f).ff_fdate)&0x1F
 #define FINDDATA_T_WTIME_HOUR(f) ((f).ff_ftime>>11)&0x1F
 #define FINDDATA_T_WTIME_MIN(f) ((f).ff_ftime>>5)&0x3F
+static inline int findclose_f(long handle);
 static inline int findfirst_f(const char *pathname, finddata_t *ff, int attrib, long *handle)
 {
     int err = findfirst(pathname, ff, attrib);
     if (err)
         return err;
-    if (attrib == FA_DIREC && FINDDATA_T_ATTRIB(*ff) != attrib)
+    if (attrib == FA_DIREC && FINDDATA_T_ATTRIB(*ff) != attrib) {
+        findclose_f(ff->lfn_handle);
         return -1;
+    }
+    if (handle)
+        *handle = ff->lfn_handle;
     return 0;
 }
 static inline int findnext_f(finddata_t *ff, long handle)
