@@ -121,8 +121,12 @@ int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
     struct cmpl_s cmpl = { };
     glob_t gl_bat, gl_exe, gl_com;
     int err, ret = -1, cnt = 0;
+    const char *p;
+    const char *suff = ((p = strchr(prefix, '.')) ? "" : "*.");
 
-    snprintf(buf, MAXPATH, "%s*.bat", prefix);
+    if (p && p[1] != '\0')
+	return compl_fname(prefix, print, r_len, r_p);
+    snprintf(buf, MAXPATH, "%s%sbat", prefix, suff);
     err = glob(buf, GLOB_ERR, NULL, &gl_bat);
     if (err && err != GLOB_NOMATCH)
 	return -1;
@@ -130,7 +134,7 @@ int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
 	glb_add(&cmpl, &gl_bat);
 	cnt += gl_bat.gl_pathc;
     }
-    snprintf(buf, MAXPATH, "%s*.exe", prefix);
+    snprintf(buf, MAXPATH, "%s%sexe", prefix, suff);
     err = glob(buf, GLOB_ERR, NULL, &gl_exe);
     if (err && err != GLOB_NOMATCH)
 	goto err1;
@@ -138,7 +142,7 @@ int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
 	glb_add(&cmpl, &gl_exe);
 	cnt += gl_exe.gl_pathc;
     }
-    snprintf(buf, MAXPATH, "%s*.com", prefix);
+    snprintf(buf, MAXPATH, "%s%scom", prefix, suff);
     err = glob(buf, GLOB_ERR, NULL, &gl_com);
     if (err && err != GLOB_NOMATCH)
 	goto err2;
@@ -147,13 +151,15 @@ int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
 	cnt += gl_com.gl_pathc;
     }
 
-    cmpl.compls[cmpl.num].opaque = cmd_table;
-    cmpl.compls[cmpl.num].get_name = get_cmd_name;
-    cmpl.compls[cmpl.num].num = CMD_TABLE_COUNT;
-    cmpl.num++;
+    if (!p) {
+	cmpl.compls[cmpl.num].opaque = cmd_table;
+	cmpl.compls[cmpl.num].get_name = get_cmd_name;
+	cmpl.compls[cmpl.num].num = CMD_TABLE_COUNT;
+	cmpl.num++;
+	cnt += CMD_TABLE_COUNT;
+    }
 
-    ret = do_compl(prefix, print, r_len, r_p, get_compl_name, &cmpl,
-		   CMD_TABLE_COUNT + cnt);
+    ret = do_compl(prefix, print, r_len, r_p, get_compl_name, &cmpl, cnt);
 
     globfree(&gl_com);
   err2:
