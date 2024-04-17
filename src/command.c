@@ -96,19 +96,13 @@
  */
 
 extern char **environ;
-#if 0
 #include <crt0.h>
-#include <dpmi.h>
 
-#define UNUSED __attribute__((unused))
 int _crt0_startup_flags =
        _CRT0_FLAG_USE_DOS_SLASHES |          // keep the backslashes
        _CRT0_FLAG_DISALLOW_RESPONSE_FILES |  // no response files (i.e. `@gcc.rf')
 //       _CRT0_FLAG_NO_LFN |                   // disable long file names
        _CRT0_FLAG_PRESERVE_FILENAME_CASE;    // keep DOS names non-lowercased
-char **__crt0_glob_function(char *_argument UNUSED) {return NULL;} // prevent wildcard expansion of arguments of main()
-void __crt0_load_environment_file(char *_app_name UNUSED) {} // prevent loading of environment file
-#endif
 
 static const char *version = "0.3";
 
