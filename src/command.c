@@ -1251,6 +1251,10 @@ static void general_file_transfer(int transfer_type, int append)
         else
           goto InvalidSwitch;
         }
+      if (stricmp(cmd_switch,"/b") == 0)
+        {
+        /* ignore */
+        }
       else
         {
         if (transfer_type == FILE_XFER_XCOPY)
