@@ -35,8 +35,7 @@ cpp = meson.get_compiler('c')
 sfiles = cpp.preprocess(['plt.S'],
   output: '@BASENAME@.s',
   depends: plt_inc,
-  dependencies: declare_dependency(
-    compile_args: ['-D__ASSEMBLER__']))
+  compile_args: ['-D__ASSEMBLER__'])
 
 env = environment()
 env.set('CPP', 'cpp')
