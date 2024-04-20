@@ -4207,6 +4207,7 @@ static void parse_cmd_line(void)
     }
 
   // extract the rest as arguments
+  cmd_args[0] = '\0';
   extract_args(extr);
   return;
   }
