@@ -472,11 +472,10 @@ static void extract_args(char *src)
   // scout ahead to see if there are really any arguments
   while (*src == ' ' || *src == '\t')
     src++;
-  if (*src == '\0')
+  if (*src == '\0' || *src == ';')
     {
     cmd_arg[0] = '\0';
     cmd_switch[0] = '\0';
-    cmd_args[0] = '\0';
     return;
     }
 
@@ -496,7 +495,7 @@ static void extract_args(char *src)
     *dest = *src;
     dest++;
     src++;
-    if (*src == '/')
+    if (*src == '/' || *src == ';')
       break;
     }
   *dest = '\0';
@@ -524,11 +523,16 @@ static void advance_cmd_arg(void)
   while (*extr != ' ' && *extr != '\t' && *extr != '\0')
     {
     extr++;
-    if (*extr == '/')
+    if (*extr == '/' || *extr == ';')
       break;
     }
   if (*extr == '\0')
     goto NoArgs;
+  if (*extr == ';')
+    {
+    memmove(cmd_args, extr, strlen(extr)+1);
+    goto NoArgs;
+    }
 
   // extract the rest
   extract_args(extr);
@@ -537,7 +541,6 @@ static void advance_cmd_arg(void)
 NoArgs:
   cmd_arg[0] = '\0';
   cmd_switch[0] = '\0';
-  cmd_args[0] = '\0';
   return;
   }
 
@@ -2028,42 +2031,44 @@ static void perform_choice(const char *arg)
   return;
   }
 
+static int expand_pluses(void)
+{
+  char cmd_args_bkp[MAX_CMD_BUFLEN];
+  int len;
+  char *p, *p2, *last_arg;
+
+  strcpy(cmd_args_bkp, cmd_args);
+  last_arg = strrchr(cmd_args_bkp, ' ');
+  if (!last_arg)
+    {
+    cprintf("syntax error\n");
+    return -1;
+    }
+  len = 0;
+  cmd_args[0] = '\0';
+  for (p2 = cmd_args_bkp, p = strchr(p2, '+'); p;
+       p2 = p + 1, p = strchr(p2, '+'))
+    {
+    len += snprintf(cmd_args + len, sizeof(cmd_args) - len, "%.*s %s;",
+        p - p2, p2, last_arg);
+    }
+  strlcat(cmd_args, p2, sizeof(cmd_args));
+  return 0;
+}
+
 static void perform_copy(const char *arg)
   {
-  char cmd_line_bkp[MAX_CMD_BUFLEN] = "";
-  char *p, *p2;
-  if ((p = strchr(cmd_line, '+')))
-    {
-    strcpy(cmd_line_bkp, cmd_line);
-    p2 = p + 1 + strspn(p + 1, " ");
-    p2 = strchr(p2, ' ');
-    if (!p2)
-      {
-      cprintf("syntax error\n");
-      return;
-      }
-    memmove(p, p2, strlen(p2) + 1);
-    parse_cmd_line();
-    }
+  int err = expand_pluses();
+  if (err)
+    return;
   general_file_transfer(FILE_XFER_COPY, 0);
-  if (p)
+  /* expand_pluses() delimited the arg groups with ; */
+  while (cmd_args[0] == ';')
     {
-    strcpy(cmd_line, cmd_line_bkp);
-    p2 = p - 1;
-    while (p2 > cmd_line && *p2 == ' ')
-      p2--;
-    while (p2 > cmd_line && *p2 != ' ')
-      p2--;
-    if (p2 <= cmd_line)
-      {
-      cprintf("syntax error\n");
-      return;
-      }
-      p++;
-      p += strspn(p, " ");
-    memmove(p2 + 1, p, strlen(p) + 1);
-    parse_cmd_line();
-    general_file_transfer(FILE_XFER_COPY, 1);
+    cmd_args[0] = ' ';
+    extract_args(cmd_args);
+    if (cmd_arg[0] != '\0')
+      general_file_transfer(FILE_XFER_COPY, 1);
     }
   }
 
