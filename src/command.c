@@ -633,8 +633,7 @@ static void prompt_for_and_get_cmd(void)
           cmdbuf_store_tmp(conbuf);
           cmdbuf_clear(conbuf);
           }
-        if (cmdbuf_move(conbuf, UP))
-          need_store = 0;
+        cmdbuf_move(conbuf, UP);
         break;
       case KEY_LEFT:
         cmdbuf_move(conbuf, LEFT);
@@ -649,8 +648,7 @@ static void prompt_for_and_get_cmd(void)
           cmdbuf_store_tmp(conbuf);
           cmdbuf_clear(conbuf);
           }
-        if (cmdbuf_move(conbuf, DOWN))
-          need_store = 0;
+        cmdbuf_move(conbuf, DOWN);
         break;
       case KEY_PGUP:
         if (conbuf[0])
@@ -659,8 +657,7 @@ static void prompt_for_and_get_cmd(void)
           cmdbuf_store_tmp(conbuf);
           cmdbuf_clear(conbuf);
           }
-        if (cmdbuf_move(conbuf, PGUP))
-          need_store = 0;
+        cmdbuf_move(conbuf, PGUP);
         break;
       case KEY_PGDN:
         if (conbuf[0])
@@ -669,8 +666,7 @@ static void prompt_for_and_get_cmd(void)
           cmdbuf_store_tmp(conbuf);
           cmdbuf_clear(conbuf);
           }
-        if (cmdbuf_move(conbuf, PGDN))
-          need_store = 0;
+        cmdbuf_move(conbuf, PGDN);
         break;
       case KEY_HOME:
         cmdbuf_move(conbuf, HOME);
