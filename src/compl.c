@@ -84,7 +84,10 @@ static int do_compl(const char *prefix, int print, int *r_len,
 
     for (i = 0; i < num; i++) {
 	const char *c = get(i, arg);
-	if (strncmp(prefix, c, len) == 0) {
+	/* Note: even though strncasecmp() is used, file-name completions
+	 * are still case-sensitive because the completion candidates are
+	 * added via glob() fn, which is case-sensitive. */
+	if (strncasecmp(prefix, c, len) == 0) {
 	    const char *p = c + len;
 	    int l = cmpstr(p, suff);
 
