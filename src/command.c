@@ -681,6 +681,7 @@ static void prompt_for_and_get_cmd(void)
         const char *p1;
 
         cmdbuf_trunc(conbuf);
+        cmdbuf_clreol(conbuf);
         if (need_prn)
           putchar('\n');
         if ((p1 = strrchr(conbuf, ' ')))
