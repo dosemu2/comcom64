@@ -1,23 +1,21 @@
-MA = meson.current_source_dir() / 'parsers/mkasmdefs.sh'
-PD = meson.current_source_dir() / 'parsers/parse_decls.sh'
-M4 = meson.current_source_dir() / 'parsers/thunks.m4'
-tg = subproject('thunk_gen')
-TG = tg.get_variable('TG')
+tg = dependency('thunk_gen')
+TG = tg.get_variable(pkgconfig: 'binary')
+PD = tg.get_variable(pkgconfig: 'pdscript')
 TFLAGS = ['-a', '4', '-p', '4']
 TARGET = 'comcom64'
 
 CFILES = [
     'cmdbuf.c',
     'command.c',
+    'ms.c',
+    'env.c',
+    'psp.c',
+    'umb.c',
+    'ae0x.c',
+    'compl.c',
     'thunks_a.c',
     'thunks_c.c'
     ]
-
-gad = custom_target('glob_asmdefs.h',
-  output: 'glob_asmdefs.h',
-  input: 'glob_asm.h',
-  command: [MA, '@INPUT@'],
-  capture: true)
 
 GEN_TMP = { '1':'thunk_calls.tmp' }
 
@@ -31,11 +29,15 @@ plt_inc = custom_target('plt.inc',
   input: tct,
   command: [PD, '3', '@INPUT@'],
   capture: true)
+libdj = dependency('dj64')
 cpp = meson.get_compiler('c')
 sfiles = cpp.preprocess(['plt.S'],
   output: '@BASENAME@.s',
+#  include_directories: libdj.compile_args(),
+  include_directories:
+    [include_directories('/usr/local/i386-pc-dj64/include')],
   depends: plt_inc,
-  compile_args: ['-D__ASSEMBLER__'])
+  compile_args: ['-D__ASSEMBLER__', '-DDJ64'])
 
 env = environment()
 env.set('CPP', 'cpp')
@@ -60,19 +62,22 @@ tc = custom_target('thunk_calls.h',
   feed: true,
   capture: true)
 
-libdj = dependency('dj64')
+r = run_command('git', 'describe', '--dirty=+', check: true)
+REVISIONID = r.stdout().strip()
 libcc64 = shared_library('comcom64', [CFILES],
-  sources: [gad, tc],
+  sources: [tc],
+  c_args: ['-DDJ64', '-DREV_ID="' + REVISIONID + '"'],
   dependencies: libdj,
-  link_args: ['-Wl,-Bsymbolic'])
+  link_args: ['-Wl,-Bsymbolic', '-Wl,-rpath=/usr/local/i386-pc-dj64/lib64',
+    '-Wl,-rpath=/usr/i386-pc-dj64/lib64'])
 
 strip = find_program('strip')
-cc64 = custom_target(TARGET + '.so',
-  output: TARGET + '.so',
+cc64 = custom_target('lib.stripped',
+  output: '@PLAINNAME@.stripped',
   input: libcc64,
   command: [strip, '-o', '@OUTPUT0@', '@INPUT@'])
 
-ASFILES = [ 'int23.S', 'int0.S', 'asm.S', sfiles ]
+ASFILES = [ 'int23.S', 'int0.S', 'mouse.S', 'asm.S', sfiles ]
 lib = static_library('dummy', ASFILES,
   build_by_default: false)
 
@@ -81,11 +86,12 @@ libdjs = dependency('dj64static', static: true)
 elf = custom_target(TARGET + '.elf',
   output: [TARGET + '.elf', TARGET + '.map'],
   input: [lib.extract_all_objects(recursive: true),
-    libdjs.link_args()],
+#    libdjs.link_args()],
+    '/usr/local/i386-pc-dj64/lib/libc.a'],
   command: [nasm_ld, '-melf_i386', '-static', '--whole-archive',
     '-Map=@OUTPUT1@', '-o', '@OUTPUT0@', '@INPUT@'])
-elf_s = custom_target(TARGET + '.elf.stripped',
-  output: TARGET + '.elf.stripped',
+elf_s = custom_target('elf.stripped',
+  output: '@PLAINNAME@.stripped',
   input: elf[0],
   command: [strip, '--strip-debug', '-o', '@OUTPUT0@', '@INPUT@'])
 
