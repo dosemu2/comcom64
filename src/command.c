@@ -2047,7 +2047,7 @@ static int expand_pluses(void)
        p2 = p + 1, p = strchr(p2, '+'))
     {
     len += snprintf(cmd_args + len, sizeof(cmd_args) - len, "%.*s %s;",
-        p - p2, p2, last_arg);
+        (int)(p - p2), p2, last_arg);
     }
   strlcat(cmd_args, p2, sizeof(cmd_args));
   return 0;
