@@ -3,6 +3,8 @@ TG = tg.get_variable(pkgconfig: 'binary')
 PD = tg.get_variable(pkgconfig: 'pdscript')
 TFLAGS = ['-a', '4', '-p', '4']
 TARGET = 'comcom64'
+CMD = TARGET + '.exe'
+DBG = 'dosemu_' + CMD + '.dbg'
 
 CFILES = [
     'cmdbuf.c',
@@ -71,11 +73,23 @@ libcc64 = shared_library('comcom64', [CFILES],
   link_args: ['-Wl,-Bsymbolic', '-Wl,-rpath=/usr/local/i386-pc-dj64/lib64',
     '-Wl,-rpath=/usr/i386-pc-dj64/lib64'])
 
+objc = find_program('objcopy')
+dbg = custom_target(DBG,
+  output: DBG,
+  input: libcc64,
+  command: [objc, '--only-keep-debug', '@INPUT@', '@OUTPUT@'])
+
 strip = find_program('strip')
-cc64 = custom_target('lib.stripped',
+cc64s = custom_target('lib.stripped',
   output: '@PLAINNAME@.stripped',
   input: libcc64,
   command: [strip, '-o', '@OUTPUT0@', '@INPUT@'])
+
+cc64 = custom_target('lib.stripped.dl',
+#  output: '@PLAINNAME@.dl',
+  output: libcc64.name() + '.stripped.dl',
+  input: [cc64s, dbg],
+  command: [objc, '--add-gnu-debuglink=@INPUT1@', '@INPUT0@', '@OUTPUT@'])
 
 ASFILES = [ 'int23.S', 'int0.S', 'mouse.S', 'asm.S', sfiles ]
 lib = static_library('dummy', ASFILES,
@@ -96,11 +110,11 @@ elf_s = custom_target('elf.stripped',
   command: [strip, '--strip-debug', '-o', '@OUTPUT0@', '@INPUT@'])
 
 stubify = find_program('djstubify')
-ccexe = custom_target(TARGET + '.exe',
-  output: TARGET + '.exe',
-  input: [elf_s, cc64],
-  command: [stubify, '-l', cc64.full_path(), '-o', '@OUTPUT0@',
-    elf_s.full_path()],
+ccexe = custom_target(CMD,
+  output: CMD,
+  input: [elf_s, cc64, dbg],
+  command: [stubify, '-l', cc64.full_path(), '-l', dbg.full_path(), '-n', CMD,
+    '-o', '@OUTPUT0@', elf_s.full_path()],
   install: true,
   install_dir: get_option('datadir') / TARGET,
   install_mode: 'rw-r--r--')
