@@ -82,7 +82,6 @@
 #include "fmemcpy.h"
 #endif
 #include "asm.h"
-#include "version.h"
 #include "ms.h"
 #include "env.h"
 #include "psp.h"
@@ -3874,12 +3873,7 @@ static void perform_ver(const char *arg)
   "32"
 #endif
   " v%s, %.16s\n", version, _stubinfo->magic);
-#if 0
-  if (strlen(revisionid))
-    {
-    printf(" Source Control Revision ID: %s\n", revisionid);
-    }
-#endif
+  printf(" Source Control Revision ID: %s\n", REV_ID);
   if (is_r)
     {
     const int buffersize = 256;

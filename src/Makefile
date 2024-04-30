@@ -27,7 +27,7 @@ LINK_OPT = $(shell pkg-config --libs dj64) -shared -Wl,-Bsymbolic \
 DOSLDFLAGS = --whole-archive $(shell pkg-config --static --libs dj64static)
 CPPFLAGS = -I. $(shell pkg-config --cflags dj64)
 SRCS = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
-  version.c thunks_a.c thunks_c.c
+  thunks_a.c thunks_c.c
 OBJS = $(SRCS:.c=.o)
 ASSRCS = int23.S int0.S asm.S plt.S mouse.S
 ASOBJS = $(ASSRCS:.S=.o)
@@ -36,6 +36,7 @@ CMD = comcom64.exe
 ELF = comcom64.elf
 DBG = dosemu_$(CMD).dbg
 REVISIONID := $(shell git describe --dirty=+)
+C_OPT += -DREV_ID=\"$(REVISIONID)\"
 srcdir ?= .
 SRC = $(srcdir)
 TG = $(shell pkg-config --variable=binary thunk_gen)
@@ -56,13 +57,6 @@ all: $(CMD)
 clean:
 	$(RM) $(CMD) $(LIBCMD) $(ELF) *.dbg *.o version
 	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h
-
-.PHONY: force
-version: force
-	test -f "$@" || touch "$@"
-	echo '"$(REVISIONID)"' | cmp -s - "$@" || echo '"$(REVISIONID)"' > "$@"
-
-version.o: version
 
 $(OBJS): $(wildcard *.h)
 $(LIBCMD): $(OBJS)
