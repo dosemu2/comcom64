@@ -35,11 +35,9 @@ libdj = dependency('dj64')
 cpp = meson.get_compiler('c')
 sfiles = cpp.preprocess(['plt.S'],
   output: '@BASENAME@.s',
-#  include_directories: libdj.compile_args(),
-  include_directories:
-    [include_directories('/usr/local/i386-pc-dj64/include')],
   depends: plt_inc,
-  compile_args: ['-D__ASSEMBLER__', '-DDJ64'])
+  dependencies: libdj,
+  compile_args: ['-D__ASSEMBLER__'])
 
 env = environment()
 env.set('CPP', 'cpp')
@@ -68,7 +66,7 @@ r = run_command('git', 'describe', '--dirty=+', check: true)
 REVISIONID = r.stdout().strip()
 libcc64 = shared_library('comcom64', [CFILES],
   sources: [tc],
-  c_args: ['-DDJ64', '-DREV_ID="' + REVISIONID + '"'],
+  c_args: ['-DREV_ID="' + REVISIONID + '"'],
   dependencies: libdj,
   link_args: ['-Wl,-Bsymbolic', '-Wl,-rpath=/usr/local/i386-pc-dj64/lib64',
     '-Wl,-rpath=/usr/i386-pc-dj64/lib64'])
