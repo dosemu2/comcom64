@@ -69,7 +69,9 @@ libcc64 = shared_library('comcom64', [CFILES],
   c_args: ['-DREV_ID="' + REVISIONID + '"'],
   dependencies: libdj,
   link_args: ['-Wl,-Bsymbolic', '-Wl,-rpath=/usr/local/i386-pc-dj64/lib64',
-    '-Wl,-rpath=/usr/i386-pc-dj64/lib64'])
+    '-Wl,-rpath=/usr/i386-pc-dj64/lib64'],
+#  install_rpath: ['/usr/local/i386-pc-dj64/lib64', '/usr/i386-pc-dj64/lib64']
+)
 
 objc = find_program('objcopy')
 dbg = custom_target(DBG,
@@ -84,7 +86,7 @@ cc64s = custom_target('lib.stripped',
   command: [strip, '-o', '@OUTPUT0@', '@INPUT@'])
 
 cc64 = custom_target('lib.stripped.dl',
-#  output: '@PLAINNAME@.dl',
+#  output: '@PLAINNAME0@.dl',
   output: libcc64.name() + '.stripped.dl',
   input: [cc64s, dbg],
   command: [objc, '--add-gnu-debuglink=@INPUT1@', '@INPUT0@', '@OUTPUT@'])
