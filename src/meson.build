@@ -70,7 +70,7 @@ libcc64 = shared_library('comcom64', [CFILES],
   dependencies: libdj,
   link_args: ['-Wl,-Bsymbolic', '-Wl,-rpath=/usr/local/i386-pc-dj64/lib64',
     '-Wl,-rpath=/usr/i386-pc-dj64/lib64'],
-#  install_rpath: ['/usr/local/i386-pc-dj64/lib64', '/usr/i386-pc-dj64/lib64']
+#  build_rpath: ['/usr/local/i386-pc-dj64/lib64', '/usr/i386-pc-dj64/lib64']
 )
 
 objc = find_program('objcopy')
@@ -87,7 +87,7 @@ cc64s = custom_target('lib.stripped',
 
 cc64 = custom_target('lib.stripped.dl',
 #  output: '@PLAINNAME0@.dl',
-  output: libcc64.name() + '.stripped.dl',
+  output: 'lib' + libcc64.name() + '.stripped.dl',
   input: [cc64s, dbg],
   command: [objc, '--add-gnu-debuglink=@INPUT1@', '@INPUT0@', '@OUTPUT@'])
 
@@ -100,7 +100,7 @@ libdjs = dependency('dj64static', static: true)
 elf = custom_target(TARGET + '.elf',
   output: [TARGET + '.elf', TARGET + '.map'],
   input: [lib.extract_all_objects(recursive: true),
-#    libdjs.link_args()],
+#    libdjs.args(link_args: true)],
     '/usr/local/i386-pc-dj64/lib/libc.a'],
   command: [nasm_ld, '-melf_i386', '-static', '--whole-archive',
     '-Map=@OUTPUT1@', '-o', '@OUTPUT0@', '@INPUT@'])
