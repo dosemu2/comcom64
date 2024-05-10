@@ -103,6 +103,22 @@ int _crt0_startup_flags =
 //       _CRT0_FLAG_NO_LFN |                   // disable long file names
        _CRT0_FLAG_PRESERVE_FILENAME_CASE;    // keep DOS names non-lowercased
 
+#define SHM_NOEXEC 1
+#define SHM_EXCL   2
+#define SHM_NEW_NS 4
+#define SHM_NS     8
+
+#define SHM_FLAGS0 (SHM_NOEXEC | SHM_EXCL | SHM_NEW_NS)
+#define SHM_FLAGS1 (SHM_NOEXEC | SHM_EXCL | SHM_NS)
+#define SHM_FLAGS (SHM_FLAGS0 | (SHM_FLAGS1 << 8))
+#define __S(x) #x
+#define _S(x) __S(x)
+
+asm(
+    ".globl _shm_flags\n"
+    "_shm_flags = " _S(SHM_FLAGS) "\n"
+);
+
 static const char *version = "0.3";
 
 #define DP(s, o) (__dpmi_paddr){ .selector = s, .offset32 = o, }

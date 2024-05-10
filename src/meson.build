@@ -62,7 +62,7 @@ tc = custom_target('thunk_calls.h',
   feed: true,
   capture: true)
 
-r = run_command('git', 'describe', '--dirty=+', check: true)
+r = run_command(find_program('git'), 'describe', '--dirty=+', check: true)
 REVISIONID = r.stdout().strip()
 libcc64 = shared_library('comcom64', [CFILES],
   sources: [tc],
@@ -78,6 +78,14 @@ dbg = custom_target(DBG,
   output: DBG,
   input: libcc64,
   command: [objc, '--only-keep-debug', '@INPUT@', '@OUTPUT@'])
+
+od = find_program('objdump')
+# FIXME!
+FLG = run_command('sh', '-c', od.full_path() + ' -T ' + libcc64.full_path() +
+    ' | grep _shm_flags | sed -E "s/([^ ]+) .+/0x\\1/"',
+  check: true,
+  capture: true,
+).stdout()
 
 strip = find_program('strip')
 cc64s = custom_target('lib.stripped',
@@ -114,7 +122,7 @@ ccexe = custom_target(CMD,
   output: CMD,
   input: [elf_s, cc64, dbg],
   command: [stubify, '-l', cc64.full_path(), '-l', dbg.full_path(), '-n', CMD,
-    '-o', '@OUTPUT0@', elf_s.full_path()],
+    '-f', FLG, '-o', '@OUTPUT0@', elf_s.full_path()],
   install: true,
   install_dir: get_option('datadir') / TARGET,
   install_mode: 'rw-r--r--')
