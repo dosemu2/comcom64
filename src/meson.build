@@ -114,14 +114,12 @@ od = find_program('objdump')
 ccexe = custom_target(CMD,
   output: CMD,
   input: [elf_s, cc64, dbg],
-  command: [meson.current_source_dir() / 'link.sh',
-    stubify.full_path(), od.full_path(), elf_s.full_path(),
-    libcc64.full_path(), dbg.full_path(), '@OUTPUT0@', CMD ],
+  command: [find_program('link.sh'),
+    stubify, od, elf_s, libcc64, dbg, '@OUTPUT0@', CMD ],
   install: true,
   install_dir: get_option('datadir') / TARGET,
   install_mode: 'rw-r--r--')
 
-fs_mod = import('fs')
 install_symlink('command.com',
-  pointing_to: fs_mod.name(ccexe.full_path()),
+  pointing_to: CMD,
   install_dir: get_option('datadir') / TARGET)
