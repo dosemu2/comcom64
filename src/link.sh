@@ -13,6 +13,6 @@ shift
 N=$1
 shift
 FLG=$($OD -T $L | grep _shm_flags | sed -E 's/([^ ]+) .+/0x\1/')
-CMD="$LNK -l $L -l $D -n $N -f $FLG -o $O $E"
+CMD="$LNK -d $D $L -n $N -f $FLG -o $O $E"
 echo $CMD
 $CMD

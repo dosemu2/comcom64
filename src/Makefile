@@ -14,7 +14,6 @@ endif
 HOST_CC = dj64-gcc
 HOST_LD = gcc
 HOST_AS = gcc -E -x assembler-with-cpp $< | $(CROSS_PREFIX)as --32
-HOST_STRIP ?= strip
 DOS_LD = $(CROSS_PREFIX)ld -melf_i386 -static
 DOS_STRIP = $(CROSS_PREFIX)strip --strip-debug
 PREFIX ?= /usr/local
@@ -24,10 +23,12 @@ C_OPT = -Wall -Og -Wmissing-declarations -Wwrite-strings -fpic \
 LINK_OPT = $(shell pkg-config --libs dj64) -shared -Wl,-Bsymbolic \
   -Wl,-rpath=/usr/local/i386-pc-dj64/lib64 \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
-DOSLDFLAGS = --whole-archive $(shell pkg-config --static --libs dj64static)
+DOSLDFLAGS = $(shell pkg-config --static --libs dj64static)
 CPPFLAGS = -I. $(shell pkg-config --cflags dj64)
 SRCS = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
   thunks_a.c thunks_c.c
+HDRS = ae0x.h cmdbuf.h compl.h psp.h command.h env.h ms.h umb.h \
+  glob_asm.h asm.h
 OBJS = $(SRCS:.c=.o)
 ASSRCS = int23.S int0.S asm.S plt.S mouse.S
 ASOBJS = $(ASSRCS:.S=.o)
@@ -58,19 +59,16 @@ clean:
 	$(RM) $(CMD) $(LIBCMD) $(ELF) *.dbg *.o version
 	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h
 
-$(OBJS): $(wildcard *.h)
+$(OBJS): $(HDRS)
 $(LIBCMD): $(OBJS)
 	$(HOST_LD) $^ $(LINK_OPT) -o $@
-	objcopy --only-keep-debug $@ $(DBG) || $(RM) $@
-	$(HOST_STRIP) $@ || $(RM) $@
-	objcopy --add-gnu-debuglink=$(DBG) $@ || $(RM) $@
 
 $(ELF): $(ASOBJS)
 	$(DOS_LD) $^ $(DOSLDFLAGS) -o $@
 	$(DOS_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ELF)
-	./link.sh djstubify objdump $(ELF) $(LIBCMD) $(DBG) $@ $(CMD)
+	./link.sh djlink objdump $(ELF) $(LIBCMD) $(DBG) $@ $(CMD)
 
 #.INTERMEDIATE: $(LIBCMD)
 

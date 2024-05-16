@@ -73,24 +73,6 @@ libcc64 = shared_library('comcom64', [CFILES],
 #  build_rpath: ['/usr/local/i386-pc-dj64/lib64', '/usr/i386-pc-dj64/lib64']
 )
 
-objc = find_program('objcopy')
-dbg = custom_target(DBG,
-  output: DBG,
-  input: libcc64,
-  command: [objc, '--only-keep-debug', '@INPUT@', '@OUTPUT@'])
-
-strip = find_program('strip')
-cc64s = custom_target('lib.stripped',
-  output: '@PLAINNAME@.stripped',
-  input: libcc64,
-  command: [strip, '-o', '@OUTPUT0@', '@INPUT@'])
-
-cc64 = custom_target('lib.stripped.dl',
-#  output: '@PLAINNAME0@.dl',
-  output: 'lib' + libcc64.name() + '.stripped.dl',
-  input: [cc64s, dbg],
-  command: [objc, '--add-gnu-debuglink=@INPUT1@', '@INPUT0@', '@OUTPUT@'])
-
 ASFILES = [ 'int23.S', 'int0.S', 'mouse.S', 'asm.S', sfiles ]
 lib = static_library('dummy', ASFILES,
   build_by_default: false)
@@ -107,15 +89,16 @@ elf = custom_target(TARGET + '.elf',
 elf_s = custom_target('elf.stripped',
   output: '@PLAINNAME@.stripped',
   input: elf[0],
-  command: [strip, '--strip-debug', '-o', '@OUTPUT0@', '@INPUT@'])
+  command: [find_program('strip'),
+    '--strip-debug', '-o', '@OUTPUT0@', '@INPUT@'])
 
-stubify = find_program('djstubify')
+link = find_program('djlink')
 od = find_program('objdump')
 ccexe = custom_target(CMD,
   output: CMD,
-  input: [elf_s, cc64, dbg],
+  input: [elf_s, libcc64],
   command: [find_program('link.sh'),
-    stubify, od, elf_s, libcc64, dbg, '@OUTPUT0@', CMD ],
+    link, od, elf_s, libcc64, DBG, '@OUTPUT0@', CMD ],
   install: true,
   install_dir: get_option('datadir') / TARGET,
   install_mode: 'rw-r--r--')
