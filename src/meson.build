@@ -77,7 +77,8 @@ ASFILES = [ 'int23.S', 'int0.S', 'mouse.S', 'asm.S', sfiles ]
 lib = static_library('dummy', ASFILES,
   build_by_default: false)
 
-nasm_ld = find_program(['i686-linux-gnu-ld', 'i386-elf-ld', 'x86_64-linux-gnu-ld', 'ld'])
+nasm_ld = find_program(['i686-linux-gnu-ld', 'i386-elf-ld',
+  'x86_64-linux-gnu-ld', 'ld'], native: true)
 libdjs = dependency('dj64static', static: true)
 elf = custom_target(TARGET + '.elf',
   output: [TARGET + '.elf', TARGET + '.map'],
@@ -86,10 +87,13 @@ elf = custom_target(TARGET + '.elf',
     '/usr/local/i386-pc-dj64/lib/libc.a'],
   command: [nasm_ld, '-melf_i386', '-static', '--whole-archive',
     '-Map=@OUTPUT1@', '-o', '@OUTPUT0@', '@INPUT@'])
+
+strip = find_program(['i686-linux-gnu-strip', 'i386-elf-strip',
+  'x86_64-linux-gnu-strip', 'strip'], native: true)
 elf_s = custom_target('elf.stripped',
   output: '@PLAINNAME@.stripped',
   input: elf[0],
-  command: [find_program('strip'),
+  command: [strip,
     '--strip-debug', '-o', '@OUTPUT0@', '@INPUT@'])
 
 link = find_program('djlink')
