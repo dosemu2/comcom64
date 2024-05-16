@@ -35,7 +35,6 @@ LIBCMD = libcomcom64.so
 CMD = comcom64.exe
 ELF = comcom64.elf
 DBG = dosemu_$(CMD).dbg
-FLG = $(shell objdump -T $(LIBCMD) | grep _shm_flags | sed -E 's/([^ ]+) .+/0x\1/')
 REVISIONID := $(shell git describe --dirty=+)
 C_OPT += -DREV_ID=\"$(REVISIONID)\"
 srcdir ?= .
@@ -71,7 +70,7 @@ $(ELF): $(ASOBJS)
 	$(DOS_STRIP) $@
 
 $(CMD): $(LIBCMD) $(ELF)
-	djstubify -l $< -l $(DBG) -n $(CMD) -f $(FLG) -o $@ $(ELF)
+	./link.sh djstubify objdump $(ELF) $(LIBCMD) $(DBG) $@ $(CMD)
 
 #.INTERMEDIATE: $(LIBCMD)
 

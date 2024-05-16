@@ -79,14 +79,6 @@ dbg = custom_target(DBG,
   input: libcc64,
   command: [objc, '--only-keep-debug', '@INPUT@', '@OUTPUT@'])
 
-od = find_program('objdump')
-# FIXME!
-FLG = run_command('sh', '-c', od.full_path() + ' -T ' + libcc64.full_path() +
-    ' | grep _shm_flags | sed -E "s/([^ ]+) .+/0x\\1/"',
-  check: true,
-  capture: true,
-).stdout()
-
 strip = find_program('strip')
 cc64s = custom_target('lib.stripped',
   output: '@PLAINNAME@.stripped',
@@ -118,11 +110,13 @@ elf_s = custom_target('elf.stripped',
   command: [strip, '--strip-debug', '-o', '@OUTPUT0@', '@INPUT@'])
 
 stubify = find_program('djstubify')
+od = find_program('objdump')
 ccexe = custom_target(CMD,
   output: CMD,
   input: [elf_s, cc64, dbg],
-  command: [stubify, '-l', cc64.full_path(), '-l', dbg.full_path(), '-n', CMD,
-    '-f', FLG, '-o', '@OUTPUT0@', elf_s.full_path()],
+  command: [meson.current_source_dir() / 'link.sh',
+    stubify.full_path(), od.full_path(), elf_s.full_path(),
+    libcc64.full_path(), dbg.full_path(), '@OUTPUT0@', CMD ],
   install: true,
   install_dir: get_option('datadir') / TARGET,
   install_mode: 'rw-r--r--')
