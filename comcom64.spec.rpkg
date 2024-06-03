@@ -17,13 +17,13 @@ Source0: {{{ git_dir_archive }}}
 BuildRequires: make
 BuildRequires: pkgconf-pkg-config
 BuildRequires: djstub
-BuildRequires: dj64-devel
+BuildRequires: dj64dev-dj64-devel
 BuildRequires: thunk-gen
 BuildRequires: binutils-x86_64-linux-gnu
 BuildRequires: git
 BuildRequires: grep
 
-Requires: dj64
+Requires: dj64dev-dj64
 
 %description
 comcom64 is a 64-bit command.com.
