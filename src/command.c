@@ -3889,7 +3889,8 @@ static void perform_ver(const char *arg)
   "32"
 #endif
   " v%s, %.16s\n", version, _stubinfo->magic);
-  printf(" Source Control Revision ID: %s\n", REV_ID);
+  if (REV_ID[0])
+    printf(" Source Control Revision ID: %s\n", REV_ID);
   if (is_r)
     {
     const int buffersize = 256;
