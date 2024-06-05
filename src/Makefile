@@ -18,13 +18,13 @@ DOS_LD = $(CROSS_PREFIX)ld -melf_i386 -static
 DOS_STRIP = $(CROSS_PREFIX)strip --strip-debug
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
-C_OPT = -Wall -Og -Wmissing-declarations -Wwrite-strings -fpic \
+C_OPT = -Wall -Og -Wmissing-declarations -Wwrite-strings \
   -ggdb3 -I. -Wunused -Wmissing-prototypes
-LINK_OPT = $(shell pkg-config --libs dj64) -shared -Wl,-Bsymbolic \
+LINK_OPT = $(shell pkg-config --libs dj64) \
   -Wl,-rpath=/usr/local/i386-pc-dj64/lib64 \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
 DOSLDFLAGS = $(shell pkg-config --static --libs dj64static)
-CPPFLAGS = -I. $(shell pkg-config --cflags dj64)
+CPPFLAGS = -I. $(shell pkg-config --variable=cppflags dj64)
 SRCS = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
   thunks_a.c thunks_c.c
 HDRS = ae0x.h cmdbuf.h compl.h psp.h command.h env.h ms.h umb.h \
