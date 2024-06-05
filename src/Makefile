@@ -40,16 +40,6 @@ REVISIONID := $(shell git describe --dirty=+)
 C_OPT += -DREV_ID=\"$(REVISIONID)\"
 srcdir ?= .
 SRC = $(srcdir)
-TG = $(shell pkg-config --variable=binary thunk_gen)
-ifeq ($(TG),)
-ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error thunk_gen not installed)
-endif
-endif
-TGS = $(shell pkg-config --variable=tgscript thunk_gen)
-PDS = $(shell pkg-config --variable=pdscript thunk_gen)
-TGM4 = $(shell pkg-config --variable=m4script thunk_gen)
-TFLAGS = -a 4 -p 4
 
 .PHONY: all clean install uninstall
 
@@ -87,20 +77,15 @@ plt.asm: $(srcdir)/plt.S plt.inc $(SRC)/glob_asm.h
 
 thunks_c.o: thunk_calls.h
 
-GEN_TMP = thunk_calls.tmp thunk_asms.tmp plt.inc plt_asmc.h plt_asmp.h
-_pos = $(if $(findstring $1,$2),$(call _pos,$1,\
-       $(wordlist 2,$(words $2),$2),x $3),$3)
-pos = $(words $(call _pos,$1,$2))
-pars = $(PDS) $(call pos,$@,$(GEN_TMP)) $< >$@ || ($(RM) $@ ; false)
-$(filter %.tmp,$(GEN_TMP)): $(SRC)/asm.h
-	$(pars)
-plt.inc: thunk_calls.tmp
-	$(pars)
-plt_asmc.h plt_asmp.h: thunk_asms.tmp
-	$(pars)
-
-thunk_calls.h: thunk_calls.tmp
-	$(TG) $(TFLAGS) <$< >$@ || ($(RM) $@ ; false)
+TGMK = $(shell pkg-config --variable=makeinc thunk_gen)
+ifeq ($(TGMK),)
+ifeq ($(filter clean,$(MAKECMDGOALS)),)
+$(error thunk_gen not installed)
+endif
+endif
+TFLAGS = -a 4 -p 4
+PDHDR = $(SRC)/asm.h
+include $(TGMK)
 
 ifeq (,$(wildcard $(CMD)))
 install:
