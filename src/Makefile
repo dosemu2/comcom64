@@ -14,7 +14,7 @@ endif
 HOST_CC = dj64-gcc
 HOST_LD = gcc
 HOST_AS = gcc -E -x assembler-with-cpp $< | $(CROSS_PREFIX)as --32
-DOS_LD = $(CROSS_PREFIX)ld -melf_i386 -static
+DOS_LD = $(CROSS_PREFIX)ld
 DOS_STRIP = $(CROSS_PREFIX)strip --strip-debug
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
@@ -23,7 +23,7 @@ C_OPT = -Wall -Og -Wmissing-declarations -Wwrite-strings \
 LINK_OPT = $(shell pkg-config --libs dj64) \
   -Wl,-rpath=/usr/local/i386-pc-dj64/lib64 \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
-DOSLDFLAGS = $(shell pkg-config --static --libs dj64static)
+DOSLDFLAGS = $(shell pkg-config --static --libs dj64static) -melf_i386 -static
 CPPFLAGS = -I. $(shell pkg-config --variable=cppflags dj64)
 SRCS = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
   thunks_a.c thunks_c.c
