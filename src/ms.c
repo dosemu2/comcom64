@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <conio.h>
+#include <stdlib.h>
 #include <dpmi.h>
 #include <sys/nearptr.h>
 #include <sys/farptr.h>
@@ -28,12 +29,10 @@
 #define CF 1
 
 #ifdef DJ64
-static unsigned mouse_regs;
+static unsigned int mouse_regs;
 #else
 static __dpmi_regs *mouse_regs;
-#define djaddr2ptr(a) ((unsigned char *)((a) - __djgpp_base_address))
 #endif
-static __dpmi_meminfo mregs = {.size = sizeof(__dpmi_regs) };
 
 static __dpmi_raddr newm;
 static __dpmi_raddr oldm;
@@ -137,10 +136,11 @@ void do_mouse(void)
     unsigned char col, row;
     int dragged;
 
-#ifndef DJ64
-    __djgpp_nearptr_enable();
+#ifdef DJ64
+    r = (__dpmi_regs *) DATA_PTR(mouse_regs);
+#else
+    r = mouse_regs;
 #endif
-    r = (__dpmi_regs *) djaddr2ptr(mregs.address);
     do_retf(r);
 
     col = r->x.cx / 8 + 1;
@@ -159,10 +159,6 @@ void do_mouse(void)
 
     prev_col = r->x.cx / 8 + 1;
     prev_row = r->x.dx / 8 + 1;
-
-#ifndef DJ64
-    __djgpp_nearptr_disable();
-#endif
 }
 
 int mouse_init(void)
@@ -182,11 +178,10 @@ int mouse_init(void)
 //    return 0;
     }
 
-    __dpmi_allocate_memory(&mregs);
 #ifdef DJ64
-    mouse_regs = mregs.address - __djgpp_base_address;
+    mouse_regs = malloc32(sizeof(__dpmi_regs));
 #else
-    mouse_regs = (__dpmi_regs *) djaddr2ptr(mregs.address);
+    mouse_regs = (__dpmi_regs *) malloc(sizeof(__dpmi_regs));
 #endif
     __dpmi_allocate_real_mode_callback(my_mouse_handler, mouse_regs,
 				       &newm);
@@ -239,7 +234,11 @@ void mouse_done(void)
 {
     mouse_disable();
     __dpmi_free_real_mode_callback(&newm);
-    __dpmi_free_memory(mregs.handle);
+#ifdef DJ64
+    free32(mouse_regs);
+#else
+    free(mouse_regs);
+#endif
 }
 
 void mouse_show(void)
