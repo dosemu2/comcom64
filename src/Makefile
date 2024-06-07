@@ -12,14 +12,13 @@ endif
 endif
 XAS = gcc -E -x assembler-with-cpp $< | $(GAS) --32
 
-CC = dj64-gcc
 LD = gcc
 XLD = $(CROSS_PREFIX)ld
 XSTRIP = $(CROSS_PREFIX)strip --strip-debug
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
 CFLAGS = -Wall -Og -Wmissing-declarations -Wwrite-strings \
-  -ggdb3 -I. -Wunused -Wmissing-prototypes
+  -ggdb3 -Wunused -Wmissing-prototypes
 LDFLAGS = $(shell pkg-config --libs dj64) \
   -Wl,-rpath=/usr/local/i386-pc-dj64/lib64 \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
@@ -64,7 +63,7 @@ $(CMD): $(LIB) $(ELF)
 
 # Common rules
 %.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+	dj64-gcc $(CFLAGS) -I. -o $@ -c $<
 
 %.o: %.S
 	$(XAS) -o $@
