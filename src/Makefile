@@ -10,20 +10,20 @@ else
 $(error cross-binutils not installed)
 endif
 endif
+XAS = gcc -E -x assembler-with-cpp $< | $(GAS) --32
 
-HOST_CC = dj64-gcc
-HOST_LD = gcc
-HOST_AS = gcc -E -x assembler-with-cpp $< | $(GAS) --32
-DOS_LD = $(CROSS_PREFIX)ld
-DOS_STRIP = $(CROSS_PREFIX)strip --strip-debug
+CC = dj64-gcc
+LD = gcc
+XLD = $(CROSS_PREFIX)ld
+XSTRIP = $(CROSS_PREFIX)strip --strip-debug
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
-C_OPT = -Wall -Og -Wmissing-declarations -Wwrite-strings \
+CFLAGS = -Wall -Og -Wmissing-declarations -Wwrite-strings \
   -ggdb3 -I. -Wunused -Wmissing-prototypes
-LINK_OPT = $(shell pkg-config --libs dj64) \
+LDFLAGS = $(shell pkg-config --libs dj64) \
   -Wl,-rpath=/usr/local/i386-pc-dj64/lib64 \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
-DOSLDFLAGS = $(shell pkg-config --static --libs dj64static) -melf_i386 -static
+XLDFLAGS = $(shell pkg-config --static --libs dj64static) -melf_i386 -static
 CPPFLAGS = -I. $(shell pkg-config --variable=cppflags dj64)
 SRCS = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
   thunks_a.c thunks_c.c
@@ -37,7 +37,7 @@ CMD = comcom64.exe
 ELF = comcom64.elf
 DBG = dosemu_$(CMD).dbg
 REVISIONID := $(shell git describe --dirty=+)
-C_OPT += -DREV_ID=\"$(REVISIONID)\"
+CFLAGS += -DREV_ID=\"$(REVISIONID)\"
 srcdir ?= .
 SRC = $(srcdir)
 
@@ -51,11 +51,11 @@ clean:
 
 $(OBJS): $(HDRS)
 $(LIBCMD): $(OBJS)
-	$(HOST_LD) $^ $(LINK_OPT) -o $@
+	$(LD) $^ $(LDFLAGS) -o $@
 
 $(ELF): $(ASOBJS) plt.o
-	$(DOS_LD) $^ $(DOSLDFLAGS) -o $@
-	$(DOS_STRIP) $@
+	$(XLD) $^ $(XLDFLAGS) -o $@
+	$(XSTRIP) $@
 
 $(CMD): $(LIBCMD) $(ELF)
 	./link.sh djlink objdump $(ELF) $(LIBCMD) $(DBG) $@ $(CMD)
@@ -64,13 +64,13 @@ $(CMD): $(LIBCMD) $(ELF)
 
 # Common rules
 %.o: %.c
-	$(HOST_CC) $(C_OPT) -o $@ -c $<
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 %.o: %.S
-	$(HOST_AS) -o $@
+	$(XAS) -o $@
 
 %.o: %.asm
-	$(HOST_AS) -o $@
+	$(XAS) -o $@
 
 plt.asm: $(srcdir)/plt.s plt.inc $(SRC)/glob_asm.h
 	$(CPP) $(CPPFLAGS) -x assembler-with-cpp -P $< >$@ || ($(RM) $@ ; false)
