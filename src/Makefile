@@ -25,14 +25,14 @@ LDFLAGS = $(shell pkg-config --libs dj64) \
   -Wl,-rpath=/usr/i386-pc-dj64/lib64
 XLDFLAGS = $(shell pkg-config --static --libs dj64static) -melf_i386 -static
 CPPFLAGS = -I. $(shell pkg-config --variable=cppflags dj64)
-SRCS = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
+SOURCES = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
   thunks_a.c thunks_c.c
-HDRS = ae0x.h cmdbuf.h compl.h psp.h command.h env.h ms.h umb.h \
+HEADERS = ae0x.h cmdbuf.h compl.h psp.h command.h env.h ms.h umb.h \
   glob_asm.h asm.h
-OBJS = $(SRCS:.c=.o)
-ASSRCS = int23.S int0.S asm.S mouse.S
-ASOBJS = $(ASSRCS:.S=.o)
-LIBCMD = libcomcom64.so
+OBJECTS = $(SOURCES:.c=.o)
+AS_SOURCES = int23.S int0.S asm.S mouse.S
+AS_OBJECTS = $(AS_SOURCES:.S=.o)
+LIB = libcomcom64.so
 CMD = comcom64.exe
 ELF = comcom64.elf
 DBG = dosemu_$(CMD).dbg
@@ -46,21 +46,21 @@ SRC = $(srcdir)
 all: $(CMD)
 
 clean:
-	$(RM) $(CMD) $(LIBCMD) $(ELF) *.dbg *.o version
+	$(RM) $(CMD) $(LIB) $(ELF) *.dbg *.o version
 	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h
 
-$(OBJS): $(HDRS)
-$(LIBCMD): $(OBJS)
+$(OBJECTS): $(HEADERS)
+$(LIB): $(OBJECTS)
 	$(LD) $^ $(LDFLAGS) -o $@
 
-$(ELF): $(ASOBJS) plt.o
+$(ELF): $(AS_OBJECTS) plt.o
 	$(XLD) $^ $(XLDFLAGS) -o $@
 	$(XSTRIP) $@
 
-$(CMD): $(LIBCMD) $(ELF)
-	./link.sh djlink objdump $(ELF) $(LIBCMD) $(DBG) $@ $(CMD)
+$(CMD): $(LIB) $(ELF)
+	./link.sh djlink objdump $(ELF) $(LIB) $(DBG) $@ $(CMD)
 
-#.INTERMEDIATE: $(LIBCMD)
+#.INTERMEDIATE: $(LIB)
 
 # Common rules
 %.o: %.c
