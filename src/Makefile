@@ -37,8 +37,6 @@ ELF = comcom64.elf
 DBG = dosemu_$(CMD).dbg
 REVISIONID := $(shell git describe --dirty=+)
 CFLAGS += -DREV_ID=\"$(REVISIONID)\"
-srcdir ?= .
-SRC = $(srcdir)
 
 .PHONY: all clean install uninstall
 
@@ -71,7 +69,7 @@ $(CMD): $(LIB) $(ELF)
 %.o: %.s
 	$(XAS) -o $@
 
-plt.o: $(srcdir)/plt.s plt.inc $(SRC)/glob_asm.h
+plt.o: plt.s plt.inc glob_asm.h
 
 thunks_c.o: thunk_calls.h
 
@@ -82,7 +80,7 @@ $(error thunk_gen not installed)
 endif
 endif
 TFLAGS = -a 4 -p 4
-PDHDR = $(SRC)/asm.h
+PDHDR = asm.h
 include $(TGMK)
 
 ifeq (,$(wildcard $(CMD)))
