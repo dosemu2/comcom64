@@ -10,7 +10,7 @@ else
 $(error cross-binutils not installed)
 endif
 endif
-XAS = gcc -E -x assembler-with-cpp $< | $(GAS) --32
+XAS = $(CPP) $(CPPFLAGS) -x assembler-with-cpp $< | $(GAS) --32
 
 LD = gcc
 XLD = $(CROSS_PREFIX)ld
@@ -46,7 +46,7 @@ all: $(CMD)
 
 clean:
 	$(RM) $(CMD) $(LIB) $(ELF) *.dbg *.o version
-	$(RM) *.asm plt.inc *.tmp thunk_calls.h thunk_asms.h
+	$(RM) plt.inc *.tmp thunk_calls.h thunk_asms.h
 
 $(OBJECTS): $(HEADERS)
 $(LIB): $(OBJECTS)
@@ -68,11 +68,10 @@ $(CMD): $(LIB) $(ELF)
 %.o: %.S
 	$(XAS) -o $@
 
-%.o: %.asm
+%.o: %.s
 	$(XAS) -o $@
 
-plt.asm: $(srcdir)/plt.s plt.inc $(SRC)/glob_asm.h
-	$(CPP) $(CPPFLAGS) -x assembler-with-cpp -P $< >$@ || ($(RM) $@ ; false)
+plt.o: $(srcdir)/plt.s plt.inc $(SRC)/glob_asm.h
 
 thunks_c.o: thunk_calls.h
 
