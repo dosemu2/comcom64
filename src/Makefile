@@ -30,7 +30,7 @@ SRCS = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
 HDRS = ae0x.h cmdbuf.h compl.h psp.h command.h env.h ms.h umb.h \
   glob_asm.h asm.h
 OBJS = $(SRCS:.c=.o)
-ASSRCS = int23.S int0.S asm.S plt.S mouse.S
+ASSRCS = int23.S int0.S asm.S mouse.S
 ASOBJS = $(ASSRCS:.S=.o)
 LIBCMD = libcomcom64.so
 CMD = comcom64.exe
@@ -53,7 +53,7 @@ $(OBJS): $(HDRS)
 $(LIBCMD): $(OBJS)
 	$(HOST_LD) $^ $(LINK_OPT) -o $@
 
-$(ELF): $(ASOBJS)
+$(ELF): $(ASOBJS) plt.o
 	$(DOS_LD) $^ $(DOSLDFLAGS) -o $@
 	$(DOS_STRIP) $@
 
@@ -63,17 +63,17 @@ $(CMD): $(LIBCMD) $(ELF)
 #.INTERMEDIATE: $(LIBCMD)
 
 # Common rules
-%.o : %.c
+%.o: %.c
 	$(HOST_CC) $(C_OPT) -o $@ -c $<
 
-%.o : %.S
+%.o: %.S
 	$(HOST_AS) -o $@
 
-plt.o: plt.asm
+%.o: %.asm
 	$(HOST_AS) -o $@
 
-plt.asm: $(srcdir)/plt.S plt.inc $(SRC)/glob_asm.h
-	$(CPP) $(CPPFLAGS) -P $< >$@ || ($(RM) $@ ; false)
+plt.asm: $(srcdir)/plt.s plt.inc $(SRC)/glob_asm.h
+	$(CPP) $(CPPFLAGS) -x assembler-with-cpp -P $< >$@ || ($(RM) $@ ; false)
 
 thunks_c.o: thunk_calls.h
 
