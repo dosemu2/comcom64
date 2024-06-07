@@ -1,9 +1,9 @@
-AS = $(CROSS_PREFIX)as
+GAS = $(CROSS_PREFIX)as
 CROSS_PREFIX := i686-linux-gnu-
-ifeq ($(shell $(AS) --version 2>/dev/null),)
+ifeq ($(shell $(GAS) --version 2>/dev/null),)
 CROSS_PREFIX := x86_64-linux-gnu-
 endif
-ifeq ($(shell $(AS) --version 2>/dev/null),)
+ifeq ($(shell $(GAS) --version 2>/dev/null),)
 ifeq ($(shell uname -m),x86_64)
 CROSS_PREFIX :=
 else
@@ -13,7 +13,7 @@ endif
 
 HOST_CC = dj64-gcc
 HOST_LD = gcc
-HOST_AS = gcc -E -x assembler-with-cpp $< | $(CROSS_PREFIX)as --32
+HOST_AS = gcc -E -x assembler-with-cpp $< | $(GAS) --32
 DOS_LD = $(CROSS_PREFIX)ld
 DOS_STRIP = $(CROSS_PREFIX)strip --strip-debug
 PREFIX ?= /usr/local
