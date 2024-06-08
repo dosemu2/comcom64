@@ -3118,6 +3118,10 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     if (mouse_en && mouseopt_enabled)
       mouse_enable();
 
+    /* re-read history in case it was altered by another comcom instance */
+    if (shell_mode != SHELL_SINGLE_CMD)
+      cmdbuf_init();
+
     sprintf(el, "%d", error_level);
     setenv("ERRORLEVEL", el, 1);
     }
@@ -4583,6 +4587,7 @@ int main(int argc, const char *argv[], const char *envp[])
         if (!inited)
           {
           inited++;
+          /* this depends on TEMP var being set, so is done that late */
           cmdbuf_init();
           }
         set_env_seg();
