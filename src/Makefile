@@ -43,6 +43,7 @@ ifeq ($(DJMK),)
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error dj64 not installed)
 endif
+clean_dj64:
 else
 include $(DJMK)
 endif
