@@ -23,6 +23,7 @@ clean: clean_dj64
 	$(RM) $(CMD)
 
 $(OBJECTS): $(HEADERS)
+$(AS_OBJECTS): asm.h asm.inc
 
 ifeq (,$(wildcard $(CMD)))
 install:

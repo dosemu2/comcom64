@@ -30,7 +30,7 @@ endif
 clean:
 	$(RM) $(CMD) *.o version
 
-$(OBJS): $(wildcard *.h)
+$(OBJS): $(wildcard $(SRCDIR)/*.h) $(SRCDIR)/asm.inc
 $(CMD): $(OBJS)
 	$(DOS_LD) $^ $(LINK_OPT) -o $(CMD)
 	$(DOS_STRIP) $(CMD)
