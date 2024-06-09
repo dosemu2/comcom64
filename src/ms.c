@@ -20,7 +20,6 @@
 #include <conio.h>
 #include <stdlib.h>
 #include <dpmi.h>
-#include <sys/nearptr.h>
 #include <sys/farptr.h>
 #include <go32.h>
 #include "asm.h"
