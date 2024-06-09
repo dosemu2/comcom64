@@ -34,7 +34,7 @@ _my_int23_handler:
 1:
     popa
     stc
-    lret
+    retfl
 
 #ifdef __ELF__
 .section .note.GNU-stack,"",%progbits
