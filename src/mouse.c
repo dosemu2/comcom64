@@ -23,7 +23,7 @@
 #include <sys/farptr.h>
 #include <go32.h>
 #include "asm.h"
-#include "ms.h"
+#include "mouse.h"
 
 #define CF 1
 

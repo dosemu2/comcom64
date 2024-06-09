@@ -82,7 +82,7 @@
 #include "fmemcpy.h"
 #endif
 #include "asm.h"
-#include "ms.h"
+#include "mouse.h"
 #include "env.h"
 #include "psp.h"
 #include "umb.h"

@@ -2,13 +2,13 @@ PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
 CFLAGS = -Wall -Og -Wmissing-declarations -Wwrite-strings \
   -ggdb3 -Wunused -Wmissing-prototypes
-SOURCES = command.c cmdbuf.c ms.c env.c psp.c umb.c ae0x.c compl.c \
+SOURCES = command.c cmdbuf.c mouse.c env.c psp.c umb.c ae0x.c compl.c \
   thunks_a.c thunks_c.c
-HEADERS = ae0x.h cmdbuf.h compl.h psp.h command.h env.h ms.h umb.h \
+HEADERS = ae0x.h cmdbuf.h compl.h psp.h command.h env.h mouse.h umb.h \
   glob_asm.h asm.h
 PDHDR = asm.h
 OBJECTS = $(SOURCES:.c=.o)
-AS_SOURCES = int23.S int0.S asm.S mouse.S
+AS_SOURCES = int23.S int0.S asm.S ms.S
 AS_OBJECTS = $(AS_SOURCES:.S=.o)
 CMD = comcom64.exe
 DBG = dosemu_$(CMD).dbg
