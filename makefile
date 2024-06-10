@@ -34,3 +34,6 @@ deb:
 
 32:
 	$(MAKE) -C 32
+
+static:
+	$(MAKE) -C src DJ64STATIC=1
