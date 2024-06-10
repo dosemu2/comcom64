@@ -1,6 +1,6 @@
 PREFIX ?= /usr/local
 DATADIR ?= $(PREFIX)/share/comcom64
-CFLAGS = -Wall -Og -Wmissing-declarations -Wwrite-strings \
+CFLAGS = -Wall -Os -Wmissing-declarations -Wwrite-strings \
   -ggdb3 -Wunused -Wmissing-prototypes
 SOURCES = command.c cmdbuf.c mouse.c env.c psp.c umb.c ae0x.c compl.c \
   thunks_a.c thunks_c.c
