@@ -97,12 +97,11 @@ elf_s = custom_target('elf.stripped',
     '--strip-debug', '-o', '@OUTPUT0@', '@INPUT@'])
 
 link = find_program('djlink')
-od = find_program('objdump')
 ccexe = custom_target(CMD,
   output: CMD,
   input: [elf_s, libcc64],
   command: [find_program('link.sh'),
-    link, od, elf_s, libcc64, DBG, '@OUTPUT0@', CMD ],
+    link, elf_s, libcc64, DBG, '@OUTPUT0@', CMD ],
   install: true,
   install_dir: get_option('datadir') / TARGET,
   install_mode: 'rw-r--r--')

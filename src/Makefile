@@ -53,5 +53,5 @@ include $(DJMK)
 endif
 
 $(CMD): $(DJ64_XOBJS)
-	./link.sh djlink objdump $(DJ64_XELF) $(DJ64_XLIB) $(DBG) $@ $(CMD) \
+	./link.sh djlink $(DJ64_XELF) $(DJ64_XLIB) $(DBG) $@ $(CMD) \
 	  $(DJ64_XLDFLAGS)
