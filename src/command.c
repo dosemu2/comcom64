@@ -2477,7 +2477,7 @@ static void perform_deltree(const char *arg)
   }
 
 static void perform_dir(const char *arg)
-  {
+{
   long ffhandle;
   int ffrc;
   int wide_column_countdown = -1;
@@ -2641,8 +2641,10 @@ static void perform_dir(const char *arg)
       printf("%15lli MB free\n", avail / 1024 / 1024);
     else
       printf("%15.1f GB free\n", avail / 1024.0 / 1024.0 / 1024.0);
-    }
+  } else {
+    printf("statfs() failed\n");
   }
+}
 
 static void perform_echo(const char *arg)
   {
