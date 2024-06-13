@@ -13,9 +13,6 @@ AS_OBJECTS = $(AS_SOURCES:.S=.o)
 CMD = comcom64.exe
 DBG = dosemu_$(CMD).dbg
 REVISIONID := $(shell git describe --dirty=+)
-ifeq ($(DJ64STATIC),1)
-STEXT = \(static_link\)
-endif
 CFLAGS += -DREV_ID=\"$(REVISIONID)$(STEXT)\"
 
 .PHONY: all clean install uninstall
@@ -50,6 +47,10 @@ endif
 clean_dj64:
 else
 include $(DJMK)
+endif
+
+ifeq ($(DJ64STATIC),1)
+STEXT = \(static_link\)
 endif
 
 $(CMD): $(DJ64_XOBJS)
