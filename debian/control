@@ -8,8 +8,6 @@ Build-Depends:
     pkgconf,
     djstub,
     dj64-dev,
-    thunk-gen,
-    binutils-i686-linux-gnu,
     git,
     grep,
     debhelper (>= 9~)
