@@ -54,5 +54,7 @@ STEXT = \(static_link\)
 endif
 
 $(CMD): $(DJ64_XOBJS)
-	./link.sh djlink $(DJ64_XELF) $(DJ64_XLIB) $(DBG) $@ $(CMD) \
-	  $(DJ64_XLDFLAGS)
+	./link.sh djlink $(DJ64_XLIB) $(DBG) $@ $(CMD) $(DJ64_XLDFLAGS)
+
+info: $(CMD)
+	djstubify -i $<
