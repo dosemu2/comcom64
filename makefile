@@ -36,4 +36,4 @@ deb:
 	$(MAKE) -C 32
 
 static:
-	$(MAKE) -C src DJ64STATIC=1
+	$(MAKE) -C src static

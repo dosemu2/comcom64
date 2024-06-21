@@ -19,6 +19,9 @@ CFLAGS += -DREV_ID=\"$(REVISIONID)$(STEXT)\"
 
 all: $(CMD)
 
+static:
+	$(MAKE) DJ64STATIC=1
+
 clean: clean_dj64
 	$(RM) $(CMD)
 
