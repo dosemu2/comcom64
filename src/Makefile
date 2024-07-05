@@ -13,6 +13,9 @@ AS_OBJECTS = $(AS_SOURCES:.S=.o)
 CMD = comcom64.exe
 DBG = dosemu_$(CMD).dbg
 REVISIONID := $(shell git describe --dirty=+)
+ifeq ($(REVISIONID),)
+REVISIONID := Non-git_build
+endif
 CFLAGS += -DREV_ID=\"$(REVISIONID)$(STEXT)\"
 
 .PHONY: all clean install uninstall

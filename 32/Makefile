@@ -17,6 +17,9 @@ ASSRCS = $(SRCDIR)/asm.S $(SRCDIR)/int23.S $(SRCDIR)/int0.S $(SRCDIR)/mouse.S
 OBJS = $(notdir $(SRCS:.c=.o)) $(notdir $(ASSRCS:.S=.o))
 CMD = comcom32.exe
 REVISIONID := $(shell git describe --dirty=+)
+ifeq ($(REVISIONID),)
+REVISIONID := Non-git_build
+endif
 C_OPT += -DREV_ID=\"$(REVISIONID)\"
 
 .PHONY: all clean install uninstall
