@@ -395,6 +395,7 @@ static void output_prompt(void)
   {
   char cur_drive_and_path[MAXPATH];
   const char *promptvar = getenv("PROMPT");
+  char *cwd;
 
   if (need_to_crlf_at_next_prompt)
     {
@@ -405,7 +406,9 @@ static void output_prompt(void)
 
   if (promptvar == NULL)
     promptvar = "$p$g";
-  getcwd(cur_drive_and_path, MAXPATH);
+  cwd = getcwd(cur_drive_and_path, MAXPATH);
+  if (!cwd)
+    strcpy(cur_drive_and_path, "invalid");
   /* The disk letter is changed to upper-case */
   cur_drive_and_path[0] = toupper(cur_drive_and_path[0]);
   conv_unix_path_to_ms_dos(cur_drive_and_path);
