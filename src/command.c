@@ -536,7 +536,10 @@ static void advance_cmd_arg(void)
   while (*extr == ' ' || *extr == '\t')
     extr++;
   if (*extr == '\0')
+    {
+    cmd_args[0] = '\0';
     goto NoArgs;
+    }
 
   while (*extr != ' ' && *extr != '\t' && *extr != '\0')
     {
@@ -545,7 +548,10 @@ static void advance_cmd_arg(void)
       break;
     }
   if (*extr == '\0')
+    {
+    cmd_args[0] = '\0';
     goto NoArgs;
+    }
   if (*extr == ';')
     {
     memmove(cmd_args, extr, strlen(extr)+1);
