@@ -4023,6 +4023,7 @@ static void parse_cmd_line(void)
   char *extr, *dest, *saved_extr, *delim;
   char new_cmd_line[MAX_CMD_BUFLEN], *end;
   const char *v;
+  int quoting;
 
   // substitute in variable values before parsing
   extr = strchr(cmd_line, '%');
@@ -4118,25 +4119,37 @@ static void parse_cmd_line(void)
   pipe_to_cmd[0] = '\0';      // |
   pipe_to_cmd_redir_count = 0; // count of '|' characters
 
+  quoting = 0;
   extr = cmd_line;
   while (*extr != '\0')
     {
     c = *extr;
     switch (*extr)
       {
+      case '\"':
+        quoting ^= 1;
+        c = 0;
+        break;
       case '<':
+        if (quoting)
+          goto quot;
         dest =  pipe_file[STDIN_INDEX];
         pipe_count_addr = &(pipe_file_redir_count[STDIN_INDEX]);
         break;
       case '>':
+        if (quoting)
+          goto quot;
         dest = pipe_file[STDOUT_INDEX];
         pipe_count_addr = &(pipe_file_redir_count[STDOUT_INDEX]);
         break;
       case '|':
+        if (quoting)
+          goto quot;
         dest = pipe_to_cmd;
         pipe_count_addr = &pipe_to_cmd_redir_count;
         break;
       default:
+quot:
         c = 0;
         break;
       }
