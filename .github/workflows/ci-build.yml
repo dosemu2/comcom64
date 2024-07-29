@@ -24,5 +24,8 @@ jobs:
     - name: build
       run: ./ci_build.sh
 
+    - name: test prerequisites
+      run: ./ci_test_prereq.sh
+
     - name: test
       run: ./ci_test.sh
