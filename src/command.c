@@ -68,7 +68,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/stat.h>
-#include <sys/vfs.h>
+#include <sys/statvfs.h>
 #include <stubinfo.h>
 #include <process.h>
 #include <sys/segments.h>
@@ -2493,7 +2493,7 @@ static void perform_dir(const char *arg)
   int use_pause = 0;
   unsigned long long avail; //was double avail; --Salvo
   finddata_t ff;
-  struct statfs sf;
+  struct statvfs sf;
   int rc;
   unsigned int attrib = FA_DIREC+FA_RDONLY+FA_ARCH+FA_SYSTEM+FA_HIDDEN, first;
   unsigned long filecount = 0, dircount = 0, bytecount = 0;
@@ -2639,7 +2639,7 @@ static void perform_dir(const char *arg)
   printf("%10lu file(s) %14lu bytes\n", filecount, bytecount);
   printf("%10lu dir(s) ", dircount);
 
-  rc = statfs(full_filespec, &sf);
+  rc = statvfs(full_filespec, &sf);
   if (rc == 0) {
     avail = (unsigned long long)sf.f_bavail * sf.f_bsize;
     if (avail < 1048576)
@@ -2651,7 +2651,7 @@ static void perform_dir(const char *arg)
     else
       printf("%15.1f GB free\n", avail / 1024.0 / 1024.0 / 1024.0);
   } else {
-    printf("statfs() failed\n");
+    printf("statvfs() failed\n");
   }
 }
 
