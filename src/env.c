@@ -64,7 +64,7 @@ void set_env_size(void)
 {
   unsigned short psp = _stubinfo->psp_selector;
   unsigned short env_sel;
-  unsigned env_addr = 0;
+  unsigned env_addr;
   struct MCB mcb;
   unsigned old_env_size;
   int err;
