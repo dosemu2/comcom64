@@ -220,6 +220,7 @@ static void perform_rename(const char *arg);
 static void perform_shift(const char *arg);
 static void perform_time(const char *arg);
 static void perform_timeout(const char *arg);
+static void perform_truename(const char *arg);
 static void perform_type(const char *arg);
 static void perform_ver(const char *arg);
 static void perform_xcopy(const char *arg);
@@ -277,6 +278,7 @@ struct built_in_cmd cmd_table[] =
     {"shift", perform_shift, "", "shift arguments"},
     {"time", perform_time, "", "display time"},
     {"timeout", perform_timeout, "", "pause execution"},
+    {"truename", perform_truename, "", "path resolution"},
     {"type", perform_type, "", "display file content"},
     {"ver", perform_ver, " [/r]", "display version"},
     {"xcopy", perform_xcopy, "", "copy large file"},
@@ -3805,6 +3807,65 @@ static void perform_timeout(const char *arg)
     }
   if (t)
     sleep(t);
+  }
+
+static void perform_truename(const char *arg)
+  {
+  char truebuf[FILENAME_MAX];
+  char buf2[FILENAME_MAX];
+  char *s = NULL;;
+  finddata_t ff;
+  long ffh;
+
+  if (arg[0] == '\0')
+    {
+    cputs("Required parameter missing\r\n");
+    reset_batfile_call_stack();
+    return;
+    }
+  if (findfirst_f(arg, &ff, 0, &ffh) == 0)
+    {
+    findclose(ffh);
+    s = _truename(FINDDATA_T_FILENAME(ff), truebuf);
+    }
+  if (!strchr(arg, '.'))
+    {
+    if (!s)
+      {
+      snprintf(buf2, sizeof(buf2), "%s.com", arg);
+      if (findfirst_f(buf2, &ff, 0, &ffh) == 0)
+        {
+        findclose(ffh);
+        s = _truename(FINDDATA_T_FILENAME(ff), truebuf);
+        }
+      }
+    if (!s)
+      {
+      snprintf(buf2, sizeof(buf2), "%s.exe", arg);
+      if (findfirst_f(buf2, &ff, 0, &ffh) == 0)
+        {
+        findclose(ffh);
+        s = _truename(FINDDATA_T_FILENAME(ff), truebuf);
+        }
+      }
+    if (!s)
+      {
+      snprintf(buf2, sizeof(buf2), "%s.bat", arg);
+      if (findfirst_f(buf2, &ff, 0, &ffh) == 0)
+        {
+        findclose(ffh);
+        s = _truename(FINDDATA_T_FILENAME(ff), truebuf);
+        }
+      }
+    }
+  if (!s)
+    s = _truename(arg, truebuf);
+  if (!s)
+    {
+    cprintf("path not found\r\n");
+    return;
+    }
+  puts(s);
   }
 
 static void perform_type(const char *arg)
