@@ -3828,33 +3828,19 @@ static void perform_truename(const char *arg)
     findclose(ffh);
     s = _truename(FINDDATA_T_FILENAME(ff), truebuf);
     }
-  if (!strchr(arg, '.'))
+  if (!s && !strchr(arg, '.'))
     {
-    if (!s)
+    const char *elst[] = { "com", "exe", "bat", NULL };
+    const char **p;
+    for (p = elst; *p; p++)
       {
-      snprintf(buf2, sizeof(buf2), "%s.com", arg);
+      snprintf(buf2, sizeof(buf2), "%s.%s", arg, *p);
       if (findfirst_f(buf2, &ff, 0, &ffh) == 0)
         {
         findclose(ffh);
         s = _truename(FINDDATA_T_FILENAME(ff), truebuf);
-        }
-      }
-    if (!s)
-      {
-      snprintf(buf2, sizeof(buf2), "%s.exe", arg);
-      if (findfirst_f(buf2, &ff, 0, &ffh) == 0)
-        {
-        findclose(ffh);
-        s = _truename(FINDDATA_T_FILENAME(ff), truebuf);
-        }
-      }
-    if (!s)
-      {
-      snprintf(buf2, sizeof(buf2), "%s.bat", arg);
-      if (findfirst_f(buf2, &ff, 0, &ffh) == 0)
-        {
-        findclose(ffh);
-        s = _truename(FINDDATA_T_FILENAME(ff), truebuf);
+        if (s)
+          break;
         }
       }
     }
