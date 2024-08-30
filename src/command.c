@@ -88,6 +88,7 @@
 #include "umb.h"
 #include "ae0x.h"
 #include "compl.h"
+#include "clip.h"
 #include "command.h"
 
 /*
@@ -189,6 +190,7 @@ static void perform_break(const char *arg);
 static void perform_call(const char *arg);
 static void perform_cd(const char *arg);
 static void perform_choice(const char *arg);
+static void perform_clip(const char *arg);
 static void perform_cls(const char *arg);
 static void perform_copy(const char *arg);
 static void perform_ctty(const char *arg);
@@ -241,6 +243,7 @@ struct built_in_cmd cmd_table[] =
     {"cd", perform_cd, "", "change directory"},
     {"chdir", perform_cd, "", "change directory"},
     {"choice", perform_choice, "", "choice prompt sets ERRORLEVEL"},
+    {"clip", perform_clip, "", "clipboard operations"},
     {"cls", perform_cls, "", "clear screen"},
     {"copy", perform_copy, "", "copy file"},
     {"ctty", perform_ctty, "", "change tty"},
@@ -4014,6 +4017,21 @@ static void perform_ver(const char *arg)
         }
       }
     free(buffer);
+    }
+  }
+
+static void cl_write(const char *buf, int len)
+  {
+  write(STDOUT_FILENO, buf, len);
+  }
+
+static void perform_clip(const char *arg)
+  {
+  int rc = clip_read(7, cl_write);
+  if (rc == -1)
+    {
+    cprintf("clipboard read failed\r\n");
+    return;
     }
   }
 
