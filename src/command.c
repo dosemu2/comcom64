@@ -4320,9 +4320,9 @@ static void exec_cmd(int call)
       pipe_fno[STDIN_INDEX] = open(pipe_file[STDIN_INDEX], O_TEXT|O_RDONLY, S_IRUSR);
 
     if (pipe_file_redir_count[STDOUT_INDEX] > 1)
-      pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_BINARY|O_WRONLY|O_APPEND|O_CREAT, S_IWUSR); // open for append
+      pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_BINARY|O_WRONLY|O_APPEND|O_CREAT, S_IRUSR | S_IWUSR); // open for append
     else if (pipe_file_redir_count[STDOUT_INDEX] == 1)
-      pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_BINARY|O_WRONLY|O_TRUNC|O_CREAT, S_IWUSR);  // open as new file
+      pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_BINARY|O_WRONLY|O_TRUNC|O_CREAT, S_IRUSR | S_IWUSR);  // open as new file
 
       /* check for error
       if (pipe_fno[pipe_index] < 0 ||
