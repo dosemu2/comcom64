@@ -4022,7 +4022,10 @@ static void perform_ver(const char *arg)
 
 static void cl_write(const char *buf, int len)
   {
-  write(STDOUT_FILENO, buf, len);
+  if (len && buf[len - 1] == '\0')
+    len--;
+  if (len)
+    write(STDOUT_FILENO, buf, len);
   }
 
 static void perform_clip(const char *arg)
