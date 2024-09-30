@@ -16,7 +16,6 @@ Source0: {{{ git_dir_archive }}}
 
 BuildRequires: make
 BuildRequires: pkgconf-pkg-config
-BuildRequires: djstub
 BuildRequires: dj64dev-dj64-devel
 BuildRequires: git
 BuildRequires: grep

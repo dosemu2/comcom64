@@ -6,7 +6,6 @@ Standards-Version: 3.9.7
 Build-Depends:
     make,
     pkgconf,
-    djstub,
     dj64-dev,
     git,
     grep,
