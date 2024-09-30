@@ -3954,8 +3954,11 @@ static void perform_ver(const char *arg)
   "32"
 #endif
   " v%s, %.16s\n", version, _stubinfo->magic);
+  printf("  stub version %i, loader version %i\n",
+      _stubinfo->stubinfo_ver >> 16,
+      _stubinfo->stubinfo_ver & 0xffff);
   if (REV_ID[0])
-    printf(" Source ID: %s\n", REV_ID);
+    printf("  Source ID: %s\n", REV_ID);
   if (is_r)
     {
     const int buffersize = 256;
