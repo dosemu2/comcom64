@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
@@ -154,6 +155,7 @@ int installable_command_check(char *cmd, const char *tail)
   r.d.esi = __tb_offset + sizeof(s.cmdl);
   r.d.edi = 0;
   dosmemput(&s, sizeof(s), __tb);
+  set_env("PATH", getenv("PATH"));
   set_env_seg();
   __dpmi_int(0x2f, &r);
   set_env_sel();
