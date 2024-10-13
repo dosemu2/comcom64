@@ -3106,7 +3106,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       unsetenv("SHELL_LOADHIGH_DEFAULT");
     if (lh)
       link_umb(0x80);
-    set_break(1);
+    set_break(break_on);
 #ifdef HAVE_DOS_EXEC5
     rc = _dos_exec5(full_cmd, cmd_args, environ, NULL, lh ? 0x80 : 0);
 #else
