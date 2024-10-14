@@ -48,7 +48,7 @@ uninstall:
 DJMK = $(shell pkg-config --variable=makeinc dj64)
 ifeq ($(DJMK),)
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
-$(error dj64 not installed)
+$(error dj64-dev not installed)
 endif
 clean_dj64:
 else
