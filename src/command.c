@@ -74,6 +74,9 @@
 #include <sys/segments.h>
 #include <sys/farptr.h>
 #include <go32.h>
+#ifdef DJ64
+#include <go64.h>
+#endif
 
 #include "cmdbuf.h"
 #ifdef DJ64
@@ -200,6 +203,7 @@ static void perform_deltree(const char *arg);
 static void perform_dir(const char *arg);
 static void perform_echo_dot(const char *arg);
 static void perform_echo(const char *arg);
+static void perform_elfexec(const char *arg);
 static void perform_exit(const char *arg);
 static void perform_for(const char *arg);
 static void perform_goto(const char *arg);
@@ -254,6 +258,7 @@ struct built_in_cmd cmd_table[] =
     {"dir", perform_dir, "", "directory listing"},
     {"echo.", perform_echo_dot, "", "terminal output"},  // before normal echo
     {"echo", perform_echo, "", "terminal output"},
+    {"elfexec", perform_elfexec, "", "execute elf file"},
     {"exit", perform_exit, "", "exit from interpreter"},
     {"for", perform_for, "", "FOR loop"},
     {"goto", perform_goto, "", "move to label"},
@@ -2675,6 +2680,21 @@ static void perform_echo(const char *arg)
     }
   else
     puts(cmd_args);
+  }
+
+static void perform_elfexec(const char *arg)
+  {
+  if (!arg || !arg[0])
+    {
+    cprintf("Syntax error\r\n");
+    reset_batfile_call_stack();
+    return;
+    }
+#ifdef DJ64
+  elfexec(arg, 0, NULL);
+#else
+  printf("elfexec unsupported\n");
+#endif
   }
 
 static void perform_break(const char *arg)
