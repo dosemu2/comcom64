@@ -4563,6 +4563,7 @@ int main(int argc, const char *argv[], const char *envp[])
   free(cmd_path);
   setenv("COMCOM_VER", version, 1);
   setenv("ERRORLEVEL", "0", 1);
+  setenv("TERM", "djgpp", 0);
 
   // process arguments
   for (a = 1; a < argc; a++)
