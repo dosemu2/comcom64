@@ -2684,6 +2684,9 @@ static void perform_echo(const char *arg)
 
 static void perform_elfexec(const char *arg)
   {
+#ifdef DJ64
+  int rc;
+#endif
   if (!arg || !arg[0])
     {
     cprintf("Syntax error\r\n");
@@ -2691,7 +2694,17 @@ static void perform_elfexec(const char *arg)
     return;
     }
 #ifdef DJ64
-  elfexec(arg, 0, NULL);
+  rc = elfexec(arg, 0, NULL);
+  if (rc == -1)
+    printf("elfexec failed\n");
+  else if (rc & (1 << 15))
+    printf("elfexec: unsupported ELF format or not an ELF file\n");
+  else
+    {
+    char el[16];
+    snprintf(el, sizeof(el), "%d", rc);
+    setenv("ERRORLEVEL", el, 1);
+    }
 #else
   printf("elfexec unsupported\n");
 #endif
