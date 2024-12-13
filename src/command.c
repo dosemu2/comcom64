@@ -3993,7 +3993,11 @@ static void perform_ver(const char *arg)
       _stubinfo->stubinfo_ver & 0xffff);
 #endif
   if (REV_ID[0])
-    printf("  Source ID: %s\n", REV_ID);
+    printf("  Source ID: %s", REV_ID);
+#ifdef STATIC_LINK
+  printf(" (statically linked)");
+#endif
+  printf("\n");
   if (is_r)
     {
     const int buffersize = 256;

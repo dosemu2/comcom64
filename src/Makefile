@@ -16,7 +16,7 @@ REVISIONID := $(shell git describe --dirty=+)
 ifeq ($(REVISIONID),)
 REVISIONID := Non-git_build
 endif
-CFLAGS += -DREV_ID=\"$(REVISIONID)$(STEXT)\"
+CFLAGS += -DREV_ID=\"$(REVISIONID)\"
 
 .PHONY: all clean install uninstall
 
@@ -56,7 +56,7 @@ include $(DJMK)
 endif
 
 ifeq ($(DJ64STATIC),1)
-STEXT = \(static_link\)
+CFLAGS += -DSTATIC_LINK
 endif
 
 $(CMD): $(DJ64_XOBJS)
