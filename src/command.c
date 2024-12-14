@@ -2373,6 +2373,13 @@ static void perform_deltree(const char *arg)
   visitation_mode[0] = 4;
   dir_name[0][0] = '\0';
   remove_level1_dir = false;
+  /* visitation mode:
+   * 4 - find_first on files
+   * 3 - find_next on files
+   * 2 - find_first on dirs
+   * 1 - find_next on dirs
+   * 0 - this dir is fully traversed
+   */
   while (subdir_level >= 0)
     {
     if (visitation_mode[subdir_level] == 4 || visitation_mode[subdir_level] == 2)
@@ -2401,7 +2408,7 @@ static void perform_deltree(const char *arg)
         strcat(full_path_filespec, dir_name[s]);
       strcat(full_path_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
 
-      if ((FINDDATA_T_ATTRIB(ff[subdir_level])&FA_DIREC) != 0)
+      if ((FINDDATA_T_ATTRIB(ff[subdir_level])&FA_DIREC) != 0) // found dir
         {
         if (visitation_mode[subdir_level] <= 2 &&
             strcmp(FINDDATA_T_FILENAME(ff[subdir_level]),".") != 0 &&
@@ -2443,7 +2450,7 @@ static void perform_deltree(const char *arg)
             }
           }
         }
-      else
+      else  // found file
         {
         if (visitation_mode[subdir_level] > 2)
           {
@@ -2469,7 +2476,7 @@ static void perform_deltree(const char *arg)
           }
         }
       }
-    else
+    else  // no more matches
       {
       visitation_mode[subdir_level]--;
       if (visitation_mode[subdir_level] <= 0)
@@ -2495,7 +2502,7 @@ static void perform_deltree(const char *arg)
           }
         subdir_level--;
         if (subdir_level >= 0)
-          visitation_mode[subdir_level] = 4;  // restart from findfirst
+          visitation_mode[subdir_level]++;  // 2 - restart from findfirst
         }
       }
     }
