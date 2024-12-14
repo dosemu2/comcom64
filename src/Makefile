@@ -45,8 +45,9 @@ uninstall:
 	rm -rf $(DATADIR)
 
 # hook in dj64 - make sure to not do that before defining `all:` target
+export PKG_CONFIG_PATH = $(PREFIX)/share/pkgconfig:$(PREFIX)/lib/pkgconfig
 DJMK = $(shell pkg-config --variable=makeinc dj64)
-ifeq ($(DJMK),)
+ifeq ($(wildcard $(DJMK)),)
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error dj64-dev not installed)
 endif
