@@ -2419,6 +2419,17 @@ static void perform_deltree(const char *arg)
             }
           if (subdir_level > 0 || remove_level1_dir)
             {
+            /* Close cur dir when entering next level. We need this
+             * for 2 reasons:
+             * 1. In SFN mode there are no handles, so ff process needs
+             *    to be restarted on backtrack (see 7e3365bd).
+             *    To unify with LFN mode, we restart in both cases.
+             * 2. Even special-casing LFN mode may not be safe as it
+             *    has the limited amount of ff handles.
+             * So just close handle and restart later. For SFN, close
+             * is a no-op.
+             */
+            findclose_f(ffhandle);
             subdir_level++;
             if (subdir_level >= MAX_SUBDIR_LEVEL)
               {
