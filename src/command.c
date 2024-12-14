@@ -2684,7 +2684,7 @@ static void perform_echo(const char *arg)
 
 static void perform_elfexec(const char *arg)
   {
-#if defined(DJ64) && !defined(STATIC_LINK)
+#ifdef DJ64
   int rc;
 #endif
   if (!arg || !arg[0])
@@ -2693,7 +2693,7 @@ static void perform_elfexec(const char *arg)
     reset_batfile_call_stack();
     return;
     }
-#if defined(DJ64) && !defined(STATIC_LINK)
+#ifdef DJ64
   rc = elfexec(arg, 0, NULL);
   if (rc == -1)
     printf("elfexec failed\n");
