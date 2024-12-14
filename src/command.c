@@ -2704,6 +2704,7 @@ static void perform_elfexec(const char *arg)
     char el[16];
     snprintf(el, sizeof(el), "%d", rc);
     setenv("ERRORLEVEL", el, 1);
+    error_level = rc;
     }
 #else
   printf("elfexec unsupported\n");
@@ -4437,8 +4438,12 @@ static void exec_cmd(int call)
       perform_change_drive();
     else
       {
-      if (!call && installable_command_check(cmd, cmd_args) == 0)
+      int rc = 1;
+      if (!call)
+        rc = installable_command_check(cmd, cmd_args);
+      if (rc <= 0)
         {
+        error_level = -rc;
         cmd[0] = '\0';
         break;
         }
