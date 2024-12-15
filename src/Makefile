@@ -1,5 +1,5 @@
-PREFIX ?= /usr/local
-DATADIR ?= $(PREFIX)/share/comcom64
+prefix ?= /usr/local
+DATADIR ?= $(prefix)/share/comcom64
 CFLAGS = -Wall -Os -Wmissing-declarations -Wwrite-strings \
   -ggdb3 -Wunused -Wmissing-prototypes
 SOURCES = command.c cmdbuf.c mouse.c env.c psp.c umb.c ae0x.c compl.c clip.c \
@@ -45,7 +45,7 @@ uninstall:
 	rm -rf $(DATADIR)
 
 # hook in dj64 - make sure to not do that before defining `all:` target
-export PKG_CONFIG_PATH = $(PREFIX)/share/pkgconfig:$(PREFIX)/lib/pkgconfig
+export PKG_CONFIG_PATH = $(prefix)/share/pkgconfig:$(prefix)/lib/pkgconfig
 DJMK = $(shell pkg-config --variable=makeinc dj64)
 ifeq ($(wildcard $(DJMK)),)
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
