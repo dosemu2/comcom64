@@ -4614,7 +4614,7 @@ int main(int argc, const char *argv[], const char *envp[])
       shell_permanent = 1;
       }
 
-    if (strnicmp(argv[a], "/E:", 3) == 0)
+    else if (strnicmp(argv[a], "/E:", 3) == 0)
       {
       unsigned new_size, old_size = get_env_size();
 
@@ -4631,17 +4631,17 @@ int main(int argc, const char *argv[], const char *envp[])
         }
       }
 
-    if (stricmp(argv[a], "/D") == 0)
+    else if (stricmp(argv[a], "/D") == 0)
       {
       disable_autoexec = 1;
       }
 
-    if (stricmp(argv[a], "/Y") == 0)
+    else if (stricmp(argv[a], "/Y") == 0)
       {
       stepping = 1;
       }
 
-    if (strnicmp(argv[a], "/M", 2) == 0)
+    else if (strnicmp(argv[a], "/M", 2) == 0)
       {
       int opt = 1;
       char copt[2];
@@ -4667,15 +4667,18 @@ int main(int argc, const char *argv[], const char *envp[])
       }
 
     // check for command in arguments
-    if (stricmp(argv[a], "/K") == 0)
+    else if (stricmp(argv[a], "/K") == 0)
       {
-      shell_mode = SHELL_STARTUP_WITH_CMD;
       a++;
-      strncat(cmd_line, argv[a], MAX_CMD_BUFLEN-1);
-      parse_cmd_line();
+      if (!disable_autoexec)
+        {
+        shell_mode = SHELL_STARTUP_WITH_CMD;
+        strncat(cmd_line, argv[a], MAX_CMD_BUFLEN-1);
+        parse_cmd_line();
+        }
       }
 
-    if (stricmp(argv[a], "/C") == 0)
+    else if (stricmp(argv[a], "/C") == 0)
       {
       int cmd_buf_remaining;
 
