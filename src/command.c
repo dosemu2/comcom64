@@ -718,9 +718,13 @@ static void prompt_for_and_get_cmd(void)
         cmdbuf_clreol(conbuf);
         if (need_prn)
           putchar('\n');
-        if ((p1 = strrchr(conbuf, ' ')))
-          {
+        p1 = strrchr(conbuf, ' ');
+        if (p1)
           p1++;
+        else if (strchr(conbuf, '\\'))
+          p1 = conbuf;
+        if (p1)
+          {
           rc = compl_fname(p1, got_tab, &l, p);
           /* fixup for directories */
           if (rc == 1)
