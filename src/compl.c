@@ -181,6 +181,13 @@ int compl_fname(const char *prefix, int print, int *r_len, char *r_p)
 
     snprintf(buf, MAXPATH, "%s*", prefix);
     err = glob(buf, GLOB_ERR, NULL, &gl);
+    if (err) {
+	/* Try simplest case-insensitive match against all-upcased.
+	 * There can be quake and Quake and QuAkE dirs simultaneously
+	 * and we aren't going to iterate those. */
+	strupr(buf);
+	err = glob(buf, GLOB_ERR, NULL, &gl);
+    }
     if (err)
 	return -1;
     ret = do_compl(prefix, print, r_len, r_p, get_fname, &gl, gl.gl_pathc);
