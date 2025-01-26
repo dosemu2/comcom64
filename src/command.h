@@ -42,7 +42,16 @@
  */
 #define GET_ENHANCED_KEYSTROKE                0x10
 #define GET_EXTENDED_SHIFT_STATES             0x12
+
+#define KEYB_FLAG_RSHIFT    0x0001
+#define KEYB_FLAG_LSHIFT    0x0002
+#define KEYB_FLAG_CTRL      0x0004
+#define KEYB_FLAG_ALT       0x0008
+#define KEYB_FLAG_SCROLLOCK 0x0010
+#define KEYB_FLAG_NUMLOCK   0x0020
+#define KEYB_FLAG_CAPSLOCK  0x0040
 #define KEYB_FLAG_INSERT    0x0080
+
 #define KEY_ASCII(k)    (k & 0x00FF)
 #define KEY_SCANCODE(k) (k >> 0x08 )
 #define KEY_EXTM(k)     (k & 0xFF1F)
@@ -466,5 +475,7 @@ struct built_in_cmd
 
 extern struct built_in_cmd cmd_table[];
 extern const int CMD_TABLE_COUNT;
+
+unsigned short keyb_get_shift_states(void);
 
 #endif

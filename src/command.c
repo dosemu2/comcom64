@@ -578,22 +578,17 @@ NoArgs:
   return;
   }
 
-static unsigned short keyb_shift_states;
 static unsigned short keyb_get_rawcode(void)
 {
   unsigned short c = getch();
 
   if (c == 0x00/* || c == 0xE0*/)
     c = getch()<<8;
-
-  if (c == KEY_INSERT)
-    keyb_shift_states ^= KEYB_FLAG_INSERT;
-
   return c;
 }
-static unsigned short keyb_get_shift_states(void)
+unsigned short keyb_get_shift_states(void)
 {
-  return keyb_shift_states;
+  return bioskey(2);
 }
 
 static void prompt_for_and_get_cmd(void)

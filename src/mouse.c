@@ -23,6 +23,7 @@
 #include <sys/farptr.h>
 #include <go32.h>
 #include "asm.h"
+#include "command.h"
 #include "mouse.h"
 
 #define CF 1
@@ -78,6 +79,7 @@ static void mlb(int alt_fn, int x, int y)
 {
     __dpmi_regs r = { };
     short c;
+    int shift = keyb_get_shift_states();
 
     if (alt_fn) {
 	int cx = wherex();
@@ -89,6 +91,8 @@ static void mlb(int alt_fn, int x, int y)
 	    mvxr(x - cx);
 	return;
     }
+    if (!(shift & KEYB_FLAG_CTRL))
+	return;
 
     _conio_gettext(x, y, x, y, &c);
 

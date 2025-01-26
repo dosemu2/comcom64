@@ -35,7 +35,7 @@ area outside of a cursor row, and another activates when you click
 inside the cursor row.
 
 Left button:
-  - types clicked char
+  - if Ctrl pressed: type clicked char; otherwise do nothing
   - moves the cursor to the clicked location
 
 Middle button:
