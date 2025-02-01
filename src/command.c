@@ -204,6 +204,7 @@ static void perform_dir(const char *arg);
 static void perform_echo_dot(const char *arg);
 static void perform_echo(const char *arg);
 static void perform_elfexec(const char *arg);
+static void perform_elfload(const char *arg);
 static void perform_exit(const char *arg);
 static void perform_for(const char *arg);
 static void perform_goto(const char *arg);
@@ -259,6 +260,7 @@ struct built_in_cmd cmd_table[] =
     {"echo.", perform_echo_dot, "", "terminal output"},  // before normal echo
     {"echo", perform_echo, "", "terminal output"},
     {"elfexec", perform_elfexec, "", "execute elf file"},
+    {"elfload", perform_elfload, "", "load host's elf file"},
     {"exit", perform_exit, "", "exit from interpreter"},
     {"for", perform_for, "", "FOR loop"},
     {"goto", perform_goto, "", "move to label"},
@@ -2725,6 +2727,33 @@ static void perform_elfexec(const char *arg)
     }
 #else
   printf("elfexec unsupported\n");
+#endif
+  }
+
+static void perform_elfload(const char *arg)
+  {
+#ifdef DJ64
+  int rc;
+#endif
+  if (!arg || !arg[0])
+    {
+    cprintf("Syntax error\r\n");
+    reset_batfile_call_stack();
+    return;
+    }
+#if defined(DJ64) && defined(DJ64_API_VERSION) && DJ64_API_VERSION >= 2
+  rc = elfload(atoi(arg));
+  if (rc == -1)
+    printf("elfload failed\n");
+  else
+    {
+    char el[16];
+    snprintf(el, sizeof(el), "%d", rc);
+    setenv("ERRORLEVEL", el, 1);
+    error_level = rc;
+    }
+#else
+  printf("elfload unsupported\n");
 #endif
   }
 
