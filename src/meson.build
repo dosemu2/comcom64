@@ -4,7 +4,7 @@ PD = tg.get_variable(pkgconfig: 'pdscript')
 TFLAGS = ['-a', '4', '-p', '4']
 TARGET = 'comcom64'
 CMD = TARGET + '.exe'
-DBG = 'dosemu_' + CMD + '.dbg'
+DBG = CMD + '.dbg'
 
 CFILES = [
     'cmdbuf.c',
@@ -101,7 +101,7 @@ ccexe = custom_target(CMD,
   output: CMD,
   input: [elf_s, libcc64],
   command: [find_program('link.sh'),
-    link, elf_s, libcc64, DBG, '@OUTPUT0@', CMD ],
+    link, elf_s, libcc64, DBG, '@OUTPUT0@' ],
   install: true,
   install_dir: get_option('datadir') / TARGET,
   install_mode: 'rw-r--r--')

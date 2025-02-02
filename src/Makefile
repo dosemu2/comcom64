@@ -11,7 +11,7 @@ OBJECTS = $(SOURCES:.c=.o)
 AS_SOURCES = int23.S int0.S asm.S ms.S
 AS_OBJECTS = $(AS_SOURCES:.S=.o)
 CMD = comcom64.exe
-DBG = dosemu_$(CMD).dbg
+DBG = $(CMD).dbg
 REVISIONID := $(shell git describe --dirty=+)
 ifeq ($(REVISIONID),)
 REVISIONID := Non-git_build
@@ -61,7 +61,7 @@ CFLAGS += -DSTATIC_LINK
 endif
 
 $(CMD): $(DJ64_XOBJS)
-	./link.sh djlink $(DJ64_XLIB) $(DBG) $@ $(CMD) $(DJ64_XLDFLAGS)
+	./link.sh $(LINK) $(DJ64_XLIB) $(DBG) $@ $(DJ64_XLDFLAGS)
 
 info: $(CMD)
 	djstubify -i $<
