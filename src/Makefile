@@ -60,8 +60,8 @@ ifeq ($(DJ64STATIC),1)
 CFLAGS += -DSTATIC_LINK
 endif
 
-$(CMD): $(DJ64_XOBJS)
-	./link.sh $(LINK) $(DJ64_XLIB) $(DBG) $@ $(DJ64_XLDFLAGS)
+$(CMD): $(DJ64_XLIB)
+	./link.sh $(LINK) $^ $(DBG) $@ $(DJ64_XLDFLAGS)
 
 info: $(CMD)
 	djstubify -i $<
