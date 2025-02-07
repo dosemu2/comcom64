@@ -4360,6 +4360,10 @@ quot:
   extr = cmd_line;
   while (*extr == ' ' || *extr == '\t')
     extr++;
+  // skip trailing spaces
+  delim = extr + strlen(extr) - 1;
+  while (delim >= extr && *delim == ' ')
+    *delim-- = '\0';
   if (*extr == '\0')
     {
     cmd[0] = '\0';
