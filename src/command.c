@@ -832,6 +832,17 @@ static int get_choice(const char *choices)
   return choice;
   }
 
+static void shift_cmdline(void)
+  {
+  // Cmdline handling is actually tricky.
+  // If there are no args then the trailing spaces after cmd name
+  // are removed, but if there are args, then trailing spaces are
+  // passed with the last arg. So we just call the parser even if
+  // shifting by hands may look simple. It is not.
+  strcpy(cmd_line, cmd_args);
+  parse_cmd_line();
+  }
+
 static void get_cmd_from_bat_file(void)
   {
   FILE *cmd_file;
@@ -1794,8 +1805,7 @@ static void perform_call(const char *arg)
   {
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
-  strcpy(cmd, arg);
-  advance_cmd_arg();
+  shift_cmdline();
   exec_cmd(true);
   }
 
@@ -1831,9 +1841,7 @@ static void perform_loadhigh(const char *arg)
     }
   while (*cmd_switch)  // skip switches
     advance_cmd_arg();
-  strcpy(cmd, arg);
-  advance_cmd_arg();
-
+  shift_cmdline();
   perform_external_cmd(false, true, cmd);
 	  /* Should we set this to true? Only affects batch files anyway,
 	   * which shouldn't be loaded with LOADHIGH to begin with. */
@@ -1942,8 +1950,7 @@ static void perform_loadfix(const char *arg)
     reset_batfile_call_stack();
     return;
     }
-  strcpy(cmd, arg);
-  advance_cmd_arg();
+  shift_cmdline();
 
   loadfix_init();
   loadfix_initialised = 1;
@@ -3592,8 +3599,7 @@ static void perform_r200fix(const char *arg)
     reset_batfile_call_stack();
     return;
     }
-  strcpy(cmd, arg);
-  advance_cmd_arg();
+  shift_cmdline();
 
   int0_wa = 1;
   perform_external_cmd(false, false, cmd);
@@ -4360,10 +4366,6 @@ quot:
   extr = cmd_line;
   while (*extr == ' ' || *extr == '\t')
     extr++;
-  // skip trailing spaces
-  delim = extr + strlen(extr) - 1;
-  while (delim >= extr && *delim == ' ')
-    *delim-- = '\0';
   if (*extr == '\0')
     {
     cmd[0] = '\0';
