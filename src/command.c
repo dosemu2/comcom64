@@ -1854,7 +1854,7 @@ static unsigned short loadfix_allocations[LOADFIX_NUMBLOCKS];
 static int loadfix_ii;
 static unsigned loadfix_initialised;
 
-static void loadfix_init(void)
+static void loadfix_init(unsigned para)
 {
   int allocated;
   unsigned short allocation, to_64kib, max, size;
@@ -1873,7 +1873,7 @@ static void loadfix_init(void)
 #if DEBUG
         printf("LOADFIX: allocated block at %04Xh\n", allocation);
 #endif
-      if (allocation >= 0x1000) 	/* does it start above 64 KiB ? */
+      if (allocation >= para) 	/* does it start above 64 KiB ? */
         {
         r.h.ah = 0x49;
         r.x.es = allocation;
@@ -1897,7 +1897,7 @@ static void loadfix_init(void)
 		/* Note that this expands the block to the maximum
 		 * available size. */
       max = r.x.bx;
-      to_64kib = 0x1000 - allocation;	/* note: does not underflow */
+      to_64kib = para - allocation;	/* note: does not underflow */
       size = to_64kib < max ? to_64kib : max;
       r.x.bx = size;
       r.h.ah = 0x4A;
@@ -1944,15 +1944,30 @@ static void loadfix_exit(void)
 
 static void perform_loadfix(const char *arg)
   {
+  unsigned para = 0x1000;
   if (!*arg)
     {
     cprintf("loadfix: command name missing\r\n");
     reset_batfile_call_stack();
     return;
     }
+  if (*cmd_switch == '/')
+    {
+    char *endp = NULL;
+    switch (cmd_switch[1])
+      {
+      case 'P':
+      case 'p':
+        /* alloc up to specified para */
+        para = strtol(cmd_args + 3, &endp, 0);
+        if (endp && endp != cmd_args)
+          memmove(cmd_args, endp, strlen(endp) + 1);
+        break;
+      }
+    }
   shift_cmdline();
 
-  loadfix_init();
+  loadfix_init(para);
   loadfix_initialised = 1;
 
   perform_external_cmd(false, false, cmd);
@@ -3185,7 +3200,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
       }
 
     if (do_auto_loadfix)
-      loadfix_init();
+      loadfix_init(0x1000);
     lh_d = getenv("SHELL_LOADHIGH_DEFAULT");
     if ((lh_d && lh_d[0] == '1'))
       lh++;
