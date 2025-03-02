@@ -4644,7 +4644,7 @@ void do_int0(void)
 int main(int argc, const char *argv[], const char *envp[])
   {
   int a;
-  char *cmd_path, *v;
+  char *v;
   int disable_autoexec = 0;
   int inited = 0;
   // initialize the cmd data ...
@@ -4672,12 +4672,14 @@ int main(int argc, const char *argv[], const char *envp[])
 
   // init bat file stack
   reset_batfile_call_stack();
-
-  cmd_path = strdup(argv[0]);
-  strupr(cmd_path);
-  conv_unix_path_to_ms_dos(cmd_path);
-  setenv("COMSPEC", cmd_path, 1);
-  free(cmd_path);
+  if (argc > 0 && !getenv("COMSPEC"))
+    {
+    char *cmd_path = strdup(argv[0]);
+    strupr(cmd_path);
+    conv_unix_path_to_ms_dos(cmd_path);
+    setenv("COMSPEC", cmd_path, 1);
+    free(cmd_path);
+    }
   setenv("COMCOM_VER", version, 1);
   setenv("ERRORLEVEL", "0", 1);
   setenv("TERM", "djgpp", 0);
