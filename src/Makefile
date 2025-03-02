@@ -17,6 +17,7 @@ ifeq ($(REVISIONID),)
 REVISIONID := Non-git_build
 endif
 CFLAGS += -DREV_ID=\"$(REVISIONID)\"
+DJ64COMPACT_VA := 1
 
 .PHONY: all clean install uninstall
 
