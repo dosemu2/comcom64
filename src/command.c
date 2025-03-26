@@ -500,6 +500,7 @@ static void output_prompt(void)
 static void extract_args(char *src)
   {
   char *dest, *saved_src = src;
+  int quoting = 0;
 
   // scout ahead to see if there are really any arguments
   while (*src == ' ' || *src == '\t')
@@ -522,8 +523,10 @@ static void extract_args(char *src)
   while (*src == ' ' || *src == '\t')
     src++;
   dest = cmd_arg;
-  while (*src != ' ' && *src != '\t' && *src != '\0')
+  while (((*src != ' ' && *src != '\t') || quoting) && *src != '\0')
     {
+    if (*src == '\"')
+      quoting ^= 1;
     *dest = *src;
     dest++;
     src++;
@@ -1988,15 +1991,21 @@ static void perform_cd(const char *arg)
     {
     unsigned cur_drive, dummy;
     int rc;
+    char arg1[MAX_CMD_BUFLEN];
+    char *p;
 
     if (arg[1] == ':')
       getdrive(&cur_drive);
-    rc = chdir(arg);
-    if (arg[1] == ':' && toupper(arg[0]) != 'A' + cur_drive - 1)
+    strcpy(arg1, arg);
+    /* unquote */
+    while ((p = strchr(arg1, '\"')))
+      memmove(p, p + 1, strlen(p + 1) + 1);
+    rc = chdir(arg1);
+    if (arg1[1] == ':' && toupper(arg1[0]) != 'A' + cur_drive - 1)
       setdrive(cur_drive, &dummy);
     if (rc != 0)
       {
-      cprintf("Directory does not exist - %s\r\n",arg);
+      cprintf("Directory does not exist - %s\r\n",arg1);
       error_level = 1;
       return;
       }
