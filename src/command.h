@@ -456,7 +456,7 @@ typedef struct dfree diskfree_t;
 
 static inline int get_segment_base_address(int selector, unsigned *addr)
 {
-#ifdef __LP64__
+#ifdef DJ64
     return __dpmi_get_segment_base_address(selector, addr);
 #else
     return __dpmi_get_segment_base_address(selector, (unsigned long *)addr);
