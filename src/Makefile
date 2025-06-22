@@ -49,7 +49,7 @@ uninstall:
 export PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(prefix)/share/pkgconfig:$(prefix)/lib/pkgconfig
 DJMK = $(shell pkg-config --variable=makeinc dj64)
 ifeq ($(wildcard $(DJMK)),)
-ifeq ($(filter uninstall clean,$(MAKECMDGOALS)),)
+ifeq ($(filter install uninstall clean,$(MAKECMDGOALS)),)
 $(error dj64-dev not installed)
 endif
 clean_dj64:
