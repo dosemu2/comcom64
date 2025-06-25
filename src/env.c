@@ -216,7 +216,7 @@ void sync_env(void)
 
 int realloc_env(unsigned new_size)
 {
-  int seg, sel;
+  int seg, sel = 0;
   unsigned int old_size = env_size;
 
   link_umb(0x80);
