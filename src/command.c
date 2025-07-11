@@ -2765,7 +2765,7 @@ static void perform_elfexec(const char *arg)
 
 static void perform_elfload(const char *arg)
   {
-#ifdef DJ64
+#if defined(DJ64) && defined(DJ64_API_VERSION) && DJ64_API_VERSION >= 2
   int rc;
 #endif
   if (!arg || !arg[0])
