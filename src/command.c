@@ -1084,7 +1084,7 @@ static int copy_single_file(char *source_file, char *dest_file,
     byte_count = 0;
     if (st.st_mode & S_IFCHR)
       {
-      char c;
+      int c;
       c = fgetc(source_stream);
       if (!(c == EOF || c == 0x1a || c == 3 || c == 0))
         {
