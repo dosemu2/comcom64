@@ -3246,11 +3246,8 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     if (lh)
       link_umb(0x80);
     set_break(break_on);
-#ifdef HAVE_DOS_EXEC5
-    rc = _dos_exec5(full_cmd, cmd_args, environ, NULL, lh ? 0x80 : 0);
-#else
-    rc = _dos_exec(full_cmd, cmd_args, environ, NULL);
-#endif
+    snprintf(temp_cmd, sizeof(temp_cmd), "CMDLINE=%s%s", cmd_name, cmd_args);
+    rc = _dos_exec(full_cmd, cmd_args, environ, temp_cmd);
     set_break(0);
     if (rc == -1)
       cprintf("Error: unable to execute %s\r\n", full_cmd);
