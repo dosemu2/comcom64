@@ -255,6 +255,7 @@ static void perform_set(const char *arg);
 static void list_cmds(void);
 //static void perform_unimplemented_cmd(void);
 static void set_break(int on);
+static const char *extract_token(struct for_iter *iter);
 
 struct built_in_cmd cmd_table[] =
   {
@@ -865,9 +866,23 @@ static void shift_cmdline(void)
 
 static void get_cmd_from_bat_file(void)
   {
-  FILE *cmd_file;
+  FILE *cmd_file = NULL;
   int line_num, c, ba;
   char *s;
+
+  if (for_var != '\0')
+    {
+    struct for_iter *iter = &for_iters[stack_level];
+    const char *tok = extract_token(iter);
+    if (!tok)
+      for_var = '\0';
+    else
+      {
+      strlcpy(cmd_line, for_cmd, sizeof(cmd_line));
+      for_val = tok;
+      goto do_line;
+      }
+    }
 
   if (bat_file_line_number[stack_level] != MAXINT)
     bat_file_line_number[stack_level]++;
@@ -950,6 +965,7 @@ static void get_cmd_from_bat_file(void)
       }
     }
 
+do_line:
   if (stepping)
     {
     int c;
@@ -2937,7 +2953,6 @@ again:
 
 static void perform_for(const char *arg)
   {
-  const char *tok;
   char *cmd_args2 = for_cmd_args[stack_level];
   struct for_iter *iter = &for_iters[stack_level];
   char *p, *p1, *d0, *d1, *d;
@@ -2965,14 +2980,6 @@ static void perform_for(const char *arg)
   for_cmd = d + 4;
   while (*for_cmd == ' ')
     for_cmd++;
-  while ((tok = extract_token(iter)))
-    {
-    strlcpy(cmd_line, for_cmd, sizeof(cmd_line));
-    for_val = tok;
-    parse_cmd_line();
-    exec_cmd(false);
-    }
-  for_var = '\0';
   }
 
 #define VIDADDR(r,c) (0xb8000 + 2*(((r) * txinfo.screenwidth) + (c)))
