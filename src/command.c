@@ -175,9 +175,21 @@ static int pushd_stack_level = 0;
 static unsigned error_level = 0;  // Program execution return code
 static char for_var;
 static const char *for_val;
+static const char *for_cmd;
 static int exiting;
 static int break_on;
 static int break_enabled;
+static char for_cmd_args[MAX_STACK_LEVEL][MAX_CMD_BUFLEN];
+
+struct for_iter {
+  char *token;
+  int glob_idx;
+  int glob_state;
+  glob_t gl;
+  const char *end;
+  char *sptr;
+};
+static struct for_iter for_iters[MAX_STACK_LEVEL];
 
 /*
  * File attribute constants
@@ -2866,15 +2878,6 @@ static void perform_exit(const char *arg)
     }
   }
 
-struct for_iter {
-  char *token;
-  int glob_idx;
-  int glob_state;
-  glob_t gl;
-  const char *end;
-  char *sptr;
-};
-
 static void advance_iter(struct for_iter *iter)
   {
   char *tok = strtok_r(NULL, " )", &iter->sptr);
@@ -2932,9 +2935,9 @@ again:
 static void perform_for(const char *arg)
   {
   const char *tok;
-  char cmd_args2[MAX_CMD_BUFLEN];
-  struct for_iter iter = {};
-  char *p, *p1, *d0, *d1, *d, *c;
+  char *cmd_args2 = for_cmd_args[stack_level];
+  struct for_iter *iter = &for_iters[stack_level];
+  char *p, *p1, *d0, *d1, *d;
   const char *v;
 
   strcpy(cmd_args2, cmd_args);
@@ -2954,14 +2957,14 @@ static void perform_for(const char *arg)
     v++;
   for_var = *v;
   p++;
-  iter.token = strtok_r(p, " )", &iter.sptr);
-  iter.end = p1;
-  c = d + 4;
-  while (*c == ' ')
-    c++;
-  while ((tok = extract_token(&iter)))
+  iter->token = strtok_r(p, " )", &iter->sptr);
+  iter->end = p1;
+  for_cmd = d + 4;
+  while (*for_cmd == ' ')
+    for_cmd++;
+  while ((tok = extract_token(iter)))
     {
-    strlcpy(cmd_line, c, sizeof(cmd_line));
+    strlcpy(cmd_line, for_cmd, sizeof(cmd_line));
     for_val = tok;
     parse_cmd_line();
     exec_cmd(false);
