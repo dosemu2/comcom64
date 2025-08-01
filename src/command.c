@@ -173,9 +173,12 @@ static int bat_file_line_number[MAX_STACK_LEVEL];
 static char pushd_stack[MAX_STACK_LEVEL][MAXPATH];
 static int pushd_stack_level = 0;
 static unsigned error_level = 0;  // Program execution return code
-static char for_var;
-static const char *for_val;
-static const char *for_cmd;
+static char for_vars[MAX_STACK_LEVEL];
+static const char *for_vals[MAX_STACK_LEVEL];
+static const char *for_cmds[MAX_STACK_LEVEL];
+#define for_var for_vars[stack_level]
+#define for_val for_vals[stack_level]
+#define for_cmd for_cmds[stack_level]
 static int exiting;
 static int break_on;
 static int break_enabled;
