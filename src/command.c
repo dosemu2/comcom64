@@ -167,6 +167,7 @@ static FILE *bkp_stdin;
 static int need_to_crlf_at_next_prompt;
 static int stack_level = 0;
 static int echo_on[MAX_STACK_LEVEL];
+static FILE *bat_file[MAX_STACK_LEVEL];
 static char bat_file_path[MAX_STACK_LEVEL][FILENAME_MAX];  // when this string is not "" it triggers batch file execution
 static char bat_arg[MAX_STACK_LEVEL][MAX_BAT_ARGS][MAX_CMD_BUFLEN];
 static int bat_file_line_number[MAX_STACK_LEVEL];
@@ -416,6 +417,11 @@ static void reset_batfile_call_stack(void)
     for (ba = 0; ba < MAX_BAT_ARGS; ba++)
       bat_arg[stack_level][ba][0] = '\0';
     bat_file_line_number[stack_level] = 0;
+    if (bat_file[stack_level])
+      {
+      fclose(bat_file[stack_level]);
+      bat_file[stack_level] = NULL;
+      }
     echo_on[stack_level] = true;
     }
   stack_level = 0;
@@ -885,16 +891,24 @@ static void get_cmd_from_bat_file(void)
     }
 
   if (bat_file_line_number[stack_level] != MAXINT)
-    bat_file_line_number[stack_level]++;
+    line_num = bat_file_line_number[stack_level]++;
+  else
+    line_num = 0;
 
-  cmd_file = fopen(bat_file_path[stack_level], "rt");
-  if (cmd_file == NULL)
+  cmd_file = bat_file[stack_level];
+  if (!cmd_file)
     {
-    cprintf("Cannot open %s\r\n", bat_file_path[stack_level]);
-    goto ErrorDone;
+    cmd_file = fopen(bat_file_path[stack_level], "rt");
+    line_num = 0;
+    if (cmd_file == NULL)
+      {
+      cprintf("Cannot open %s\r\n", bat_file_path[stack_level]);
+      goto ErrorDone;
+      }
+      bat_file[stack_level] = cmd_file;
     }
 
-  for (line_num = 0; line_num < bat_file_line_number[stack_level]; line_num++)
+  for (; line_num < bat_file_line_number[stack_level]; line_num++)
     {
     /* input as much of the line as the buffer can hold */
     s = fgets(cmd_line, MAX_CMD_BUFLEN, cmd_file);
@@ -1004,7 +1018,12 @@ do_line:
       }
     }
 
-  goto RoutineDone;
+  if (!getenv("SHELL_SEQUENTIAL_READ") && bat_file[stack_level])
+    {
+    fclose(bat_file[stack_level]);
+    bat_file[stack_level] = NULL;
+    }
+  return;
 
 ErrorDone:
   reset_batfile_call_stack();
@@ -1015,6 +1034,11 @@ FileDone:
   for (ba = 0; ba < MAX_BAT_ARGS; ba++)
     bat_arg[stack_level][ba][0] = '\0';
   bat_file_line_number[stack_level] = 0;
+  if (bat_file[stack_level])
+    {
+    fclose(bat_file[stack_level]);
+    bat_file[stack_level] = NULL;
+    }
   echo_on[stack_level] = true;
   if (stack_level > 0)
     stack_level--;
@@ -1024,9 +1048,6 @@ FileDone:
     /* send empty cmd to update window title of dosemu2 */
     installable_command_check(cmd_line, "");
     }
-RoutineDone:
-  if (cmd_file != NULL)
-    fclose(cmd_file);
   }
 
 static int ensure_dir_existence(char *dir)
@@ -2878,6 +2899,11 @@ static void perform_exit(const char *arg)
   for (ba = 0; ba < MAX_BAT_ARGS; ba++)
     bat_arg[stack_level][ba][0] = '\0';
   bat_file_line_number[stack_level] = 0;
+  if (bat_file[stack_level])
+    {
+    fclose(bat_file[stack_level]);
+    bat_file[stack_level] = NULL;
+    }
   echo_on[stack_level] = true;
   if (stack_level > 0)
     stack_level--;
@@ -3156,7 +3182,14 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
         goto StackOverflow;
       }
     else
+      {
       bat_file_line_number[stack_level] = 0;
+      if (bat_file[stack_level])
+        {
+        fclose(bat_file[stack_level]);
+        bat_file[stack_level] = NULL;
+        }
+      }
     strcpy(bat_file_path[stack_level], full_cmd);
     ba = 0;
     /* keep last entry empty to simplify shifting */
@@ -3309,6 +3342,8 @@ static void perform_goto(const char *arg)
     {
     strcpy(goto_label, arg);
     bat_file_line_number[stack_level] = MAXINT;
+    if (bat_file[stack_level])
+      fseek(bat_file[stack_level], 0, SEEK_SET);
     }
   else
     cputs("Goto not valid in immediate mode.\r\n");
