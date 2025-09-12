@@ -37,3 +37,7 @@ deb:
 
 static:
 	$(MAKE) -C src static
+
+fetch:
+	curl -O https://dosemu2.github.io/comcom64/files/comcom64.zip
+	unzip -o comcom64.zip -d src
