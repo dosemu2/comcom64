@@ -1,13 +1,21 @@
+-include config.mak
+srcdir ?= $(CURDIR)
+vpath %.c $(srcdir)
+vpath %.S $(srcdir)
 prefix ?= /usr/local
 DATADIR ?= $(prefix)/share/comcom64
 CFLAGS ?= -Wall -O2 -Wmissing-declarations -Wwrite-strings \
   -ggdb3 -Wunused -Wmissing-prototypes -flto=auto
+CPPFLAGS += -I$(srcdir)
+ASFLAGS += -I$(srcdir)
+ASCPPFLAGS += -I$(srcdir)
 LDFLAGS ?= -O2 -flto=auto
 SOURCES = command.c cmdbuf.c mouse.c env.c psp.c umb.c ae0x.c compl.c clip.c \
   thunks_a.c thunks_c.c
-HEADERS = ae0x.h cmdbuf.h compl.h psp.h command.h env.h mouse.h umb.h \
-  glob_asm.h asm.h
-PDHDR = asm.h
+HEADERS = $(addprefix $(srcdir)/,ae0x.h cmdbuf.h compl.h psp.h command.h env.h mouse.h umb.h \
+  glob_asm.h asm.h)
+PDHDR = $(srcdir)/asm.h
+GLOB_ASM = $(srcdir)/glob_asm.h
 OBJECTS = $(SOURCES:.c=.o)
 AS_SOURCES = int23.S int0.S asm.S ms.S
 AS_OBJECTS = $(AS_SOURCES:.S=.o)
@@ -31,7 +39,7 @@ clean: clean_dj64
 	$(RM) $(CMD)
 
 $(OBJECTS): $(HEADERS)
-$(AS_OBJECTS): asm.h asm.inc
+$(AS_OBJECTS): $(PDHDR) $(srcdir)/asm.inc
 
 ifeq (,$(wildcard $(CMD)))
 install:
@@ -63,7 +71,7 @@ CFLAGS += -DSTATIC_LINK
 endif
 
 $(CMD): $(DJ64_XLIB)
-	./link.sh $(LINK) $^ $(DBG) $@ $(DJ64_XLDFLAGS)
+	$(srcdir)/link.sh $(LINK) $^ $(DBG) $@ $(DJ64_XLDFLAGS)
 
 info: $(CMD)
 	djstubify -i $<

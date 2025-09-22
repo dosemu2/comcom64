@@ -1,3 +1,6 @@
+-include config.mak
+srcdir ?= $(CURDIR)
+
 RELVER = alpha3
 PKG = comcom64-0.1$(RELVER)
 TGZ = $(PKG).tar.gz
