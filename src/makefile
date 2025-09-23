@@ -19,8 +19,8 @@ GLOB_ASM = $(srcdir)/glob_asm.h
 OBJECTS = $(SOURCES:.c=.o)
 AS_SOURCES = int23.S int0.S asm.S ms.S
 AS_OBJECTS = $(AS_SOURCES:.S=.o)
-CMD = comcom64.exe
-DBG = $(CMD).dbg
+CMD = $(if $(LINK),comcom64.exe,)
+DBG = $(if $(LINK),$(CMD).dbg,)
 REVISIONID := $(shell git describe --dirty=+)
 ifeq ($(REVISIONID),)
 REVISIONID := Non-git_build
@@ -28,31 +28,20 @@ endif
 CFLAGS += -DREV_ID=\"$(REVISIONID)\"
 DJ64COMPACT_VA := 1
 
-.PHONY: all clean install uninstall
+.PHONY: all _all clean install uninstall
 
-all: $(CMD)
+# all: must be defined before including dj64.mk, and with _all: we delay the
+# expansion of vars by defining it _after_ inclusion of dj64.mk
+all: _all
 
 static:
 	$(MAKE) DJ64STATIC=1
 
-clean: clean_dj64
-	$(RM) $(CMD)
-
 $(OBJECTS): $(HEADERS)
 $(AS_OBJECTS): $(PDHDR) $(srcdir)/asm.inc
 
-ifeq (,$(wildcard $(CMD)))
-install:
-	@echo "Build it first or run \"make fetch\"" && false
-else
-install:
-endif
-	mkdir -p $(DESTDIR)$(DATADIR)
-	install -m 0644 $(CMD) $(DESTDIR)$(DATADIR)
-	ln -sf $(CMD) $(DESTDIR)$(DATADIR)/command.com
-
 uninstall:
-	rm -rf $(DATADIR)
+	rm -rf $(DESTDIR)$(DATADIR)
 
 # hook in dj64 - make sure to not do that before defining `all:` target
 export PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(prefix)/share/pkgconfig:$(prefix)/lib/pkgconfig
@@ -70,8 +59,36 @@ ifeq ($(DJ64STATIC),1)
 CFLAGS += -DSTATIC_LINK
 endif
 
+ifneq ($(LINK),)
 $(CMD): $(DJ64_XLIB)
 	$(srcdir)/link.sh $(LINK) $^ $(DBG) $@ $(DJ64_XLDFLAGS)
+endif
 
 info: $(CMD)
 	djstubify -i $<
+
+clean: clean_dj64
+ifneq ($(CMD),)
+	$(RM) $(CMD)
+endif
+
+ifeq (,$(wildcard $(CMD))$(wildcard $(DJ64_XLIB)))
+install:
+	@echo "Build it first or run \"make fetch\"" && false
+else
+LDR = $(shell pkg-config --variable=elfload dj64)
+ifeq ($(wildcard $(LDR)),)
+$(error elfload.com not found)
+endif
+install:
+endif
+	mkdir -p $(DESTDIR)$(DATADIR)
+ifneq ($(CMD),)
+	install -m 0644 $(CMD) $(DESTDIR)$(DATADIR)
+	ln -sf $(CMD) $(DESTDIR)$(DATADIR)/command.com
+else
+	install -m 0644 $(DJ64_XLIB) $(DESTDIR)$(DATADIR)/command.elf
+	install -m 0644 $(LDR) $(DESTDIR)$(DATADIR)/command.com
+endif
+
+_all: $(DJ64_XLIB) $(CMD)

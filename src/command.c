@@ -4138,9 +4138,12 @@ static void perform_ver(const char *arg)
 #endif
   " v%s, %.16s\n", version, _stubinfo->magic);
 #ifdef DJ64
-  printf("  stub version %i, loader version %i\n",
-      _stubinfo->stubinfo_ver >> 16,
-      _stubinfo->stubinfo_ver & 0xffff);
+  if ((_stubinfo->stubinfo_ver >> 16) == 0)
+    printf("  stubless build, loader version %i\n", _stubinfo->stubinfo_ver);
+  else
+    printf("  stub version %i, loader version %i\n",
+        _stubinfo->stubinfo_ver >> 16,
+        _stubinfo->stubinfo_ver & 0xffff);
 #endif
   if (REV_ID[0])
     printf("  Source ID: %s", REV_ID);
