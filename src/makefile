@@ -76,9 +76,11 @@ ifeq (,$(wildcard $(CMD))$(wildcard $(DJ64_XLIB)))
 install:
 	@echo "Build it first or run \"make fetch\"" && false
 else
+ifeq ($(CMD),)
 LDR = $(shell pkg-config --variable=elfload dj64)
 ifeq ($(wildcard $(LDR)),)
 $(error elfload.com not found)
+endif
 endif
 install:
 endif
