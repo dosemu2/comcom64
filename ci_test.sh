@@ -11,5 +11,5 @@ if ! dosemu -td -o boot.log -E ver ; then
   exit 1
 fi
 
-# make sure 32bit version also built
+make 32 -j 9
 ls -l 32/comcom32.exe
