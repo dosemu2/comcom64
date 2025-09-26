@@ -7,7 +7,6 @@ Build-Depends:
     make,
     pkgconf,
     thunk-gen,
-    djstub,
     dj64-dev,
     git,
     grep,
