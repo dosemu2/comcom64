@@ -37,6 +37,7 @@ make %{?_smp_mflags}
 %define __arch_install_post export NO_BRP_STRIP_DEBUG=true
 %define debug_package %{nil}
 %define __strip /bin/true
+%define __brp_check_rpaths %{nil}
 
 %install
 make install DESTDIR=%{buildroot} prefix=%{_prefix}
