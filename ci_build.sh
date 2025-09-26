@@ -2,6 +2,4 @@
 
 set -e
 
-make deb
-
-make 32 -j 9
+make -j 9
