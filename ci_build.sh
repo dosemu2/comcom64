@@ -2,4 +2,5 @@
 
 set -e
 
-make -j 9
+make deb
+sudo dpkg -i ../comcom64*.deb

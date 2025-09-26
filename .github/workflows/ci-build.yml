@@ -34,7 +34,7 @@ jobs:
       if: github.ref == 'refs/heads/master'
       run: |
         mkdir -p pub/files
-        zip --junk-paths pub/files/comcom64.zip build/src/comcom64.exe
+        zip --junk-paths pub/files/comcom64.zip src/comcom64.exe
         zip --junk-paths pub/files/comcom32.zip 32/comcom32.exe
         echo '<a href="files/comcom64.zip">Latest comcom64 build</a><br>' > pub/index.html
         echo '<a href="files/comcom32.zip">Latest comcom32 build</a><br>' >> pub/index.html

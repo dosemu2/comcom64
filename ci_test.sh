@@ -11,5 +11,5 @@ if ! dosemu -td -o boot.log -E ver ; then
   exit 1
 fi
 
-make 32 -j 9
+make both -j 9
 ls -l 32/comcom32.exe
