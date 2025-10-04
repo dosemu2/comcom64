@@ -86,9 +86,11 @@ install:
 endif
 	mkdir -p $(DESTDIR)$(DATADIR)
 ifneq ($(CMD),)
+	$(RM) $(DESTDIR)$(DATADIR)/command.elf
 	install -m 0644 $(CMD) $(DESTDIR)$(DATADIR)
 	ln -sf $(CMD) $(DESTDIR)$(DATADIR)/command.com
 else
+	$(RM) $(DESTDIR)$(DATADIR)/comcom64.exe
 	install -m 0644 $(DJ64_XLIB) $(DESTDIR)$(DATADIR)/command.elf
 	install -m 0644 $(LDR) $(DESTDIR)$(DATADIR)/command.com
 endif
