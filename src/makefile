@@ -1,4 +1,5 @@
 -include config.mak
+VERSION = 0.3
 srcdir ?= $(CURDIR)
 vpath %.c $(srcdir)
 vpath %.S $(srcdir)
@@ -6,7 +7,7 @@ prefix ?= /usr/local
 DATADIR ?= $(prefix)/share/comcom64
 CFLAGS ?= -Wall -O2 -Wmissing-declarations -Wwrite-strings \
   -ggdb3 -Wunused -Wmissing-prototypes -flto=auto
-CPPFLAGS += -I$(srcdir)
+CPPFLAGS += -I$(srcdir) -DCOMCOM_VERSION=\"$(VERSION)\"
 ASFLAGS += -I$(srcdir)
 ASCPPFLAGS += -I$(srcdir)
 LDFLAGS ?= -O2 -flto=auto

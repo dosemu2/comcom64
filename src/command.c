@@ -123,7 +123,7 @@ asm(
     "_shm_flags = " _S(SHM_FLAGS) "\n"
 );
 
-static const char *version = "0.3";
+static const char *version = COMCOM_VERSION;
 
 #define DP(s, o) (__dpmi_paddr){ .selector = s, .offset32 = o, }
 

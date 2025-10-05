@@ -1,12 +1,14 @@
 TOP = ..
 SRCDIR = $(TOP)/src
+VERSION = 0.3
 DOS_CC ?= i586-pc-msdosdjgpp-gcc
 DOS_LD ?= i586-pc-msdosdjgpp-gcc
 DOS_AS ?= i586-pc-msdosdjgpp-as
 DOS_STRIP ?= i586-pc-msdosdjgpp-strip
 prefix ?= /usr/local
 DATADIR ?= $(prefix)/share/comcom32
-C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -I $(SRCDIR) -I .
+C_OPT = -Wall -O2 -Wmissing-declarations -Wwrite-strings -I $(SRCDIR) -I . \
+  -DCOMCOM_VERSION=\"$(VERSION)\"
 # avoid CMOVxx instructions
 C_OPT += -march=i386
 LINK_OPT =
