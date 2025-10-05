@@ -1,5 +1,5 @@
 -include config.mak
-VERSION = 0.3
+VERSION = 0.4
 srcdir ?= $(CURDIR)
 vpath %.c $(srcdir)
 vpath %.S $(srcdir)

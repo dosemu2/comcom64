@@ -1,6 +1,6 @@
 TOP = ..
 SRCDIR = $(TOP)/src
-VERSION = 0.3
+VERSION = 0.4
 DOS_CC ?= i586-pc-msdosdjgpp-gcc
 DOS_LD ?= i586-pc-msdosdjgpp-gcc
 DOS_AS ?= i586-pc-msdosdjgpp-as
