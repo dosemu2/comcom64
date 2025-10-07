@@ -3,7 +3,12 @@ VERSION = 0.4
 srcdir ?= $(CURDIR)
 vpath %.c $(srcdir)
 vpath %.S $(srcdir)
+# on Termux PREFIX is used
+ifneq ($(PREFIX),)
+prefix := $(PREFIX)
+else
 prefix ?= /usr/local
+endif
 DATADIR ?= $(prefix)/share/comcom64
 CFLAGS ?= -Wall -O2 -Wmissing-declarations -Wwrite-strings \
   -ggdb3 -Wunused -Wmissing-prototypes -flto=auto
