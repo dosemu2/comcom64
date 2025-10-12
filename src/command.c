@@ -4141,8 +4141,9 @@ static void perform_ver(const char *arg)
   if ((_stubinfo->stubinfo_ver >> 16) == 0)
     printf("  stubless build, loader version %i\n", _stubinfo->stubinfo_ver);
   else
-    printf("  stub version %i, loader version %i\n",
-        _stubinfo->stubinfo_ver >> 16,
+    printf("  stub version %i.%i, loader version %i\n",
+        _stubinfo->stubinfo_ver >> 24,
+        (_stubinfo->stubinfo_ver >> 16) & 0xff,
         _stubinfo->stubinfo_ver & 0xffff);
 #endif
   if (REV_ID[0])
