@@ -50,6 +50,9 @@
  */
 
 #include <dos.h>
+#ifndef _A_DEVICE
+#define _A_DEVICE 0x40u
+#endif
 #include <libc/dosio.h>
 #include <io.h>
 #include <libc/getdinfo.h>
@@ -2693,7 +2696,8 @@ static void perform_dir(const char *arg)
       }
     if (first)
       {
-      if ((ffrc = findfirst_f(full_filespec, &ff, attrib, &ffhandle)) != 0)
+      if (((ffrc = findfirst_f(full_filespec, &ff, attrib, &ffhandle)) != 0) ||
+          ff.ff_attrib == _A_DEVICE )
         {
         puts("File not found");  // informational message -- not an error
         return;
