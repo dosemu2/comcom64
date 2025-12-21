@@ -118,9 +118,32 @@ static void glb_add(struct cmpl_s *cmpl, glob_t *gl)
     c->num = gl->gl_pathc;
 }
 
-int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
+static int glb_fill(glob_t *gl, const char *prefix, const char *suff,
+        const char *ext, struct cmpl_s *cmpl)
 {
     char buf[MAXPATH];
+    int err, cnt = 0;
+
+    snprintf(buf, MAXPATH, "%s%s%s", prefix, suff, ext);
+    err = glob(buf, GLOB_ERR, NULL, gl);
+    if (err && err != GLOB_NOMATCH)
+	return -1;
+    if (err) {
+	/* try case-insensitive */
+	strupr(buf);
+	err = glob(buf, GLOB_ERR, NULL, gl);
+	if (err && err != GLOB_NOMATCH)
+	    return -1;
+    }
+    if (!err) {
+	glb_add(cmpl, gl);
+	cnt += gl->gl_pathc;
+    }
+    return cnt;
+}
+
+int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
+{
     struct cmpl_s cmpl = { };
     glob_t gl_bat, gl_exe, gl_com;
     int err, ret = -1, cnt = 0;
@@ -129,30 +152,21 @@ int compl_cmds(const char *prefix, int print, int *r_len, char *r_p)
 
     if (p && p[1] != '\0')
 	return compl_fname(prefix, print, r_len, r_p);
-    snprintf(buf, MAXPATH, "%s%sbat", prefix, suff);
-    err = glob(buf, GLOB_ERR, NULL, &gl_bat);
-    if (err && err != GLOB_NOMATCH)
+
+    err = glb_fill(&gl_bat, prefix, suff, "bat", &cmpl);
+    if (err == -1)
 	return -1;
-    if (!err) {
-	glb_add(&cmpl, &gl_bat);
-	cnt += gl_bat.gl_pathc;
-    }
-    snprintf(buf, MAXPATH, "%s%sexe", prefix, suff);
-    err = glob(buf, GLOB_ERR, NULL, &gl_exe);
-    if (err && err != GLOB_NOMATCH)
+    cnt += err;
+
+    err = glb_fill(&gl_exe, prefix, suff, "exe", &cmpl);
+    if (err == -1)
 	goto err1;
-    if (!err) {
-	glb_add(&cmpl, &gl_exe);
-	cnt += gl_exe.gl_pathc;
-    }
-    snprintf(buf, MAXPATH, "%s%scom", prefix, suff);
-    err = glob(buf, GLOB_ERR, NULL, &gl_com);
-    if (err && err != GLOB_NOMATCH)
+    cnt += err;
+
+    err = glb_fill(&gl_com, prefix, suff, "com", &cmpl);
+    if (err == -1)
 	goto err2;
-    if (!err) {
-	glb_add(&cmpl, &gl_com);
-	cnt += gl_com.gl_pathc;
-    }
+    cnt += err;
 
     if (!p) {
 	cmpl.compls[cmpl.num].opaque = cmd_table;
