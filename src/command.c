@@ -54,6 +54,7 @@
 #define _A_DEVICE 0x40u
 #endif
 #include <libc/dosio.h>
+#include <pc.h>
 #include <io.h>
 #include <libc/getdinfo.h>
 #include <time.h>
@@ -3315,6 +3316,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     _control87(0x033f, 0xffff);
     _clear87();
     _fpreset();
+    outportb(0xf0, 0);  // clear IGNNE
 //    reset_text_attrs();
     gppconio_init();  /* video mode could change */
     if (mouse_en && mouseopt_enabled)
