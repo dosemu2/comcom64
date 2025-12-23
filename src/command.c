@@ -142,6 +142,8 @@ static int mouseopt_enabled;
 
 static __dpmi_raddr int0_vec;
 static int int0_wa;
+static __dpmi_paddr int75_vec;
+static int int75_wa;
 
 /*
  * Command parser defines/variables
@@ -243,6 +245,7 @@ static void perform_popd(const char *arg);
 static void perform_prompt(const char *arg);
 static void perform_pushd(const char *arg);
 static void perform_r200fix(const char *arg);
+static void perform_divzfix(const char *arg);
 static void perform_rd(const char *arg);
 static void perform_rename(const char *arg);
 static void perform_shift(const char *arg);
@@ -303,6 +306,7 @@ struct built_in_cmd cmd_table[] =
     {"prompt", perform_prompt, "", "customize prompt string"},
     {"pushd", perform_pushd, "", "push cwd to stack and cd"},
     {"r200fix", perform_r200fix, "", "runtime error 200 fix"},
+    {"divzfix", perform_divzfix, "", "division by zero fix"},
     {"rd", perform_rd, "", "remove directory"},
     {"rmdir", perform_rd, "", "remove directory"},
     {"rename", perform_rename, "", "rename with wildcards"},
@@ -3065,6 +3069,15 @@ static int is_HMA_enabled(void)
   return !!(r.h.dh & 0x10);
   }
 
+static void activate_int75_handling(void)
+{
+  __dpmi_paddr pa;
+
+  pa.selector = _my_cs();
+  pa.offset32 = (uintptr_t)my_int75_handler;
+  __dpmi_set_protected_mode_interrupt_vector(0x75, &pa);
+}
+
 static void perform_external_cmd(int call, int lh, char *ext_cmd)
   {
   finddata_t ff;
@@ -3231,6 +3244,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
 #ifdef __DJGPP__
     __djgpp_exception_toggle();
 #endif
+    activate_int75_handling();
     set_env_seg();
     /* prepend command tail with space */
     alen = strlen(cmd_args);
@@ -3707,6 +3721,21 @@ static void perform_r200fix(const char *arg)
   int0_wa = 1;
   perform_external_cmd(false, false, cmd);
   int0_wa = 0;
+  }
+
+static void perform_divzfix(const char *arg)
+  {
+  if (!*arg)
+    {
+    cprintf("divzfix: command name missing\r\n");
+    reset_batfile_call_stack();
+    return;
+    }
+  shift_cmdline();
+
+  int75_wa = 1;
+  perform_external_cmd(false, false, cmd);
+  int75_wa = 0;
   }
 
 static void perform_rd(const char *arg)
@@ -4705,6 +4734,20 @@ void do_int0(void)
     __dpmi_set_real_mode_interrupt_vector(0, &int0_vec);
 }
 
+static void setup_int75_handling(void)
+{
+  __djgpp_exception_toggle();
+  __dpmi_get_protected_mode_interrupt_vector(0x75, &int75_vec);
+  __djgpp_exception_toggle();
+  _prev75_eip = int75_vec.offset32;
+  _prev75_cs = int75_vec.selector;
+}
+
+int do_int75(void)
+{
+  return int75_wa;
+}
+
 int main(int argc, const char *argv[], const char *envp[])
   {
   int a;
@@ -4729,6 +4772,7 @@ int main(int argc, const char *argv[], const char *envp[])
     _osmajor = 7;  // fake _osmajor to enable extended functionality
   setup_break_handling();
   setup_int0_handling();
+  setup_int75_handling();
 
   // unbuffer stdin and stdout
   setbuf(stdin, NULL);

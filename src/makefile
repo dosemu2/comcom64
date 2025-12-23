@@ -22,7 +22,7 @@ HEADERS = $(addprefix $(srcdir)/,ae0x.h cmdbuf.h compl.h psp.h command.h env.h m
 PDHDR = $(srcdir)/asm.h
 GLOB_ASM = $(srcdir)/glob_asm.h
 OBJECTS = $(SOURCES:.c=.o)
-AS_SOURCES = int23.S int0.S asm.S ms.S
+AS_SOURCES = int23.S int0.S int75.S asm.S ms.S
 AS_OBJECTS = $(AS_SOURCES:.S=.o)
 CMD = $(if $(LINK),comcom64.exe,)
 DBG = $(if $(LINK),$(CMD).dbg,)

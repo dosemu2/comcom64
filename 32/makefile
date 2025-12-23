@@ -15,7 +15,8 @@ LINK_OPT =
 SRCS = $(SRCDIR)/command.c $(SRCDIR)/cmdbuf.c $(SRCDIR)/ms.c \
   $(SRCDIR)/env.c $(SRCDIR)/psp.c $(SRCDIR)/umb.c $(SRCDIR)/ae0x.c \
    $(SRCDIR)/compl.c $(SRCDIR)/clip.c memmem.c fmemcpy.c findclos.c
-ASSRCS = $(SRCDIR)/asm.S $(SRCDIR)/int23.S $(SRCDIR)/int0.S $(SRCDIR)/mouse.S
+ASSRCS = $(SRCDIR)/asm.S $(SRCDIR)/int23.S $(SRCDIR)/int0.S $(SRCDIR)/int75.S \
+  $(SRCDIR)/mouse.S
 OBJS = $(notdir $(SRCS:.c=.o)) $(notdir $(ASSRCS:.S=.o))
 CMD = comcom32.exe
 REVISIONID := $(shell git describe --dirty=+)
