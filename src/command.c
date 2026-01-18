@@ -361,6 +361,18 @@ static void conv_unix_path_to_ms_dos(char *path)
     }
   }
 
+static int is_device_spec(const char *s, int *colon)    // check for form "NUL:"
+  {
+  int len = strlen(s);
+
+  if (len < 3)        // Must be at least 2 chars(+ colon) long
+    return false;
+  if (s[len - 1] != ':')
+    return false;
+  *colon = len - 1;
+  return true;
+  }
+
 static int is_drive_spec(char *s)    // check for form "A:"
   {
   if (!isalpha(s[0]))
@@ -4318,7 +4330,7 @@ static bool is_valid_DOS_char(int c)
 
 static void parse_cmd_line(void)
   {
-  int c, cmd_len, *pipe_count_addr;
+  int c, cmd_len, colon, *pipe_count_addr;
   char *extr, *dest, *saved_extr, *delim;
   char new_cmd_line[MAX_CMD_BUFLEN], *end;
   const char *v;
@@ -4495,7 +4507,13 @@ quot:
       extr = saved_extr;
       }
     }
+
+  if (is_device_spec(pipe_file[STDIN_INDEX], &colon))
+    pipe_file[STDIN_INDEX][colon] = '\0';
   conv_unix_path_to_ms_dos(pipe_file[STDIN_INDEX]);
+
+  if (is_device_spec(pipe_file[STDOUT_INDEX], &colon))
+    pipe_file[STDOUT_INDEX][colon] = '\0';
   conv_unix_path_to_ms_dos(pipe_file[STDOUT_INDEX]);
 
   // done with variables and pipes -- now, skip leading spaces
