@@ -53,6 +53,7 @@
 #ifndef _A_DEVICE
 #define _A_DEVICE 0x40u
 #endif
+#define CF 1
 #include <libc/dosio.h>
 #include <pc.h>
 #include <io.h>
@@ -4328,6 +4329,29 @@ static bool is_valid_DOS_char(int c)
   return false;
 }
 
+static int is_device(const char *name) {
+  int fd;
+  __dpmi_regs r = {};
+
+  fd = open(name, O_RDONLY);
+  if (fd == -1)
+    return false;
+
+  r.x.flags = CF;
+  r.d.eax = 0x4400;
+  r.d.ebx = fd;
+  r.d.edx = 0;
+  __dpmi_int(0x21, &r);
+  close(fd);
+  if (r.x.flags & CF)
+    return false;
+
+  if (!(r.d.edx & (1u << 7)))  // Bit 7 set indicates device
+    return false;
+
+  return true;
+}
+
 static void parse_cmd_line(void)
   {
   int c, cmd_len, colon, *pipe_count_addr;
@@ -4508,12 +4532,18 @@ quot:
       }
     }
 
-  if (is_device_spec(pipe_file[STDIN_INDEX], &colon))
+  if (is_device_spec(pipe_file[STDIN_INDEX], &colon)) {
     pipe_file[STDIN_INDEX][colon] = '\0';
+    if (!is_device(pipe_file[STDIN_INDEX]))
+      pipe_file[STDIN_INDEX][colon] = ':';
+  }
   conv_unix_path_to_ms_dos(pipe_file[STDIN_INDEX]);
 
-  if (is_device_spec(pipe_file[STDOUT_INDEX], &colon))
+  if (is_device_spec(pipe_file[STDOUT_INDEX], &colon)) {
     pipe_file[STDOUT_INDEX][colon] = '\0';
+    if (!is_device(pipe_file[STDOUT_INDEX]))
+      pipe_file[STDOUT_INDEX][colon] = ':';
+  }
   conv_unix_path_to_ms_dos(pipe_file[STDOUT_INDEX]);
 
   // done with variables and pipes -- now, skip leading spaces
