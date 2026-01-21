@@ -361,6 +361,43 @@ static void conv_unix_path_to_ms_dos(char *path)
     }
   }
 
+/* check for form "NUL:"
+ * returns:
+ *   -1 for invalid name (maybe has colon suffix, but doesn't resolve to a device)
+ *    0 for a name without colon
+ *    1 for is a device name with colon at position (*colon) */
+static int is_device_with_colon(const char *name, int *colon)
+{
+  int ret = -1;
+  int len;
+  char *s, *pcolon;
+  finddata_t ff;
+
+  pcolon = strchr(name, ':');
+  if (!pcolon)                    // Plain device name or file
+    return 0;
+
+  len = strlen(name);
+  if (&name[len - 1] != pcolon)   // More than one colon, or it's not the last character
+    return -1;
+
+  if (len < 3)                    // Single ':' or probable drive '?:'
+    return -1;
+
+  s = strndup(name, len - 1);
+  if (!s)
+    return -1;
+
+  if (findfirst_f(s, &ff, FA_DIREC + FA_RDONLY + FA_ARCH + FA_SYSTEM + FA_HIDDEN, NULL) == 0 &&
+      ff.ff_attrib == _A_DEVICE) {
+    *colon = len - 1;
+    ret = 1;
+  }
+
+  free(s);
+  return ret;
+}
+
 static int is_drive_spec(char *s)    // check for form "A:"
   {
   if (!isalpha(s[0]))
@@ -4568,13 +4605,31 @@ static void exec_cmd(int call)
     }
   else // open the pipe file
     {
-    if (pipe_file_redir_count[STDIN_INDEX] > 0)
-      pipe_fno[STDIN_INDEX] = open(pipe_file[STDIN_INDEX], O_TEXT|O_RDONLY, S_IRUSR);
+    int colon, rc;
 
-    if (pipe_file_redir_count[STDOUT_INDEX] > 1)
-      pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_BINARY|O_WRONLY|O_APPEND|O_CREAT, S_IRUSR | S_IWUSR); // open for append
-    else if (pipe_file_redir_count[STDOUT_INDEX] == 1)
-      pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_BINARY|O_WRONLY|O_TRUNC|O_CREAT, S_IRUSR | S_IWUSR);  // open as new file
+    if (pipe_file_redir_count[STDIN_INDEX] > 0) {
+      rc = is_device_with_colon(pipe_file[STDIN_INDEX], &colon);
+      if (rc == -1) {
+        cprintf("Invalid standard input device name '%s'\r\n", pipe_file[STDIN_INDEX]);
+        goto Exit;
+      } else if (rc == 1) {
+        pipe_file[STDIN_INDEX][colon] = '\0';
+      }
+      pipe_fno[STDIN_INDEX] = open(pipe_file[STDIN_INDEX], O_TEXT|O_RDONLY, S_IRUSR);
+    }
+
+    if (pipe_file_redir_count[STDOUT_INDEX] > 0) {
+      rc = is_device_with_colon(pipe_file[STDOUT_INDEX], &colon);
+      if (rc == -1) {
+        cprintf("Invalid standard output device name '%s'\r\n", pipe_file[STDOUT_INDEX]);
+        goto Exit;
+      } else if (rc == 1) {
+        pipe_file[STDOUT_INDEX][colon] = '\0';
+      }
+      if (pipe_file_redir_count[STDOUT_INDEX] == 1)
+        pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_BINARY|O_WRONLY|O_TRUNC|O_CREAT, S_IRUSR | S_IWUSR);  // open as new file
+      else
+        pipe_fno[STDOUT_INDEX] = open(pipe_file[STDOUT_INDEX], O_BINARY|O_WRONLY|O_APPEND|O_CREAT, S_IRUSR | S_IWUSR); // open for append
 
       /* check for error
       if (pipe_fno[pipe_index] < 0 ||
@@ -4588,6 +4643,7 @@ static void exec_cmd(int call)
         reset_batfile_call_stack();
         goto Exit;
         } */
+    }
     }
 
   for (pipe_index = 0; pipe_index < 2; pipe_index++)
@@ -4666,7 +4722,7 @@ static void exec_cmd(int call)
     exec_cmd(true);
     }
 
-/* Exit: */
+Exit:
   cmd_line[0] = '\0';
   if (redir_result[STDIN_INDEX] != -1) {
     dup2(old_std_fno[STDIN_INDEX], STDIN_INDEX);
