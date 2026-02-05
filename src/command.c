@@ -2162,7 +2162,12 @@ static int expand_pluses(void)
   int len;
   char *p, *p2, *last_arg;
 
+  if (!strchr(cmd_args, '+'))
+    return 0;
   strcpy(cmd_args_bkp, cmd_args);
+  len = strlen(cmd_args_bkp);
+  while (len > 0 && cmd_args_bkp[len-1] == ' ')
+    cmd_args_bkp[--len] = '\0';
   last_arg = strrchr(cmd_args_bkp, ' ');
   if (!last_arg)
     {
