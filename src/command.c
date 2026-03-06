@@ -3091,7 +3091,7 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
   char *pathvar, pathlist[200];
   char full_cmd[MAXPATH+MAX_CMD_BUFLEN] = "";
   char temp_cmd[MAXPATH+MAX_CMD_BUFLEN];
-  int rc;
+  int rc, i;
   int exec_type, e, ba;
   const char *exec_ext[3] = {".COM",".EXE",".BAT"};
   char *s;
@@ -3196,6 +3196,18 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
 
   strupr(full_cmd);
 
+  /* Needs to close prev bat files explicitly as DOS apps expect
+   * free fds starting from 5 (3=STDAUX, 4=STDPRN). Caching only
+   * exist if SHELL_SEQUENTIAL_READ var is set, otherwise they
+   * are already closed and this code then does nothing. */
+  for (i = 0; i <= stack_level; i++)
+    {
+    if (bat_file[i])
+      {
+      fclose(bat_file[i]);
+      bat_file[i] = NULL;
+      }
+    }
   if (exec_type == 2)  // if command is a batch file
     {
     if (call || getenv("SHELL_CALL_DEFAULT"))
