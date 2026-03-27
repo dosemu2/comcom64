@@ -4130,8 +4130,13 @@ static void perform_type(const char *arg)
     while (1)
       {
       c = fgetc(textfile);
-      if (c == EOF || c == 0x1a || c == 3 || c == 0)
+      if (c == EOF)
         break;
+      if (c == 0x1a || c == 3 || c == 0)
+        {
+        puts("");
+        break;
+        }
       putchar(c);
       }
     fclose(textfile);
