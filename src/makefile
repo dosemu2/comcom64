@@ -24,7 +24,8 @@ GLOB_ASM = $(srcdir)/glob_asm.h
 OBJECTS = $(SOURCES:.c=.o)
 AS_SOURCES = int23.S int0.S int75.S asm.S ms.S
 AS_OBJECTS = $(AS_SOURCES:.S=.o)
-CMD = $(if $(LINK),comcom64.exe,)
+RCMD = comcom64.exe
+CMD = $(if $(LINK),$(RCMD),)
 DBG = $(if $(LINK),$(CMD).dbg,)
 REVISIONID := $(shell git describe --dirty=+)
 ifeq ($(REVISIONID),)
@@ -65,23 +66,23 @@ CFLAGS += -DSTATIC_LINK
 endif
 
 ifneq ($(LINK),)
-$(CMD): $(DJ64_XLIB)
+$(RCMD): $(DJ64_XLIB)
 	$(srcdir)/link.sh $(LINK) $^ $(DBG) $@ $(DJ64_XLDFLAGS)
-endif
 
-info: $(CMD)
+info: $(RCMD)
 	djstubify -i $<
+endif
 
 clean: clean_dj64
 ifneq ($(CMD),)
 	$(RM) $(CMD)
 endif
 
-ifeq (,$(wildcard $(CMD))$(wildcard $(DJ64_XLIB)))
+ifeq (,$(wildcard $(RCMD))$(wildcard $(DJ64_XLIB)))
 install:
 	@echo "Build it first or run \"make fetch\"" && false
 else
-ifeq ($(CMD),)
+ifeq ($(wildcard $(RCMD)),)
 LDR = $(shell pkg-config --variable=elfload dj64)
 ifeq ($(wildcard $(LDR)),)
 $(error elfload.com not found)
@@ -90,10 +91,10 @@ endif
 install:
 endif
 	mkdir -p $(DESTDIR)$(DATADIR)
-ifneq ($(CMD),)
+ifneq ($(wildcard $(RCMD)),)
 	$(RM) $(DESTDIR)$(DATADIR)/command.elf
-	install -m 0644 $(CMD) $(DESTDIR)$(DATADIR)
-	ln -sf $(CMD) $(DESTDIR)$(DATADIR)/command.com
+	install -m 0644 $(RCMD) $(DESTDIR)$(DATADIR)
+	ln -sf $(RCMD) $(DESTDIR)$(DATADIR)/command.com
 else
 	$(RM) $(DESTDIR)$(DATADIR)/comcom64.exe
 	install -m 0644 $(DJ64_XLIB) $(DESTDIR)$(DATADIR)/command.elf
