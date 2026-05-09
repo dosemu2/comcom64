@@ -6,7 +6,7 @@ PKG = comcom64-0.1$(RELVER)
 TGZ = $(PKG).tar.gz
 
 all: 64
-both: 64 32
+both: static 32
 
 install uninstall:
 	$(MAKE) -C src $@
