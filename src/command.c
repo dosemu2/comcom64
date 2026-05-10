@@ -3630,7 +3630,10 @@ static void perform_mouseopt(const char *arg)
     if (stricmp(arg, "/M") == 0 && opt == 1)
       {
       if (!mouse_en)
+        {
         mouse_en = mouse_init();
+        mouseopt_enabled = mouse_en;
+        }
       }
     }
   else

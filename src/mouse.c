@@ -211,6 +211,13 @@ void mouse_enable(void)
 	return;
     }
 
+    /* enable the wheel */
+    r.x.ax = 0x11;
+    __dpmi_int(0x33, &r);
+    if ((r.x.flags & CF) || r.x.ax != 0x574d || (r.x.cx & 1) == 0) {
+	puts("mouse wheel not supported");
+//    return 0;
+    }
     r.x.ax = 0x0c;
     r.x.cx = MEV_MASK;
     r.x.es = newm.segment;
