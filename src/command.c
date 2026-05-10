@@ -2700,8 +2700,13 @@ static void perform_dir(const char *arg)
     {
     if (use_pause && wherey() == txinfo.winbottom)
       {
-      printf("Press any key to continue...");
-      getch();
+      printf("Press any key to continue, or q to stop...");
+      rc = getch();
+      if (rc == 3 || toupper(rc) == 'Q')
+        {
+        printf("\n");
+        break;
+        }
       clrscr();
       }
     if (first)
