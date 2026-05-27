@@ -623,6 +623,16 @@ static unsigned short keyb_get_rawcode(void)
     c = getch()<<8;
   return c;
 }
+
+static unsigned short keyb_get_rawcode_e(void)
+{
+  unsigned short c = getche();
+
+  if (c == 0x00/* || c == 0xE0*/)
+    c = getche()<<8;
+  return c;
+}
+
 unsigned short keyb_get_shift_states(void)
 {
   return bioskey(2);
@@ -992,7 +1002,7 @@ do_line:
     {
     int c;
     printf("%s [Y/N] ", cmd_line);
-    c = getche();
+    c = keyb_get_rawcode_e();
     puts("");
     switch (c)
       {
@@ -1005,8 +1015,10 @@ do_line:
       case 0x1b:  // ESC
         stepping = 0;
         break;
-      default:
+      case 0x3f00:  // F5
         goto ErrorDone;
+      default:
+        goto do_line;
       }
     }
 
