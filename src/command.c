@@ -867,8 +867,8 @@ static int get_choice(const char *choices)
 //  strupr(choices);
   do
     {
-    key = getch();
-    if (key == 0)
+    key = keyb_get_rawcode();
+    if (KEY_ASCII(key) == 0)
       continue;
     } while (strchr(choices, toupper(key)) == NULL);
   choice = toupper(key);
@@ -2713,7 +2713,7 @@ static void perform_dir(const char *arg)
     if (use_pause && wherey() == txinfo.winbottom)
       {
       printf("Press any key to continue, or q to stop...");
-      rc = getch();
+      rc = keyb_get_rawcode();
       if (rc == 3 || toupper(rc) == 'Q')
         {
         printf("\n");
@@ -3691,7 +3691,7 @@ static void perform_path(const char *arg)
 static void perform_pause(const char *arg)
   {
   cputs("Press any key to continue . . .\r\n");
-  getch();
+  keyb_get_rawcode();
   }
 
 static void perform_popd(const char *arg)
