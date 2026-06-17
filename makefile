@@ -8,12 +8,25 @@ TGZ = $(PKG).tar.gz
 all: 64
 both: static 32
 
-install uninstall:
-	$(MAKE) -C src $@
+install:
+	$(MAKE) -C src install
+
+install_32:
+	$(MAKE) -C src/32 install
+
+install_both: install install_32
+
+uninstall:
+	$(MAKE) -C src uninstall
+
+uninstall_32:
+	$(MAKE) -C src/32 uninstall
+
+uninstall_both: uninstall uninstall_32
 
 clean:
 	$(MAKE) -C src clean
-	$(MAKE) -C 32 clean
+	$(MAKE) -C src/32 clean
 	$(RM) -f $(TGZ) *.zip
 
 distclean:
@@ -21,7 +34,7 @@ distclean:
 
 $(TGZ):
 	git archive -o $(CURDIR)/$(TGZ) --prefix=$(PKG)/ HEAD
-.PHONY: $(TGZ) 64 32 both
+.PHONY: $(TGZ) 64 32 both djgpp install install_32 install_both uninstall_both uninstall uninstall_32
 
 tar: $(TGZ)
 
@@ -36,7 +49,10 @@ deb:
 	$(MAKE) -C src
 
 32:
-	$(MAKE) -C 32
+	$(MAKE) -C src/32
+
+djgpp:
+	$(MAKE) -C djgpp
 
 static:
 	$(MAKE) -C src static
