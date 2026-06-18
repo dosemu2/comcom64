@@ -69,6 +69,7 @@ endif
 ifneq ($(LINK),)
 $(RCMD): $(DJ64_XLIB)
 	$(srcdir)/link.sh $(LINK) $^ $(DBG) $@ $(DJ64_XLDFLAGS)
+	$(STRIP) $@
 
 info: $(RCMD)
 	djstubify -i $<
