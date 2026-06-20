@@ -12,9 +12,10 @@ endif
 DATADIR ?= $(prefix)/share/$(PRJ)
 CFLAGS ?= -Wall -O2 -Wmissing-declarations -Wwrite-strings \
   -ggdb3 -Wunused -Wmissing-prototypes
-CPPFLAGS += -I$(srcdir) -DCOMCOM_VERSION=\"$(VERSION)\"
-ASFLAGS += -I$(srcdir)
-ASCPPFLAGS += -I$(srcdir)
+# current dir must be searched before srcdir to avoid picking wrong gen files
+CPPFLAGS += -I. -I$(srcdir) -DCOMCOM_VERSION=\"$(VERSION)\"
+ASFLAGS += -I. -I$(srcdir)
+ASCPPFLAGS += -I. -I$(srcdir)
 SOURCES = command.c cmdbuf.c mouse.c env.c psp.c umb.c ae0x.c compl.c clip.c \
   thunks_a.c thunks_c.c
 HEADERS = $(addprefix $(srcdir)/,ae0x.h cmdbuf.h compl.h psp.h command.h env.h mouse.h umb.h \
