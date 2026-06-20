@@ -1,0 +1,7 @@
+#! /bin/sh
+
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+if [ ! -f configure ]; then
+    ln -sf "$SCRIPTPATH"/makefile makefile
+    echo "srcdir = $SCRIPTPATH"/.. >config.mak
+fi
