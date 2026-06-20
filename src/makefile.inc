@@ -67,10 +67,19 @@ ifeq ($(DJ64STATIC),1)
 DJCFLAGS += -DSTATIC_LINK
 endif
 
+ifeq ($(TOOLC),dj32)
+ifneq ($(CROSS_PREFIX),)
+# for djlink on arm
+export READELF = $(CROSS_PREFIX)readelf
+export OBJCOPY = $(CROSS_PREFIX)objcopy
+export STRIP = $(CROSS_PREFIX)strip
+endif
+endif
+
 ifneq ($(LINK),)
 $(RCMD): $(DJ64_XLIB)
 	$(srcdir)/link.sh $(LINK) $^ $(DBG) $@ $(DJ64_XLDFLAGS)
-	$(STRIP) $@
+	$(DJSTRIP) $@
 
 info: $(RCMD)
 	djstubify -i $<
