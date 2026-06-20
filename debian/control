@@ -9,6 +9,7 @@ Build-Depends:
     thunk-gen,
     djstub,
     dj64-dev,
+    dj32-dev,
     git,
     grep,
     debhelper (>= 9~)
@@ -18,5 +19,11 @@ Package: comcom64
 Architecture: any
 # Note: ${shlibs:Depends} doesn't work as there are no elf binaries in package
 Depends: ${misc:Depends}, dj64
-Description: 64-bit command.com
- comcom64 is a 64-bit command.com.
+Description: 64bit command.com
+ 64bit command.com to be used primarily under dosemu2.
+
+Package: comcom32
+Architecture: any
+Depends: ${misc:Depends}
+Description: 32bit command.com
+ 32bit command.com to be used under DOS (bare-metal or under an emulator).

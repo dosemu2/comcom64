@@ -3,5 +3,10 @@
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 if [ ! -f configure ]; then
     ln -sf "$SCRIPTPATH"/makefile makefile
+    ln -sf "$SCRIPTPATH"/makefile.inc makefile.inc
     echo "srcdir = $SCRIPTPATH" >config.mak
+
+    mkdir 32 2>/dev/null
+    cd 32
+    "$SCRIPTPATH"/32/configure
 fi

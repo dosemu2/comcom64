@@ -19,6 +19,7 @@ BuildRequires: pkgconf-pkg-config
 BuildRequires: thunk-gen
 BuildRequires: djstub
 BuildRequires: dj64dev-dj64-devel
+BuildRequires: dj64dev-dj32-devel
 BuildRequires: git
 BuildRequires: grep
 
@@ -26,14 +27,18 @@ Requires: dj64dev-dj64
 
 %description
 comcom64 is a 64-bit command.com.
+%end
 
 %prep
 {{{ git_dir_setup_macro }}}
+%end
 
 %build
 make %{?_smp_mflags}
+%end
 
 %check
+%end
 
 %define __arch_install_post export NO_BRP_STRIP_DEBUG=true
 %define debug_package %{nil}
@@ -42,10 +47,30 @@ make %{?_smp_mflags}
 
 %install
 make install DESTDIR=%{buildroot} prefix=%{_prefix}
+%end
 
-%files
+
+%package comcom64
+Summary: 64bit command.com
+%description comcom64
+64bit command.com to be used primarily under dosemu2.
+%end
+
+%files comcom64
 %defattr(-,root,root)
 %{_datadir}/comcom64
+%end
+
+%package comcom32
+Summary: 32bit command.com
+%description comcom32
+32bit command.com to be used under DOS (bare-metal or under an emulator).
+%end
+
+%files comcom32
+%defattr(-,root,root)
+%{_datadir}/comcom32
+%end
 
 %changelog
 {{{ git_dir_changelog }}}
