@@ -8,21 +8,21 @@ TGZ = $(PKG).tar.gz
 all: 64 32
 both: static 32
 
-install:
+install_64:
 	$(MAKE) -C src install
 
 install_32:
 	$(MAKE) -C src/32 install
 
-install_both: install install_32
+install: install_64 install_32
 
-uninstall:
+uninstall_64:
 	$(MAKE) -C src uninstall
 
 uninstall_32:
 	$(MAKE) -C src/32 uninstall
 
-uninstall_both: uninstall uninstall_32
+uninstall: uninstall_64 uninstall_32
 
 clean:
 	$(MAKE) -C src clean
