@@ -55,7 +55,7 @@ export PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(prefix)/share/pkgconfig:$(prefix)
 DJMK = $(shell pkg-config --variable=makeinc $(TOOLC))
 ifeq ($(wildcard $(DJMK)),)
 ifeq ($(filter install uninstall clean,$(MAKECMDGOALS)),)
-$(error dj64-dev not installed)
+$(error $(TOOLC)-dev not installed)
 endif
 clean_dj64:
 clean_dj32:
