@@ -51,7 +51,6 @@ uninstall:
 	rm -rf $(DESTDIR)$(DATADIR)
 
 # hook in dj64 - make sure to not do that before defining `all:` target
-export PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(prefix)/share/pkgconfig:$(prefix)/lib/pkgconfig
 DJMK = $(shell pkg-config --variable=makeinc $(TOOLC))
 ifeq ($(wildcard $(DJMK)),)
 ifeq ($(filter install uninstall clean,$(MAKECMDGOALS)),)
