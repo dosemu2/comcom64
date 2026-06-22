@@ -226,6 +226,7 @@ static void perform_dir(const char *arg);
 static void perform_echo_dot(const char *arg);
 static void perform_echo(const char *arg);
 static void perform_elfexec(const char *arg);
+static void perform_elfexec2(const char *arg);
 static void perform_elfload(const char *arg);
 static void perform_elfload2(const char *arg);
 static void perform_exit(const char *arg);
@@ -285,6 +286,7 @@ struct built_in_cmd cmd_table[] =
     {"echo.", perform_echo_dot, "", "terminal output"},  // before normal echo
     {"echo", perform_echo, "", "terminal output"},
     {"elfexec", perform_elfexec, "", "execute elf file"},
+    {"elfexec2", perform_elfexec2, "", "execute elf file"},
     {"elfload", perform_elfload, "", "load host's elf file"},
     {"elfload2", perform_elfload2, "", "load host's elf file"},
     {"exit", perform_exit, "", "exit from interpreter"},
@@ -2873,11 +2875,23 @@ static void perform_elfload(const char *arg)
 #endif
   }
 
-static void perform_elfload2(const char *arg)
-  {
 #ifdef DJ64
-  char *cs;
+static void do_elf_env(const char *var, const char *arg)
+  {
+  char *cs = getenv("COMSPEC");
+  if (!cs)
+    {
+    printf("COMSPEC not set\n");
+    return;
+    }
+  setenv(var, arg, 1);
+  perform_external_cmd(false, false, cs);
+  unsetenv(var);
+  }
 #endif
+
+static void perform_elfexec2(const char *arg)
+  {
   if (!arg || !arg[0])
     {
     cprintf("Syntax error\r\n");
@@ -2885,15 +2899,22 @@ static void perform_elfload2(const char *arg)
     return;
     }
 #ifdef DJ64
-  cs = getenv("COMSPEC");
-  if (!cs)
+  do_elf_env("ELFEXEC", arg);
+#else
+  printf("elfexec2 unsupported\n");
+#endif
+  }
+
+static void perform_elfload2(const char *arg)
+  {
+  if (!arg || !arg[0])
     {
-    printf("COMSPEC not set\n");
+    cprintf("Syntax error\r\n");
+    reset_batfile_call_stack();
     return;
     }
-  setenv("ELFLOAD", arg, 1);
-  perform_external_cmd(false, false, cs);
-  unsetenv("ELFLOAD");
+#ifdef DJ64
+  do_elf_env("ELFLOAD", arg);
 #else
   printf("elfload2 unsupported\n");
 #endif
