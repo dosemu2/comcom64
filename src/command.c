@@ -191,6 +191,8 @@ static int break_on;
 static int break_enabled;
 static char for_cmd_args[MAX_STACK_LEVEL][MAX_CMD_BUFLEN];
 
+static char *cmd_path;
+
 struct for_iter {
   char *token;
   int glob_idx;
@@ -2878,14 +2880,8 @@ static void perform_elfload(const char *arg)
 #ifdef DJ64
 static void do_elf_env(const char *var, const char *arg)
   {
-  char *cs = getenv("COMSPEC");
-  if (!cs)
-    {
-    printf("COMSPEC not set\n");
-    return;
-    }
   setenv(var, arg, 1);
-  perform_external_cmd(false, false, cs);
+  perform_external_cmd(false, false, cmd_path);
   unsetenv(var);
   }
 #endif
@@ -4844,6 +4840,10 @@ int main(int argc, const char *argv[], const char *envp[])
   // init bat file stack
   reset_batfile_call_stack();
 
+  cmd_path = strdup(argv[0]);
+  strupr(cmd_path);
+  conv_unix_path_to_ms_dos(cmd_path);
+
   // process arguments
   for (a = 1; a < argc; a++)
     {
@@ -4944,11 +4944,7 @@ int main(int argc, const char *argv[], const char *envp[])
 
   if (argc > 0 && (shell_permanent || !getenv("COMSPEC")))
     {
-    char *cmd_path = strdup(argv[0]);
-    strupr(cmd_path);
-    conv_unix_path_to_ms_dos(cmd_path);
     setenv("COMSPEC", cmd_path, 1);
-    free(cmd_path);
     }
   setenv("COMCOM_VER", version, 1);
   setenv("ERRORLEVEL", "0", 1);
