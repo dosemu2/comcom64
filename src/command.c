@@ -4843,17 +4843,6 @@ int main(int argc, const char *argv[], const char *envp[])
 
   // init bat file stack
   reset_batfile_call_stack();
-  if (argc > 0 && !getenv("COMSPEC"))
-    {
-    char *cmd_path = strdup(argv[0]);
-    strupr(cmd_path);
-    conv_unix_path_to_ms_dos(cmd_path);
-    setenv("COMSPEC", cmd_path, 1);
-    free(cmd_path);
-    }
-  setenv("COMCOM_VER", version, 1);
-  setenv("ERRORLEVEL", "0", 1);
-  setenv("TERM", "djgpp", 0);
 
   // process arguments
   for (a = 1; a < argc; a++)
@@ -4952,6 +4941,18 @@ int main(int argc, const char *argv[], const char *envp[])
       parse_cmd_line();
       }
     }
+
+  if (argc > 0 && (shell_permanent || !getenv("COMSPEC")))
+    {
+    char *cmd_path = strdup(argv[0]);
+    strupr(cmd_path);
+    conv_unix_path_to_ms_dos(cmd_path);
+    setenv("COMSPEC", cmd_path, 1);
+    free(cmd_path);
+    }
+  setenv("COMCOM_VER", version, 1);
+  setenv("ERRORLEVEL", "0", 1);
+  setenv("TERM", "djgpp", 0);
 
   if (shell_permanent) {
     set_psp_parent();
