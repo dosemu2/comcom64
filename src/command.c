@@ -4813,7 +4813,24 @@ int main(int argc, const char *argv[], const char *envp[])
   char *v;
   int disable_autoexec = 0;
   int inited = 0;
-  // initialize the cmd data ...
+  const char *ev;
+
+  if ((ev = getenv("ELFEXEC")))
+    {
+    int ok = 0;
+    if (argc > 0)
+      ok = (stricmp(argv[0], ev) == 0);
+    if (!ok)
+      {
+      fprintf(stderr, "ELFEXEC unsupported\n");
+      return EXIT_FAILURE;
+      }
+    }
+  if (getenv("ELFLOAD"))
+    {
+    fprintf(stderr, "ELFLOAD unsupported\n");
+    return EXIT_FAILURE;
+    }
 
   // reset fpu
   _clear87();
