@@ -4234,8 +4234,12 @@ static void perform_ver(const char *arg)
 #ifdef DJ64
   if ((_stubinfo->stubinfo_ver >> 16) == 0)
     printf("  stubless build, loader version %i\n", _stubinfo->stubinfo_ver);
+  else if ((_stubinfo->stubinfo_ver >> 24) == 0)
+    printf("  stub format %i, loader version %i (fullstub)\n",
+        (_stubinfo->stubinfo_ver >> 16) & 0xff,
+        _stubinfo->stubinfo_ver & 0xffff);
   else
-    printf("  stub version %i.%i, loader version %i\n",
+    printf("  ministub version %i.%i, loader version %i\n",
         _stubinfo->stubinfo_ver >> 24,
         (_stubinfo->stubinfo_ver >> 16) & 0xff,
         _stubinfo->stubinfo_ver & 0xffff);
