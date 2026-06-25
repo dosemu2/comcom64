@@ -2877,14 +2877,12 @@ static void perform_elfload(const char *arg)
 #endif
   }
 
-#ifdef DJ64
 static void do_elf_env(const char *var, const char *arg)
   {
   setenv(var, arg, 1);
   perform_external_cmd(false, false, cmd_path);
   unsetenv(var);
   }
-#endif
 
 static void perform_elfexec2(const char *arg)
   {
@@ -2894,11 +2892,7 @@ static void perform_elfexec2(const char *arg)
     reset_batfile_call_stack();
     return;
     }
-#ifdef DJ64
   do_elf_env("ELFEXEC", arg);
-#else
-  printf("elfexec2 unsupported\n");
-#endif
   }
 
 static void perform_elfload2(const char *arg)
@@ -2909,11 +2903,7 @@ static void perform_elfload2(const char *arg)
     reset_batfile_call_stack();
     return;
     }
-#ifdef DJ64
   do_elf_env("ELFLOAD", arg);
-#else
-  printf("elfload2 unsupported\n");
-#endif
   }
 
 static void perform_break(const char *arg)
