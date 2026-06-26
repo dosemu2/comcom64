@@ -3594,7 +3594,7 @@ static void perform_md(const char *arg)
     }
   else
     {
-    cputs("Required parameter missing");
+    cputs("Required parameter missing\r\n");
     reset_batfile_call_stack();
     }
   }
@@ -3796,7 +3796,7 @@ static void perform_rd(const char *arg)
     }
   else
     {
-    cputs("Required parameter missing");
+    cputs("Required parameter missing\r\n");
     reset_batfile_call_stack();
     }
   }
