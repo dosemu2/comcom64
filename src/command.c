@@ -4812,20 +4812,17 @@ int main(int argc, const char *argv[], const char *envp[])
   char *v;
   int disable_autoexec = 0;
   int inited = 0;
-  const char *ev;
+  int elf_ok = 0;
 
-  if (argc && (ev = getenv("ELFEXEC")))
+#if defined(DJ64) && defined(SIFLG_ELFEXEC)
+  elf_ok = !!(_stubinfo->flags & SIFLG_ELFEXEC);
+#endif
+  if (getenv("ELFEXEC") && !elf_ok)
     {
-    int ok = 0;
-    if (argc > 0)
-      ok = (stricmp(argv[0], ev) == 0);
-    if (!ok)
-      {
-      fprintf(stderr, "ELFEXEC unsupported\n");
-      return EXIT_FAILURE;
-      }
+    fprintf(stderr, "ELFEXEC unsupported\n");
+    return EXIT_FAILURE;
     }
-  if (getenv("ELFLOAD"))
+  if (getenv("ELFLOAD") && !elf_ok)
     {
     fprintf(stderr, "ELFLOAD unsupported\n");
     return EXIT_FAILURE;
