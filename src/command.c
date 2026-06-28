@@ -2823,7 +2823,7 @@ static void perform_echo(const char *arg)
 
 static void perform_elfexec(const char *arg)
   {
-#if defined(DJ64) && !defined(DJ32)
+#if defined(DJ64) && !defined(DJ32) && !defined(STATIC_LINK)
   int rc;
 #endif
   if (!arg || !arg[0])
@@ -2832,7 +2832,7 @@ static void perform_elfexec(const char *arg)
     reset_batfile_call_stack();
     return;
     }
-#if defined(DJ64) && !defined(DJ32)
+#if defined(DJ64) && !defined(DJ32) && !defined(STATIC_LINK)
   rc = elfexec(arg, 0, NULL);
   if (rc == -1)
     printf("elfexec failed\n");
@@ -2852,7 +2852,7 @@ static void perform_elfexec(const char *arg)
 
 static void perform_elfload(const char *arg)
   {
-#if defined(DJ64) && !defined(DJ32) && defined(DJ64_API_VERSION) && DJ64_API_VERSION >= 2
+#if defined(DJ64) && !defined(DJ32) && !defined(STATIC_LINK)
   int rc;
 #endif
   if (!arg || !arg[0])
@@ -2861,7 +2861,7 @@ static void perform_elfload(const char *arg)
     reset_batfile_call_stack();
     return;
     }
-#if defined(DJ64) && !defined(DJ32) && defined(DJ64_API_VERSION) && DJ64_API_VERSION >= 2
+#if defined(DJ64) && !defined(DJ32) && !defined(STATIC_LINK)
   rc = elfload(atoi(arg));
   if (rc == -1)
     printf("elfload failed\n");
