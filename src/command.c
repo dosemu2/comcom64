@@ -2879,6 +2879,11 @@ static void perform_elfload(const char *arg)
 
 static void do_elf_env(const char *var, const char *arg)
   {
+  if (!cmd_path)
+    {
+    printf("unsupported\n");
+    return;
+    }
   setenv(var, arg, 1);
   perform_external_cmd(false, false, cmd_path);
   unsetenv(var);
@@ -4809,7 +4814,7 @@ int main(int argc, const char *argv[], const char *envp[])
   int inited = 0;
   const char *ev;
 
-  if ((ev = getenv("ELFEXEC")))
+  if (argc && (ev = getenv("ELFEXEC")))
     {
     int ok = 0;
     if (argc > 0)
@@ -4851,9 +4856,11 @@ int main(int argc, const char *argv[], const char *envp[])
   // init bat file stack
   reset_batfile_call_stack();
 
-  cmd_path = strdup(argv[0]);
-  strupr(cmd_path);
-  conv_unix_path_to_ms_dos(cmd_path);
+  if (argc) {
+    cmd_path = strdup(argv[0]);
+    strupr(cmd_path);
+    conv_unix_path_to_ms_dos(cmd_path);
+  }
 
   // process arguments
   for (a = 1; a < argc; a++)
