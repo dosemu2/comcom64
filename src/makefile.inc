@@ -50,10 +50,6 @@ $(AS_OBJECTS): $(PDHDR) $(srcdir)/asm.inc
 uninstall:
 	rm -rf $(DESTDIR)$(DATADIR)
 
-ifeq ($(DJ64STATIC),1)
-DJCFLAGS += -DSTATIC_LINK
-endif
-
 ifeq ($(filter static,$(MAKECMDGOALS)),)
 # hook in dj64 - make sure to not do that before defining `all:` target
 DJMK = $(shell pkg-config --variable=makeinc $(TOOLC))

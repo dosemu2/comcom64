@@ -2823,7 +2823,7 @@ static void perform_echo(const char *arg)
 
 static void perform_elfexec(const char *arg)
   {
-#if defined(DJ64) && !defined(DJ32) && !defined(STATIC_LINK)
+#if defined(DJ64) && !defined(DJ32) && defined(SIFLG_STATIC)
   int rc;
 #endif
   if (!arg || !arg[0])
@@ -2832,10 +2832,11 @@ static void perform_elfexec(const char *arg)
     reset_batfile_call_stack();
     return;
     }
-#if defined(DJ64) && !defined(DJ32) && !defined(STATIC_LINK)
+#if defined(DJ64) && !defined(DJ32) && defined(SIFLG_STATIC)
   rc = elfexec(arg, 0, NULL);
   if (rc == -1)
-    printf("elfexec failed\n");
+    printf("elfexec failed%s\n", (_stubinfo->flags & SIFLG_STATIC) ?
+        " due to static linking" : "");
   else if (rc & (1 << 15))
     printf("elfexec: unsupported ELF format or not an ELF file\n");
   else
@@ -2852,7 +2853,7 @@ static void perform_elfexec(const char *arg)
 
 static void perform_elfload(const char *arg)
   {
-#if defined(DJ64) && !defined(DJ32) && !defined(STATIC_LINK)
+#if defined(DJ64) && !defined(DJ32) && defined(SIFLG_STATIC)
   int rc;
 #endif
   if (!arg || !arg[0])
@@ -2861,10 +2862,11 @@ static void perform_elfload(const char *arg)
     reset_batfile_call_stack();
     return;
     }
-#if defined(DJ64) && !defined(DJ32) && !defined(STATIC_LINK)
+#if defined(DJ64) && !defined(DJ32) && defined(SIFLG_STATIC)
   rc = elfload(atoi(arg));
   if (rc == -1)
-    printf("elfload failed\n");
+    printf("elfload failed%s\n", (_stubinfo->flags & SIFLG_STATIC) ?
+        " due to static linking" : "");
   else
     {
     char el[16];
@@ -4241,8 +4243,9 @@ static void perform_ver(const char *arg)
 #endif
   if (REV_ID[0])
     printf("  Source ID: %s", REV_ID);
-#ifdef STATIC_LINK
-  printf(" (statically linked)");
+#ifdef SIFLG_STATIC
+  if (_stubinfo->flags & SIFLG_STATIC)
+    printf(" (statically linked)");
 #endif
   printf("\n");
   if (is_r)
