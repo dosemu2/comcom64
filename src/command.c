@@ -4229,8 +4229,13 @@ static void perform_ver(const char *arg)
 #endif
   " v%s, %.16s\n", version, _stubinfo->magic);
 #ifdef DJ64
-  if ((_stubinfo->stubinfo_ver >> 16) == 0)
-    printf("  stubless build, loader version %i\n", _stubinfo->stubinfo_ver);
+  if (((_stubinfo->stubinfo_ver >> 16) & 0xff) == 0) {
+    printf("  stubless build, loader version %i\n",
+        _stubinfo->stubinfo_ver & 0xffff);
+    if (_stubinfo->stubinfo_ver >> 24)
+      printf("  ELFLOAD: ministub version %i\n",
+          _stubinfo->stubinfo_ver >> 24);
+  }
   else if ((_stubinfo->stubinfo_ver >> 24) == 0)
     printf("  stub format %i, loader version %i (fullstub)\n",
         (_stubinfo->stubinfo_ver >> 16) & 0xff,
