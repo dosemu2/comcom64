@@ -2825,6 +2825,7 @@ static void perform_elfexec(const char *arg)
   {
 #if defined(DJ64) && !defined(DJ32) && defined(SIFLG_STATIC)
   int rc;
+  char *argv[] = { NULL, NULL };
 #endif
   if (!arg || !arg[0])
     {
@@ -2833,7 +2834,9 @@ static void perform_elfexec(const char *arg)
     return;
     }
 #if defined(DJ64) && !defined(DJ32) && defined(SIFLG_STATIC)
-  rc = elfexec(arg, 0, NULL);
+  argv[0] = strdup(arg);
+  rc = elfexec(arg, 1, argv);
+  free(argv[0]);
   if (rc == -1)
     printf("elfexec failed%s\n", (_stubinfo->flags & SIFLG_STATIC) ?
         " due to static linking" : "");
