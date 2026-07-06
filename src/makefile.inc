@@ -50,11 +50,12 @@ $(AS_OBJECTS): $(PDHDR) $(srcdir)/asm.inc
 uninstall:
 	rm -rf $(DESTDIR)$(DATADIR)
 
-ifeq ($(filter static,$(MAKECMDGOALS)),)
+# static re-executes make, so we include that later
+ifeq ($(filter static install uninstall,$(MAKECMDGOALS)),)
 # hook in dj64 - make sure to not do that before defining `all:` target
 DJMK = $(shell pkg-config --variable=makeinc $(TOOLC))
 ifeq ($(wildcard $(DJMK)),)
-ifeq ($(filter install uninstall clean,$(MAKECMDGOALS)),)
+ifeq ($(filter clean,$(MAKECMDGOALS)),)
 $(error $(TOOLC)-dev not installed)
 endif
 clean_dj64:
