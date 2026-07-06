@@ -65,13 +65,11 @@ include $(DJMK)
 endif
 endif
 
-ifeq ($(TOOLC),dj32)
 ifneq ($(CROSS_PREFIX),)
 # for djlink on arm
 export READELF = $(CROSS_PREFIX)readelf
 export OBJCOPY = $(CROSS_PREFIX)objcopy
 export STRIP = $(CROSS_PREFIX)strip
-endif
 endif
 
 ifneq ($(LINK),)
