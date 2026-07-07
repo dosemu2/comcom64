@@ -72,6 +72,13 @@ export READELF = $(CROSS_PREFIX)readelf
 export OBJCOPY = $(CROSS_PREFIX)objcopy
 export STRIP = $(CROSS_PREFIX)strip
 endif
+else
+ifneq ($(NATIVE_PREFIX),)
+# for djlink on sunos
+export READELF = $(NATIVE_PREFIX)readelf
+export OBJCOPY = $(NATIVE_PREFIX)objcopy
+export STRIP = $(NATIVE_PREFIX)strip
+endif
 endif
 
 ifneq ($(LINK),)
