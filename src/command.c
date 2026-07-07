@@ -2837,6 +2837,10 @@ static void perform_elfexec(const char *arg)
   argv[0] = strdup(arg);
   rc = elfexec(arg, 1, argv);
   free(argv[0]);
+  if (rc) {
+    error_level = 1;
+    setenv("ERRORLEVEL", "1", 1);
+  }
   if (rc == -1)
     printf("elfexec failed%s\n", (_stubinfo->flags & SIFLG_STATIC) ?
         " due to static linking" : "");
@@ -2851,6 +2855,8 @@ static void perform_elfexec(const char *arg)
     }
 #else
   printf("elfexec unsupported\n");
+  error_level = 1;
+  setenv("ERRORLEVEL", "1", 1);
 #endif
   }
 
@@ -2867,6 +2873,10 @@ static void perform_elfload(const char *arg)
     }
 #if defined(DJ64) && !defined(DJ32) && defined(SIFLG_STATIC)
   rc = elfload(atoi(arg));
+  if (rc) {
+    error_level = 1;
+    setenv("ERRORLEVEL", "1", 1);
+  }
   if (rc == -1)
     printf("elfload failed%s\n", (_stubinfo->flags & SIFLG_STATIC) ?
         " due to static linking" : "");
@@ -2879,6 +2889,8 @@ static void perform_elfload(const char *arg)
     }
 #else
   printf("elfload unsupported\n");
+  error_level = 1;
+  setenv("ERRORLEVEL", "1", 1);
 #endif
   }
 
