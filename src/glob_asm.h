@@ -1,4 +1,5 @@
 __ASM(unsigned short, _ds) SEMIC
+__ASM_FUNC(my_int21_handler) SEMIC
 __ASM_FUNC(my_int23_handler) SEMIC
 __ASM_FUNC(my_int0_handler) SEMIC
 __ASM_FUNC(my_int75_handler) SEMIC
