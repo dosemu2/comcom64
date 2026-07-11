@@ -90,6 +90,7 @@
 #endif
 #include "asm.h"
 #include "mouse.h"
+#include "djansi.h"
 #include "env.h"
 #include "psp.h"
 #include "umb.h"
@@ -137,6 +138,7 @@ static int stepping;
 static int mouse_en;
 static int mouseopt_extctl;
 static int mouseopt_enabled;
+static int djansi_en;
 
 #define DEBUG 0
 
@@ -225,6 +227,7 @@ static void perform_date(const char *arg);
 static void perform_delete(const char *arg);
 static void perform_deltree(const char *arg);
 static void perform_dir(const char *arg);
+static void perform_djansi(const char *arg);
 static void perform_echo_dot(const char *arg);
 static void perform_echo(const char *arg);
 static void perform_elfexec(const char *arg);
@@ -285,6 +288,7 @@ struct built_in_cmd cmd_table[] =
     {"deltree", perform_deltree, "", "delete directory recursively"},
     {"erase", perform_delete, "", "delete file"},
     {"dir", perform_dir, "", "directory listing"},
+    {"djansi", perform_djansi, "", "ansi-alike terminal driver"},
     {"echo.", perform_echo_dot, "", "terminal output"},  // before normal echo
     {"echo", perform_echo, "", "terminal output"},
     {"elfexec", perform_elfexec, "", "execute elf file"},
@@ -3642,6 +3646,24 @@ static void perform_more(const char *arg)
     }
   }
 
+static void perform_djansi(const char *arg)
+  {
+  if (arg[0] != '\0')
+    {
+    int opt = 1;
+    if (isdigit(arg[2]))
+      opt = arg[2] - '0';
+
+    if (strnicmp(arg, "/E", 2) == 0)
+      djansi_en = opt;
+    }
+  else
+    {
+    printf("djansi [/E[1|0]]\n\n");
+    printf("djansi enabled (/E):\t\t%i\n", djansi_en);
+    }
+  }
+
 static void perform_mouseopt(const char *arg)
   {
   if (arg[0] != '\0')
@@ -4709,7 +4731,13 @@ static void exec_cmd(int call)
       {
       int rc = 1;
       if (!call)
+        {
+        if (djansi_en)
+          djansi_enable();
         rc = installable_command_check(cmd, cmd_args);
+        if (djansi_en)
+          djansi_disable();
+        }
       if (rc <= 0)
         {
         error_level = -rc;
@@ -4988,6 +5016,8 @@ int main(int argc, const char *argv[], const char *envp[])
   setenv("ERRORLEVEL", "0", 1);
   setenv("TERM", "djgpp", 0);
 
+  djansi_init();
+
   if (shell_permanent) {
     set_psp_parent();
 #if !SYNC_ENV
@@ -5052,6 +5082,7 @@ int main(int argc, const char *argv[], const char *envp[])
     }
 
   loadhigh_done();
+  djansi_done();
   if (mouse_en)
     mouse_done();
   if (shell_permanent)

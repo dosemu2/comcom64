@@ -10,6 +10,7 @@
 
 #define ASMCFUNC
 
+void ASMCFUNC do_int21(void);
 int ASMCFUNC do_int23(void);
 void ASMCFUNC do_int0(void);
 int ASMCFUNC do_int75(void);
