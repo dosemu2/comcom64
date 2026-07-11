@@ -16,8 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "asm.h"
-.include "asm.inc"
+#include "asm.inc"
 
 .text
 .global _my_mouse_handler

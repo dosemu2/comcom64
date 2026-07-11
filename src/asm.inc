@@ -1,3 +1,12 @@
+#include "asm.h"
+
+/* We need emergency stack because __dpmi_int() alters SS in djgpp.
+ * That was eventually fixed in dj64, but gcc still does esp-relative
+ * addressing. */
+.bss
+_cstack: .fill SIGSTK_LEN
+
+.text
 .macro handler_prolog len
     push %ds
     mov %cs:__ds, %eax
