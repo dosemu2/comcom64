@@ -138,7 +138,7 @@ static int stepping;
 static int mouse_en;
 static int mouseopt_extctl;
 static int mouseopt_enabled;
-static int djansi_en;
+static int djansi_en = 1;
 
 #define DEBUG 0
 

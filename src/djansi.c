@@ -63,7 +63,6 @@ void do_int21(void)
   static char buf[1024];  // static because of small stack
   __dpmi_regs *r;
 
-  djansi_disable();
 #ifdef DJ64
   r = (__dpmi_regs *) DATA_PTR(int21_regs);
 #else
@@ -73,12 +72,13 @@ void do_int21(void)
     {
     dosmemget((r->x.ds << 4) + r->x.dx, r->x.cx, buf);
     buf[r->x.cx] = '\0';
+    djansi_disable();
     write(r->x.bx, buf, r->x.cx);
+    djansi_enable();
     do_iret(r);
     }
   else
     do_ljmp(r, old_int21);
-  djansi_enable();
 }
 
 void djansi_init(void)
