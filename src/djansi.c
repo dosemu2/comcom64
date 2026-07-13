@@ -68,14 +68,22 @@ void do_int21(void)
 #else
   r = int21_regs;
 #endif
-  if (r->h.ah == 0x40 && r->x.bx == STDOUT_FILENO && r->x.cx < sizeof(buf))
+  if (r->h.ah == 0x40 && r->x.bx == STDOUT_FILENO)
     {
-    dosmemget((r->x.ds << 4) + r->x.dx, r->x.cx, buf);
-    buf[r->x.cx] = '\0';
+    int done = 0;
+    int len = r->x.cx;
     djansi_disable();
-    write(r->x.bx, buf, r->x.cx);
-    djansi_enable();
+    while (len)
+      {
+      int todo = _min(sizeof(buf), len);
+      dosmemget((r->x.ds << 4) + r->x.dx + done, todo, buf);
+      buf[todo] = '\0';
+      write(r->x.bx, buf, todo);
+      len -= todo;
+      done += todo;
+      }
     do_iret(r);
+    djansi_enable();
     }
   else
     do_ljmp(r, old_int21);

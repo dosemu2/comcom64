@@ -478,4 +478,14 @@ extern const int CMD_TABLE_COUNT;
 
 unsigned short keyb_get_shift_states(void);
 
+#define _min(x,y) ({ \
+	typeof(x) _x = (x);	\
+	typeof(y) _y = (y);	\
+	_x < _y ? _x : _y; })
+
+#define _max(x,y) ({ \
+	typeof(x) _x = (x);	\
+	typeof(y) _y = (y);	\
+	_x > _y ? _x : _y; })
+
 #endif
