@@ -83,7 +83,7 @@ endif
 
 ifneq ($(LINK),)
 $(RCMD): $(DJ64_XLIB)
-	$(srcdir)/link.sh $(LINK) $^ $(DBG) $@ $(DJ64_XLDFLAGS)
+	$(srcdir)/link.sh $(LINK) $^ $(DBG) "$(DJ64_LINKARGS)" $@ $(DJ64_XLDFLAGS)
 	$(DJSTRIP) $@
 
 info: $(RCMD)
