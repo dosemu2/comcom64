@@ -27,6 +27,8 @@
 #include "command.h"
 #include "djansi.h"
 
+#define CF 1
+
 #ifdef DJ64
 static unsigned int int21_regs;
 #else
@@ -45,11 +47,11 @@ static unsigned short popw(__dpmi_regs *r)
   return ret;
 }
 
-static void do_iret(__dpmi_regs *r)
+static void do_iret(__dpmi_regs *r, uint16_t f_mask)
 {
   r->x.ip = popw(r);
   r->x.cs = popw(r);
-  r->x.flags = popw(r);
+  r->x.flags = popw(r) & f_mask;
 }
 
 static void do_ljmp(__dpmi_regs *r, __dpmi_raddr addr)
@@ -82,7 +84,8 @@ void do_int21(void)
       len -= todo;
       done += todo;
       }
-    do_iret(r);
+    r->x.ax = done;
+    do_iret(r, ~CF);
     djansi_enable();
     }
   else
