@@ -3312,6 +3312,8 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     __djgpp_exception_toggle();
 #endif
     activate_int75_handling();
+    if (djansi_en)
+      djansi_enable();
     set_env_seg();
     /* prepend command tail with space */
     alen = strlen(cmd_args);
@@ -3398,6 +3400,8 @@ static void perform_external_cmd(int call, int lh, char *ext_cmd)
     _clear87();
     _fpreset();
     outportb(0xf0, 0);  // clear IGNNE
+    if (djansi_en)
+      djansi_disable();
 //    reset_text_attrs();
     gppconio_init();  /* video mode could change */
     if (mouse_en && mouseopt_enabled)
