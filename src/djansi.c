@@ -81,7 +81,6 @@ void do_int21(void)
       {
       int todo = _min(sizeof(buf), len);
       dosmemget((r->x.ds << 4) + r->x.dx + done, todo, buf);
-      buf[todo] = '\0';
       write(r->x.bx, buf, todo);
       len -= todo;
       done += todo;
