@@ -19,7 +19,7 @@ void ASMCFUNC do_mouse(void);
 
 #else
 
-#define SIGSTK_LEN 0x200
+#define SIGSTK_LEN 0x800
 
 #endif
 
