@@ -19,18 +19,11 @@
 #include "asm.inc"
 
 .text
-.balign 2
-.global _int21_enabled
-_int21_enabled: .byte 0
-
-.global _my_int21_handler
-_my_int21_handler:
-    cmpb $1,%cs:_int21_enabled
-    /* call handler in another file, as it uses another stack */
-    jne int21_next
+.global int21_next
+int21_next:
     pusha
     handler_prolog SIGSTK_LEN
-    call _do_int21
+    call _do_int21_next
     restore_stack
     popa
     iretl

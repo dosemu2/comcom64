@@ -8,3 +8,4 @@ __ASM(unsigned int, _prev0_eip) SEMIC
 __ASM(unsigned short, _prev0_cs) SEMIC
 __ASM(unsigned int, _prev75_eip) SEMIC
 __ASM(unsigned short, _prev75_cs) SEMIC
+__ASM(unsigned char, int21_enabled) SEMIC

@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <conio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <dpmi.h>
 #include <sys/farptr.h>
@@ -37,7 +38,6 @@ static __dpmi_regs *int21_regs;
 
 static __dpmi_raddr old_int21;
 static __dpmi_raddr new_int21;
-static int enabled;
 
 static unsigned short popw(__dpmi_regs *r)
 {
@@ -63,12 +63,14 @@ static void do_ljmp(__dpmi_regs *r, __dpmi_raddr addr)
 void do_int21(void)
 {
   static char buf[1024];  // static because of small stack
-  __dpmi_regs *r;
+  __dpmi_regs _r;
+  __dpmi_regs *r = &_r;
 
+  /* call-back can re-enter, so we need to copy regs */
 #ifdef DJ64
-  r = (__dpmi_regs *) DATA_PTR(int21_regs);
+  _r = * (__dpmi_regs *) DATA_PTR(int21_regs);
 #else
-  r = int21_regs;
+  _r = *int21_regs;
 #endif
   if (r->h.ah == 0x40 && r->x.bx == STDOUT_FILENO)
     {
@@ -84,12 +86,31 @@ void do_int21(void)
       len -= todo;
       done += todo;
       }
+    djansi_enable();
+
     r->x.ax = done;
     do_iret(r, ~CF);
-    djansi_enable();
     }
   else
     do_ljmp(r, old_int21);
+
+#ifdef DJ64
+  * (__dpmi_regs *) DATA_PTR(int21_regs) = _r;
+#else
+  *int21_regs = _r;
+#endif
+}
+
+void do_int21_next(void)
+{
+  __dpmi_regs *r;
+
+#ifdef DJ64
+  r = (__dpmi_regs *) DATA_PTR(int21_regs);
+#else
+  r = int21_regs;
+#endif
+  do_ljmp(r, old_int21);
 }
 
 void djansi_init(void)
@@ -102,6 +123,7 @@ void djansi_init(void)
   __dpmi_allocate_real_mode_callback(my_int21_handler, int21_regs,
 				       &new_int21);
   __dpmi_get_real_mode_interrupt_vector(0x21, &old_int21);
+  __dpmi_set_real_mode_interrupt_vector(0x21, &new_int21);
 
   tcdrain(STDOUT_FILENO);
 }
@@ -109,6 +131,7 @@ void djansi_init(void)
 void djansi_done(void)
 {
   djansi_disable();
+  __dpmi_set_real_mode_interrupt_vector(0x21, &old_int21);
   __dpmi_free_real_mode_callback(&new_int21);
 #ifdef DJ64
   free32(int21_regs);
@@ -119,19 +142,10 @@ void djansi_done(void)
 
 void djansi_enable(void)
 {
-  if (!enabled)
-    {
-    __dpmi_get_real_mode_interrupt_vector(0x21, &old_int21);
-    __dpmi_set_real_mode_interrupt_vector(0x21, &new_int21);
-    enabled = 1;
-    }
+  int21_enabled = 1;
 }
 
 void djansi_disable(void)
 {
-  if (enabled)
-    {
-    __dpmi_set_real_mode_interrupt_vector(0x21, &old_int21);
-    enabled = 0;
-    }
+  int21_enabled = 0;
 }
