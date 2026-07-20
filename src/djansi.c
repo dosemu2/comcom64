@@ -66,6 +66,7 @@ void do_int21(void)
   static char buf[1024];  // static because of small stack
   __dpmi_regs _r;
   __dpmi_regs *r = &_r;
+  int proceed = 0;
 
   /* call-back can re-enter, so we need to copy regs */
 #ifdef DJ64
@@ -74,6 +75,12 @@ void do_int21(void)
   _r = *int21_regs;
 #endif
   if (r->h.ah == 0x40 && r->x.bx == STDOUT_FILENO)
+    {
+    djansi_disable();
+    proceed = isatty(r->x.bx);
+    djansi_enable();
+    }
+  if (proceed)
     {
     struct termios term, old_term;
     int done = 0;
