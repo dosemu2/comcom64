@@ -1,9 +1,8 @@
-name: Build
+name: Build, Test, Deploy
 on:
   pull_request:
     types:
       - opened
-      - edited
       - ready_for_review
       - reopened
       - synchronize
@@ -13,33 +12,69 @@ jobs:
   build:
     if: contains(github.event.head_commit.message, '[skip ci]') == false
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v6
 
-    - name: package install
+    - name: Package install
       run: ./ci_prereq.sh
 
-    - name: build
+    - name: Build
       run: ./ci_build.sh
 
-    - name: test prerequisites
+    - name: Test prerequisites
       run: ./ci_test_prereq.sh
 
-    - name: test
+    - name: Cache
+      id: cache
+      uses: actions/cache@v5
+      with:
+        path: ~/cache
+        key: cache-v00002
+        restore-keys: |
+          cache-
+
+    - name: Populate cache
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        echo "Cache missed! Populating with fresh binaries"
+        python3 test/test_dosemu.py --get-test-binaries
+
+    - name: Add an ACL to KVM for ourselves
+      run: |
+          echo 'SUBSYSTEM=="misc", KERNEL=="kvm", RUN+="/usr/bin/setfacl -m u:'${USER}':rw- /dev/kvm"' | sudo tee /etc/udev/rules.d/99-kvm4dosemu2.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+    - name: Open Watcom install
+      uses: open-watcom/setup-watcom@v1
+      with:
+        version: 2.0-64
+
+    - name: Test
+      id: test
       run: ./ci_test.sh
 
-    - name: pages
+    - name: Upload failure logs
+      if: ${{ always() && steps.test.outcome == 'failure' }}
+      uses: actions/upload-artifact@v6
+      with:
+        name: failure-logs
+        path: |
+          test_*
+
+    - name: Pages
+      # Steal the files from the installed packages
       if: github.ref == 'refs/heads/master'
       run: |
         mkdir -p pub/files
-        zip --junk-paths pub/files/comcom64.zip src/comcom64.exe
-        zip --junk-paths pub/files/comcom32.zip src/32/comcom32.exe
+        zip --junk-paths pub/files/comcom64.zip /usr/share/comcom64/comcom64.exe
+        zip --junk-paths pub/files/comcom32.zip /usr/share/comcom32/comcom32.exe
         echo '<a href="files/comcom64.zip">Latest comcom64 build</a><br>' > pub/index.html
         echo '<a href="files/comcom32.zip">Latest comcom32 build</a><br>' >> pub/index.html
 
-    - name: deploy
+    - name: Deploy
       if: github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v4
       with:
