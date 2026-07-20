@@ -24,6 +24,7 @@
 #include <sys/farptr.h>
 #include <go32.h>
 #include <termios.h>
+#include <unistd.h>
 #include "asm.h"
 #include "command.h"
 #include "djansi.h"
@@ -74,9 +75,15 @@ void do_int21(void)
 #endif
   if (r->h.ah == 0x40 && r->x.bx == STDOUT_FILENO)
     {
+    struct termios term, old_term;
     int done = 0;
     int len = r->x.cx;
+
     djansi_disable();
+    tcgetattr(STDOUT_FILENO, &old_term);
+    term = old_term;
+    term.c_oflag &= ~(ONLCR | OCRNL);
+    tcsetattr(STDOUT_FILENO, TCSADRAIN, &term);
     while (len)
       {
       int todo = _min(sizeof(buf), len);
@@ -85,6 +92,7 @@ void do_int21(void)
       len -= todo;
       done += todo;
       }
+    tcsetattr(STDOUT_FILENO, TCSADRAIN, &old_term);
     djansi_enable();
 
     r->x.ax = done;
