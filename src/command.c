@@ -4658,6 +4658,10 @@ static void exec_cmd(int call)
   {
   int c;
   int pipe_index, pipe_fno[2], old_std_fno[2], redir_result[2];
+  FILE *stdios[] = { stdin, stdout, stderr };
+#if defined(DJ64) && defined(_HAVE_FDREOPEN)
+  const char *modes[] = { "r", "w", "w" };
+#endif
 
   for (pipe_index = 0; pipe_index < 2; pipe_index++)
     {
@@ -4705,7 +4709,12 @@ static void exec_cmd(int call)
 
       // redirect pipe file to standard in/out
       if (pipe_fno[pipe_index] >= 0 && old_std_fno[pipe_index] != -1)
+#if defined(DJ64) && defined(_HAVE_FDREOPEN)
+        redir_result[pipe_index] = fileno(fdreopen(pipe_fno[pipe_index],
+            modes[pipe_index], stdios[pipe_index]));
+#else
         redir_result[pipe_index] = dup2(pipe_fno[pipe_index], pipe_index);
+#endif
 
       // close pipe file handle
       if (pipe_fno[pipe_index] >= 0)
@@ -4765,12 +4774,19 @@ static void exec_cmd(int call)
     cmd[0] = '\0';
     }
 
-  /* Recover the stdout stream */
-  if (redir_result[STDOUT_INDEX] != -1) {
-    dup2(old_std_fno[STDOUT_INDEX], STDOUT_INDEX);
-    close(old_std_fno[STDOUT_INDEX]);
-    clearerr(stdout);
-  }
+  /* Recover streams */
+  for (pipe_index = 0; pipe_index < 2; pipe_index++)
+    {
+    if (redir_result[pipe_index] != -1) {
+#if defined(DJ64) && defined(_HAVE_FDREOPEN)
+      fdreopen(old_std_fno[pipe_index], modes[pipe_index], stdios[pipe_index]);
+#else
+      dup2(old_std_fno[pipe_index], pipe_index);
+#endif
+      close(old_std_fno[pipe_index]);
+      clearerr(stdios[pipe_index]);
+      }
+    }
 
   if (pipe_to_cmd_redir_count > 0)
     {
