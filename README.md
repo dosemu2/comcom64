@@ -47,7 +47,7 @@ inside the cursor row.
 
 Left button:
 1. if Ctrl pressed: type the clicked char; otherwise do nothing
-2. moves the cursor to the clicked location
+2. move the cursor to the clicked location
 
 Middle button:
 1. Enter
