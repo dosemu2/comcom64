@@ -27,7 +27,7 @@
 #include <unistd.h>
 #include "asm.h"
 #include "command.h"
-#include "djansi.h"
+#include "djterm.h"
 
 #define CF 1
 #define DOS_HELPER_INT 0xe6
@@ -112,15 +112,15 @@ void do_int21(void)
 #endif
   if (r->h.ah == 0x40 && r->x.bx == STDOUT_FILENO)
     {
-    djansi_disable();
+    djterm_disable();
     proceed = isatty(STDOUT_FILENO);
-    djansi_enable();
+    djterm_enable();
     }
   if (proceed)
     {
-    djansi_disable();
+    djterm_disable();
     r->x.ax = term_write((r->x.ds << 4) + r->x.dx, r->x.cx);
-    djansi_enable();
+    djterm_enable();
     do_iret(r, ~CF);
     }
   else
@@ -168,7 +168,7 @@ static void free_term_cb(void)
 #endif
 }
 
-int djansi_init(void)
+int djterm_init(void)
 {
   int ret = 1;
   __dpmi_raddr inte6;
@@ -203,7 +203,7 @@ int djansi_init(void)
   return ret;
 }
 
-void djansi_hook_int21(void)
+void djterm_hook_int21(void)
 {
   if (int21_hooked)
     return;
@@ -221,7 +221,7 @@ void djansi_hook_int21(void)
 
 static void unhook_int21(void)
 {
-  djansi_disable();
+  djterm_disable();
   __dpmi_set_real_mode_interrupt_vector(0x21, &old_int21);
   __dpmi_free_real_mode_callback(&new_int21);
 #ifdef DJ64
@@ -232,7 +232,7 @@ static void unhook_int21(void)
   int21_hooked = 0;
 }
 
-void djansi_done(void)
+void djterm_done(void)
 {
   if (int21_hooked)
     unhook_int21();
@@ -248,12 +248,12 @@ void djansi_done(void)
   term_hooked = 0;
 }
 
-void djansi_enable(void)
+void djterm_enable(void)
 {
   int21_enabled = 1;
 }
 
-void djansi_disable(void)
+void djterm_disable(void)
 {
   int21_enabled = 0;
 }

@@ -17,7 +17,7 @@ DJCPPFLAGS += -I. -I$(srcdir) -DCOMCOM_VERSION=\"$(VERSION)\"
 DJASFLAGS += -I. -I$(srcdir)
 DJASCPPFLAGS += -I. -I$(srcdir)
 SOURCES = command.c cmdbuf.c mouse.c env.c psp.c umb.c ae0x.c compl.c clip.c \
-  djansi.c thunks_a.c thunks_c.c
+  djterm.c thunks_a.c thunks_c.c
 HEADERS = $(addprefix $(srcdir)/,ae0x.h cmdbuf.h compl.h psp.h command.h env.h mouse.h umb.h \
   glob_asm.h asm.h)
 PDHDR = $(srcdir)/asm.h
