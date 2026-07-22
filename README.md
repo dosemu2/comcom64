@@ -57,3 +57,11 @@ External control allows to control other programs with mouse.
 For example you can execute `mouseopt /c`, then run freecom and
 control it with mouse similar to comcom64, even though freecom
 is mouse-unaware by itself.
+
+## terminal emulation support
+
+Terminal emulation is supported, and under dosemu2 you can run `unix vim`
+and get `vim` properly rendered. Under other emulators you may need to use
+`djterm /e1` to enable terminal support, but this is rarely needed because
+djterm is not `ansi`-compatible, and `ansi` is the only DOS-relevant terminal
+protocol unless running host programs via `unix.com`.
