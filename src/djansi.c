@@ -61,9 +61,30 @@ static void do_ljmp(__dpmi_regs *r, __dpmi_raddr addr)
   r->x.cs = addr.segment;
 }
 
-void do_int21(void)
+static int term_write(unsigned addr, int len)
 {
   static char buf[1024];  // static because of small stack
+  struct termios term, old_term;
+  int done = 0;
+
+  tcgetattr(STDOUT_FILENO, &old_term);
+  term = old_term;
+  term.c_oflag &= ~(ONLCR | OCRNL);
+  tcsetattr(STDOUT_FILENO, TCSADRAIN, &term);
+  while (len)
+    {
+    int todo = _min(sizeof(buf), len);
+    dosmemget(addr + done, todo, buf);
+    write(STDOUT_FILENO, buf, todo);
+    len -= todo;
+    done += todo;
+    }
+  tcsetattr(STDOUT_FILENO, TCSADRAIN, &old_term);
+  return done;
+}
+
+void do_int21(void)
+{
   __dpmi_regs _r;
   __dpmi_regs *r = &_r;
   int proceed = 0;
@@ -77,32 +98,14 @@ void do_int21(void)
   if (r->h.ah == 0x40 && r->x.bx == STDOUT_FILENO)
     {
     djansi_disable();
-    proceed = isatty(r->x.bx);
+    proceed = isatty(STDOUT_FILENO);
     djansi_enable();
     }
   if (proceed)
     {
-    struct termios term, old_term;
-    int done = 0;
-    int len = r->x.cx;
-
     djansi_disable();
-    tcgetattr(STDOUT_FILENO, &old_term);
-    term = old_term;
-    term.c_oflag &= ~(ONLCR | OCRNL);
-    tcsetattr(STDOUT_FILENO, TCSADRAIN, &term);
-    while (len)
-      {
-      int todo = _min(sizeof(buf), len);
-      dosmemget((r->x.ds << 4) + r->x.dx + done, todo, buf);
-      write(r->x.bx, buf, todo);
-      len -= todo;
-      done += todo;
-      }
-    tcsetattr(STDOUT_FILENO, TCSADRAIN, &old_term);
+    r->x.ax = term_write((r->x.ds << 4) + r->x.dx, r->x.cx);
     djansi_enable();
-
-    r->x.ax = done;
     do_iret(r, ~CF);
     }
   else
