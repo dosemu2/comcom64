@@ -30,15 +30,24 @@
 #include "djansi.h"
 
 #define CF 1
+#define DOS_HELPER_INT 0xe6
+#define DOS_HELPER_TERM_HANDLER 0x15
+#define DOS_SUBHELPER_TERM_HANDLER_UNSET 0
+#define DOS_SUBHELPER_TERM_HANDLER_SET 1
 
 #ifdef DJ64
 static unsigned int int21_regs;
+static unsigned int term_regs;
 #else
 static __dpmi_regs *int21_regs;
+static __dpmi_regs *term_regs;
 #endif
 
 static __dpmi_raddr old_int21;
 static __dpmi_raddr new_int21;
+static __dpmi_raddr term_cb;
+static int int21_hooked;
+static int term_hooked;
 
 static unsigned short popw(__dpmi_regs *r)
 {
@@ -53,6 +62,12 @@ static void do_iret(__dpmi_regs *r, uint16_t f_mask)
   r->x.ip = popw(r);
   r->x.cs = popw(r);
   r->x.flags = popw(r) & f_mask;
+}
+
+static void do_retf(__dpmi_regs *r)
+{
+  r->x.ip = popw(r);
+  r->x.cs = popw(r);
 }
 
 static void do_ljmp(__dpmi_regs *r, __dpmi_raddr addr)
@@ -130,8 +145,68 @@ void do_int21_next(void)
   do_ljmp(r, old_int21);
 }
 
-void djansi_init(void)
+void do_term(void)
 {
+  __dpmi_regs *r;
+
+#ifdef DJ64
+  r = (__dpmi_regs *) DATA_PTR(term_regs);
+#else
+  r = term_regs;
+#endif
+  r->x.ax = term_write((r->x.ds << 4) + r->x.dx, r->x.cx);
+  do_retf(r);
+}
+
+static void free_term_cb(void)
+{
+  __dpmi_free_real_mode_callback(&term_cb);
+#ifdef DJ64
+  free32(term_regs);
+#else
+  free(term_regs);
+#endif
+}
+
+int djansi_init(void)
+{
+  int ret = 1;
+  __dpmi_raddr inte6;
+  __dpmi_regs r = {};
+
+  /* under dosemu we can use helper instead of hooking int21 */
+  __dpmi_get_real_mode_interrupt_vector(DOS_HELPER_INT, &inte6);
+  if (inte6.segment)
+    {
+#ifdef DJ64
+    term_regs = malloc32(sizeof(__dpmi_regs));
+#else
+    term_regs = (__dpmi_regs *) malloc(sizeof(__dpmi_regs));
+#endif
+    __dpmi_allocate_real_mode_callback(my_term_handler, term_regs,
+				       &term_cb);
+    r.x.ax = DOS_HELPER_TERM_HANDLER;
+    r.x.bx = DOS_SUBHELPER_TERM_HANDLER_SET;
+    r.x.si = term_cb.segment;
+    r.x.di = term_cb.offset16;
+    __dpmi_int(DOS_HELPER_INT, &r);
+    if (!(r.x.flags & CF) && !r.h.al)
+      {
+      ret |= 2;
+      term_hooked = 1;
+      }
+    else
+      free_term_cb();
+    }
+
+  tcdrain(STDOUT_FILENO);
+  return ret;
+}
+
+void djansi_hook_int21(void)
+{
+  if (int21_hooked)
+    return;
 #ifdef DJ64
   int21_regs = malloc32(sizeof(__dpmi_regs));
 #else
@@ -141,11 +216,10 @@ void djansi_init(void)
 				       &new_int21);
   __dpmi_get_real_mode_interrupt_vector(0x21, &old_int21);
   __dpmi_set_real_mode_interrupt_vector(0x21, &new_int21);
-
-  tcdrain(STDOUT_FILENO);
+  int21_hooked = 1;
 }
 
-void djansi_done(void)
+static void unhook_int21(void)
 {
   djansi_disable();
   __dpmi_set_real_mode_interrupt_vector(0x21, &old_int21);
@@ -155,6 +229,23 @@ void djansi_done(void)
 #else
   free(int21_regs);
 #endif
+  int21_hooked = 0;
+}
+
+void djansi_done(void)
+{
+  if (int21_hooked)
+    unhook_int21();
+  if (term_hooked)
+    {
+    __dpmi_regs r = {};
+    r.x.ax = DOS_HELPER_TERM_HANDLER;
+    r.x.bx = DOS_SUBHELPER_TERM_HANDLER_UNSET;  // bh must also be 0
+    __dpmi_int(DOS_HELPER_INT, &r);
+    free_term_cb();
+    }
+  int21_hooked = 0;
+  term_hooked = 0;
 }
 
 void djansi_enable(void)

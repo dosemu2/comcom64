@@ -138,7 +138,7 @@ static int stepping;
 static int mouse_en;
 static int mouseopt_extctl;
 static int mouseopt_enabled;
-static int djansi_en = 1;
+static int djansi_en;
 
 #define DEBUG 0
 
@@ -3654,12 +3654,16 @@ static void perform_djansi(const char *arg)
   {
   if (arg[0] != '\0')
     {
-    int opt = 1;
+    int opt = 0;
     if (isdigit(arg[2]))
       opt = arg[2] - '0';
 
-    if (strnicmp(arg, "/E", 2) == 0)
+    if (strnicmp(arg, "/E", 2) == 0 && opt != djansi_en)
+      {
       djansi_en = opt;
+      if (opt)
+        djansi_hook_int21();
+      }
     }
   else
     {
