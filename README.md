@@ -35,7 +35,7 @@ unzip it and run with `dosbox-staging ./comcom32.exe`.
 You can also
 [download comcom64](https://dosemu2.github.io/comcom64/files/comcom64.zip)
 in case you have problems building it. Put it into `~/.dosemu/drive_c`
-and symlink as `command.com` - dosemu2 will then happily boot it.
+after unzipping, and symlink as `command.com` - dosemu2 will then happily boot it.
 
 ## mouse control
 
