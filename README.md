@@ -11,11 +11,12 @@ You can see the list of them
 or
 [for fedora](https://github.com/dosemu2/comcom64/blob/master/comcom64.spec.rpkg#L17-L24)
 
-Then just run `make`.
+Then just run `make`. It will build `src/comcom64.exe` and `src/32/comcom32.exe`.
+`comcom32.exe` can work under any emulator, while `comcom64.exe` is currently
+specific to [dosemu2](https://github.com/dosemu2/dosemu2).
 
-To build the 32bit version, install
-[djgpp](https://www.delorie.com/djgpp/)
-and run `make 32`.
+Alternatively you can run `make fetch` that will download the pre-built
+executables to the same aforementioned directories.
 
 ## installing
 
@@ -25,6 +26,15 @@ for the use with [dosemu2](https://github.com/dosemu2/dosemu2).
 ## running
 
 Just run `dosemu` and it should boot the installed comcom64.
+
+Alternatively
+[download comcom32](https://dosemu2.github.io/comcom64/files/comcom32.zip),
+unzip it and run with `dosbox-staging ./comcom32.exe`.
+
+You can also
+[download comcom64](https://dosemu2.github.io/comcom64/files/comcom64.zip)
+in case you have problems building it. Put it into `~/.dosemu/drive_c`
+and symlink as `command.com` - dosemu2 will then happily boot it.
 
 ## mouse control
 
