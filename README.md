@@ -20,8 +20,9 @@ executables to the same aforementioned directories.
 
 ## installing
 
-Running `sudo make install` installs the 64bit version
+Running `sudo make install` installs both executables
 for the use with [dosemu2](https://github.com/dosemu2/dosemu2).
+`dosemu2` chooses 64bit version at boot if both versions are installed.
 
 ## running
 
