@@ -46,16 +46,16 @@ area outside of a cursor row, and another activates when you click
 inside the cursor row.
 
 Left button:
-  - if Ctrl pressed: type clicked char; otherwise do nothing
-  - moves the cursor to the clicked location
+  1. if Ctrl pressed: type clicked char; otherwise do nothing
+  2. moves the cursor to the clicked location
 
 Middle button:
-  - Enter
-  - BackSpace
+  1. Enter
+  2. BackSpace
 
 Right button:
-  - Tab completion
-  - truncate or clear line
+  1. Tab completion
+  2. truncate or clear line
 
 There is a `mouseopt` command that controls mouse behavior.
 It has the following switches:
