@@ -46,7 +46,7 @@ area outside of a cursor row, and another activates when you click
 inside the cursor row.
 
 Left button:
-1. if Ctrl pressed: type clicked char; otherwise do nothing
+1. if Ctrl pressed: type the clicked char; otherwise do nothing
 2. moves the cursor to the clicked location
 
 Middle button:
