@@ -41,7 +41,7 @@ after unzipping, and symlink as `command.com` - dosemu2 will then happily boot i
 
 You can navigate the command history with mouse wheel.
 
-All buttons have 2 functions: one activates when you click on a text
+Each button have 2 functions: one activates when you click on a text
 area outside of a cursor row, and another activates when you click
 inside the cursor row.
 
