@@ -2,6 +2,9 @@
 
 set -e
 
+# Otherwise the binaries get an old timestamp
+dch -i -m "Github Actions build"
+
 make deb
-sudo dpkg -i ../comcom64*.deb
-sudo dpkg -i ../comcom32*.deb
+
+git checkout debian/changelog

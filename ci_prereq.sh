@@ -1,10 +1,11 @@
 #!/bin/sh
 
-sudo apt update
+sudo add-apt-repository -y --no-update ppa:stsp-0/thunk-gen
+sudo add-apt-repository -y --no-update ppa:stsp-0/dj64
+sudo apt update -q
+
 sudo apt install -y \
   devscripts \
   equivs
 
-sudo add-apt-repository ppa:stsp-0/thunk-gen
-sudo add-apt-repository ppa:stsp-0/dj64
 mk-build-deps --install --root-cmd sudo
