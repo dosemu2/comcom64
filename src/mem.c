@@ -29,7 +29,6 @@
 
 #include "asm.h"
 #include "command.h"
-#include "umb.h"
 #include "mem.h"
 
 struct MCB {
@@ -193,6 +192,36 @@ static void get_mcb_name(uint16_t seg, const struct MCB *mcb, char *name_out, si
     snprintf(name_out, name_out_size, "PSP-%04X", mcb->owner_psp);
 }
 
+/*
+ * XMS only ever reports free extended memory (function 08h gives the
+ * largest free block and total free, nothing else) - there is no XMS
+ * call for total installed extended memory. Get that from the BIOS
+ * instead: AX=E801h covers configurations above 64MB, falling back to
+ * the older AH=88h (limited to 64MB) if E801h isn't supported.
+ */
+static uint32_t query_ext_mem_total_kb(void)
+{
+    __dpmi_regs r = {};
+    r.x.ax = 0xe801;
+    __dpmi_int(0x15, &r);
+    if (!(r.x.flags & 1))
+    {
+        uint32_t below_16m = r.x.ax ? r.x.ax : r.x.cx;
+        uint32_t above_16m_64k_blocks = r.x.ax ? r.x.bx : r.x.dx;
+        uint32_t total = below_16m + above_16m_64k_blocks * 64;
+        if (total > 0)
+            return total;
+    }
+
+    __dpmi_regs r2 = {};
+    r2.h.ah = 0x88;
+    __dpmi_int(0x15, &r2);
+    if (!(r2.x.flags & 1) && r2.x.ax > 0)
+        return r2.x.ax;
+
+    return 0;
+}
+
 static void show_help(void)
 {
     reset_page();
@@ -263,17 +292,23 @@ void perform_mem(const char *arg)
 
     reset_page();
 
-    /* Save UMB link state and link UMBs for memory scan */
+    /*
+     * Save UMB link state and link UMBs for the memory scan. This talks
+     * to INT 21h/58h(03h) (Set UMB Link State) directly instead of going
+     * through link_umb()/unlink_umb() in umb.c: those also poke the
+     * allocation strategy via 58h(01h), and unlink_umb() hardcodes it
+     * back to 0 rather than whatever it was before MEM ran. Doing the
+     * link/unlink here means MEM never touches allocation strategy at
+     * all, so there's nothing to restore.
+     */
     __dpmi_regs r = {};
-    r.x.ax = 0x5800;
-    __dpmi_int(0x21, &r);
-    uint16_t orig_strat = r.x.ax;
-
     r.x.ax = 0x5802;
     __dpmi_int(0x21, &r);
     uint8_t orig_umblink = r.h.al;
 
-    link_umb(orig_strat);
+    r.x.ax = 0x5803;
+    r.x.bx = 1;
+    __dpmi_int(0x21, &r);
 
     /* Get List of Lists -> First MCB */
     r.h.ah = 0x52;
@@ -395,18 +430,26 @@ void perform_mem(const char *arg)
     }
 
     if (!orig_umblink)
-        unlink_umb();
-
-    /* Fill default conventional memory total if 0 */
-    if (conv_total == 0 || conv_total < 640 * 1024)
     {
-        __dpmi_regs ir = {};
-        __dpmi_int(0x12, &ir);
-        if (ir.x.ax > 0)
-            conv_total = (uint32_t)ir.x.ax * 1024;
-        else
-            conv_total = 640 * 1024;
+        r.x.ax = 0x5803;
+        r.x.bx = 0;
+        __dpmi_int(0x21, &r);
     }
+
+    /*
+     * The MCB arena walked above starts after the resident DOS kernel,
+     * interrupt vector table and BIOS data area, so its sum is normally
+     * a few KB short of the true installed conventional memory - not
+     * just in the "== 0" edge case. INT 12h reports the BIOS-detected
+     * total directly, so prefer it unconditionally, matching what real
+     * MEM.COM shows as "Total conventional memory".
+     */
+    __dpmi_regs ir = {};
+    __dpmi_int(0x12, &ir);
+    if (ir.x.ax > 0)
+        conv_total = (uint32_t)ir.x.ax * 1024;
+    else if (conv_total == 0)
+        conv_total = 640 * 1024;
 
     if (opt_classify)
     {
@@ -436,7 +479,6 @@ void perform_mem(const char *arg)
 
     /* Query XMS */
     uint32_t xms_free_kb = 0;
-    uint32_t xms_largest_free_kb = 0;
     int xms_present = 0;
 
     r.x.ax = 0x4300;
@@ -457,23 +499,29 @@ void perform_mem(const char *arg)
         __dpmi_simulate_real_mode_procedure_retf(&xr);
 
         if (xr.h.bl == 0)
-        {
-            xms_largest_free_kb = xr.x.ax;
             xms_free_kb = xr.x.dx;
-        }
     }
 
-    if (!xms_present || xms_free_kb == 0)
+    uint32_t xms_total_kb = query_ext_mem_total_kb();
+
+    if (!xms_present && xms_total_kb > 0)
     {
-        __dpmi_regs xr = {};
-        xr.h.ah = 0x88;
-        __dpmi_int(0x15, &xr);
-        if (!(xr.x.flags & 1) && xr.x.ax > 0)
-        {
-            xms_free_kb = xr.x.ax;
-            xms_largest_free_kb = xr.x.ax;
-            xms_present = 1;
-        }
+        /* No XMS manager loaded, so nothing has claimed any of it yet. */
+        xms_free_kb = xms_total_kb;
+        xms_present = 1;
+    }
+
+    if (xms_total_kb < xms_free_kb)
+    {
+        /*
+         * The BIOS-reported extended memory size is a legacy/compatibility
+         * figure and can be smaller than the pool the XMS manager actually
+         * hands out (observed under dosemu2, whose virtual XMS pool isn't
+         * tied to what INT 15h reports). Never show a total smaller than
+         * what XMS itself claims is free - that would be a nonsensical
+         * "free > total" display.
+         */
+        xms_total_kb = xms_free_kb;
     }
 
     /* Query EMS */
@@ -508,9 +556,10 @@ void perform_mem(const char *arg)
 
     uint32_t conv_used = (conv_total > conv_free) ? (conv_total - conv_free) : 0;
     uint32_t umb_used = (umb_total > umb_free) ? (umb_total - umb_free) : 0;
-    uint32_t xms_total_bytes = xms_free_kb * 1024;
+    uint32_t xms_total_bytes = xms_total_kb * 1024;
     uint32_t xms_free_bytes = xms_free_kb * 1024;
-    uint32_t xms_used_bytes = 0;
+    uint32_t xms_used_bytes = (xms_total_bytes > xms_free_bytes) ?
+        (xms_total_bytes - xms_free_bytes) : 0;
 
     char str_c_tot[20], str_c_used[20], str_c_free[20];
     format_number(conv_total, str_c_tot, sizeof(str_c_tot));
