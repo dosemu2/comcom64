@@ -109,15 +109,31 @@ sed -n '/===FDMEM-DEBUG===/,/===FDMEM-FREE===/p' "$OUT" > "$WORKDIR/fdmem_debug.
 fdmem_ems_free=$(extract_bytes "$WORKDIR/fdmem_debug.txt" '^Free Expanded \(EMS\)')
 fdmem_ems_total=$(extract_bytes "$WORKDIR/fdmem_debug.txt" '^Total Expanded \(EMS\)')
 
+# comcom64 prints the "Extended (XMS)" row in raw bytes, FreeDOS prints it
+# in KB - normalize both to KB (last column of the row) before comparing.
+extract_xms_free_kb() {
+    # $1 = file, $2 = 1 if the figure is already in KB (strip trailing "K"),
+    # 0 if it's in raw bytes (divide by 1024)
+    figure=$(grep -E '^Extended \(XMS\)' "$1" | head -1 | awk '{print $NF}' | tr -d ',K\r')
+    if [ "$2" = "0" ]; then
+        echo $((figure / 1024))
+    else
+        echo "$figure"
+    fi
+}
+
+comcom_xms_free=$(extract_xms_free_kb "$OUT" 0)
+fdmem_xms_free=$(extract_xms_free_kb "$WORKDIR/fdmem_debug.txt" 1)
+
 status=0
 echo "############################################################"
 echo "# Automated checks (values that must match exactly)"
 echo "############################################################"
 
 check() {
-    name=$1; a=$2; b=$3
+    name=$1; a=$2; b=$3; unit=${4:-bytes}
     if [ "$a" = "$b" ] && [ -n "$a" ]; then
-        echo "PASS: $name matches ($a bytes)"
+        echo "PASS: $name matches ($a $unit)"
     else
         echo "FAIL: $name differs: comcom64=$a freedos=$b"
         status=1
@@ -126,5 +142,6 @@ check() {
 
 check "EMS total" "$comcom_ems_total" "$fdmem_ems_total"
 check "EMS free"  "$comcom_ems_free"  "$fdmem_ems_free"
+check "XMS free" "$comcom_xms_free" "$fdmem_xms_free" "KB"
 
 exit $status

@@ -26,6 +26,7 @@
 #include <dpmi.h>
 #include <sys/farptr.h>
 #include <go32.h>
+#include <libc/dosio.h>
 
 #include "asm.h"
 #include "command.h"
@@ -41,7 +42,7 @@ struct MCB {
 
 struct module_entry {
   uint16_t owner_psp;
-  char name[9];
+  char name[16]; /* matches get_mcb_name()'s name_out buffer size */
   uint32_t conv_bytes;
   uint32_t umb_bytes;
 };
@@ -199,15 +200,62 @@ static void get_mcb_name(uint16_t seg, const struct MCB *mcb, char *name_out, si
   snprintf(name_out, name_out_size, "PSP-%04X", mcb->owner_psp);
 }
 
+struct e820_entry {
+  uint64_t base;
+  uint64_t length;
+  uint32_t type;
+  uint32_t ext_attr;
+} __attribute__((packed));
+
+#define E820_TYPE_USABLE 1
+#define E820_MAX_ENTRIES 64
+
 /*
  * XMS only ever reports free extended memory (function 08h gives the
  * largest free block and total free, nothing else) - there is no XMS
- * call for total installed extended memory. Get that from the BIOS
- * instead: AX=E801h covers configurations above 64MB, falling back to
- * the older AH=88h (limited to 64MB) if E801h isn't supported.
+ * call for total installed extended memory, so total has to come from
+ * the BIOS. Prefer the INT 15h/E820h system memory map, same as real
+ * FreeDOS's own MEM: under dosemu2 the older E801h/88h calls can report
+ * a much smaller "compatibility" figure than the extended memory pool
+ * that's actually configured, while E820h reflects it accurately. Fall
+ * back to E801h (covers configurations above 64MB) and then the even
+ * older AH=88h (limited to 64MB) only if E820h isn't supported.
  */
 static uint32_t query_ext_mem_total_kb(void)
 {
+  uint32_t total_kb = 0;
+  uint32_t continuation = 0;
+  int i;
+
+  for (i = 0; i < E820_MAX_ENTRIES; i++)
+  {
+    struct e820_entry entry = {};
+    __dpmi_regs r = {};
+
+    r.d.eax = 0xe820;
+    r.d.edx = 0x534d4150; /* 'SMAP' */
+    r.d.ecx = sizeof(entry);
+    r.d.ebx = continuation;
+    r.x.es = __tb_segment;
+    r.d.edi = __tb_offset;
+    __dpmi_int(0x15, &r);
+
+    if ((r.x.flags & 1) || r.d.eax != 0x534d4150 || r.d.ecx == 0)
+      break;
+
+    dosmemget(__tb, r.d.ecx < sizeof(entry) ? r.d.ecx : sizeof(entry), &entry);
+
+    if (entry.type == E820_TYPE_USABLE && entry.base >= 0x100000)
+      total_kb += (uint32_t)(entry.length / 1024);
+
+    continuation = r.d.ebx;
+    if (continuation == 0)
+      break;
+  }
+
+  if (total_kb > 0)
+    return total_kb;
+
   __dpmi_regs r = {};
   r.x.ax = 0xe801;
   __dpmi_int(0x15, &r);
@@ -257,38 +305,37 @@ void perform_mem(const char *arg)
     if (*p == '/' || *p == '-')
     {
       p++;
-      if (strnicmp(p, "CLASSIFY", 8) == 0 || strnicmp(p, "C", 1) == 0)
+      if (*p == '?')
       {
+        show_help();
+        return;
+      }
+
+      const char *tok = p;
+      while (isalnum((unsigned char)*p))
+        p++;
+      size_t tok_len = p - tok;
+
+      if ((tok_len == 1 && strnicmp(tok, "C", 1) == 0) ||
+          (tok_len == 8 && strnicmp(tok, "CLASSIFY", 8) == 0))
         opt_classify = 1;
-        while (isalnum((unsigned char)*p))
-          p++;
-      }
-      else if (strnicmp(p, "FREE", 4) == 0 || strnicmp(p, "F", 1) == 0)
-      {
+      else if ((tok_len == 1 && strnicmp(tok, "F", 1) == 0) ||
+               (tok_len == 4 && strnicmp(tok, "FREE", 4) == 0))
         opt_free = 1;
-        while (isalnum((unsigned char)*p))
-          p++;
-      }
-      else if (strnicmp(p, "DEBUG", 5) == 0 || strnicmp(p, "D", 1) == 0)
-      {
+      else if ((tok_len == 1 && strnicmp(tok, "D", 1) == 0) ||
+               (tok_len == 5 && strnicmp(tok, "DEBUG", 5) == 0))
         opt_debug = 1;
-        while (isalnum((unsigned char)*p))
-          p++;
-      }
-      else if (strnicmp(p, "PAGE", 4) == 0 || strnicmp(p, "P", 1) == 0)
-      {
+      else if ((tok_len == 1 && strnicmp(tok, "P", 1) == 0) ||
+               (tok_len == 4 && strnicmp(tok, "PAGE", 4) == 0))
         opt_page = 1;
-        while (isalnum((unsigned char)*p))
-          p++;
-      }
-      else if (*p == '?' || strnicmp(p, "HELP", 4) == 0)
+      else if (tok_len == 4 && strnicmp(tok, "HELP", 4) == 0)
       {
         show_help();
         return;
       }
       else
       {
-        cprintf("Invalid switch - %s\r\n", p - 1);
+        cprintf("Invalid switch - %s\r\n", tok - 1);
         reset_batfile_call_stack();
         return;
       }
@@ -492,16 +539,17 @@ void perform_mem(const char *arg)
   uint32_t xms_free_kb = 0;
   int xms_present = 0;
 
-  r.x.ax = 0x4300;
-  __dpmi_int(0x2f, &r);
-  if ((r.h.al & 0xff) == 0x80)
+  __dpmi_regs dr = {};
+  dr.x.ax = 0x4300;
+  __dpmi_int(0x2f, &dr);
+  if ((dr.h.al & 0xff) == 0x80)
   {
     xms_present = 1;
-    r.x.ax = 0x4310;
-    __dpmi_int(0x2f, &r);
+    dr.x.ax = 0x4310;
+    __dpmi_int(0x2f, &dr);
     __dpmi_raddr xms_entry;
-    xms_entry.segment = r.x.es;
-    xms_entry.offset16 = r.x.bx;
+    xms_entry.segment = dr.x.es;
+    xms_entry.offset16 = dr.x.bx;
 
     __dpmi_regs xr = {};
     xr.h.ah = 0x08; /* Query Free Extended Memory */
