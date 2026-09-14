@@ -51,10 +51,15 @@ static int opt_free = 0;
 static int opt_debug = 0;
 static int opt_page = 0;
 static int page_line_count = 0;
+static int page_height = 23;
 
 static void reset_page(void)
 {
+    struct text_info txinfo;
+
     page_line_count = 0;
+    gettextinfo(&txinfo);
+    page_height = txinfo.winbottom - 1;
 }
 
 static void print_line(const char *str)
@@ -63,7 +68,7 @@ static void print_line(const char *str)
     if (opt_page)
     {
         page_line_count++;
-        if (page_line_count >= 23)
+        if (page_line_count >= page_height)
         {
             printf("Press any key to continue . . .");
             fflush(stdout);
@@ -281,7 +286,9 @@ void perform_mem(const char *arg)
             }
             else
             {
-                p++;
+                cprintf("Invalid switch - %s\r\n", p - 1);
+                reset_batfile_call_stack();
+                return;
             }
         }
         else
@@ -656,6 +663,4 @@ void perform_mem(const char *arg)
                  (unsigned long)(umb_largest / 1024), str_u_lrg);
         print_line(line_buf);
     }
-
-    print_line("MS-DOS is resident in the high memory area.");
 }

@@ -475,6 +475,7 @@ struct built_in_cmd
 
 extern struct built_in_cmd cmd_table[];
 extern const int CMD_TABLE_COUNT;
+extern void reset_batfile_call_stack(void);
 
 unsigned short keyb_get_shift_states(void);
 
