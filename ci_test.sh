@@ -20,9 +20,6 @@ cat >&2 << EOF4
 EOF4
 env COPY_COMMAND_COM=/usr/share/comcom64/comcom64.exe test/test_comcom.py TestCase64
 
-make both -j 9
-ls -l src/32/comcom32.exe
-
 # Return non-zero if any logfiles were generated
 for i in test_*.*.*.log ; do
   test -f $i || exit 0

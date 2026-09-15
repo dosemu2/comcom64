@@ -57,6 +57,9 @@ jobs:
       id: test
       run: ./ci_test.sh
 
+    - name: Build for deploy
+      run: ./ci_build_deploy.sh
+
     - name: Upload failure logs
       if: ${{ always() && steps.test.outcome == 'failure' }}
       uses: actions/upload-artifact@v6
