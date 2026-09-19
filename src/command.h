@@ -475,6 +475,11 @@ struct built_in_cmd
 
 extern struct built_in_cmd cmd_table[];
 extern const int CMD_TABLE_COUNT;
+extern void reset_batfile_call_stack(void);
+/* full argument string of the command being executed: built-in commands
+ * are handed only the first argument, so anything that takes more than
+ * one switch needs this */
+extern const char *get_cmd_args(void);
 
 unsigned short keyb_get_shift_states(void);
 
