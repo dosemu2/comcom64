@@ -97,6 +97,7 @@
 #include "ae0x.h"
 #include "compl.h"
 #include "clip.h"
+#include "mem.h"
 #include "command.h"
 
 /*
@@ -305,6 +306,7 @@ struct built_in_cmd cmd_table[] =
     {"loadhigh", perform_loadhigh, "", "load program to UMB"},
     {"md", perform_md, "", "create directory"},
     {"mkdir", perform_md, "", "create directory"},
+    {"mem", perform_mem, " [/c] [/f] [/d] [/p]", "display memory statistics"},
     {"move", perform_move, "", "move file"},
     {"more", perform_more, "", "scroll-pause long output"},
     {"mouseopt", perform_mouseopt, "", "mouse options"},
@@ -412,7 +414,12 @@ static int has_wildcard(char *s)
   return false;
   }
 
-static void reset_batfile_call_stack(void)
+const char *get_cmd_args(void)
+  {
+  return cmd_args;
+  }
+
+void reset_batfile_call_stack(void)
   {
   static int first_time = true;
   int ba;
