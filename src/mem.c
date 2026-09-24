@@ -191,6 +191,25 @@ static void print_kb_and_bytes(const char *label, uint32_t kb, uint32_t bytes)
   print_line(buf);
 }
 
+/* DPMI fn 0500h fills fields the host can't tell with -1 */
+#define DPMI_UNKNOWN 0xFFFFFFFFu
+#define DPMI_PAGE_KB 4
+
+static void print_dpmi_pages(const char *label, uint32_t pages)
+{
+  char kb_str[24], buf[160];
+
+  /* past 4GB the byte count no longer fits, so give KB alone */
+  if (pages < 0x100000)
+  {
+    print_kb_and_bytes(label, pages * DPMI_PAGE_KB, pages * 4096);
+    return;
+  }
+  format_kb(pages * DPMI_PAGE_KB, kb_str, sizeof(kb_str));
+  snprintf(buf, sizeof(buf), "%-36s%8s", label, kb_str);
+  print_line(buf);
+}
+
 struct psp_name {
   uint16_t psp;
   char name[9];
@@ -949,6 +968,43 @@ void perform_mem(const char *arg)
     print_kb_and_bytes("Total Expanded (EMS)", ems_total_kb, ems_total_kb * 1024);
     print_kb_and_bytes("Free Expanded (EMS)", ems_free_kb, ems_free_kb * 1024);
     print_line("");
+  }
+
+  /*
+   * We are a DPMI client ourselves, so the host is always there. Its
+   * memory is reported apart from the table above: under some hosts it
+   * is carved out of XMS, under others (dosemu2) it is a separate pool,
+   * so adding it to the totals would count the same memory twice.
+   */
+  __dpmi_free_mem_info dpmi_info;
+  if (__dpmi_get_free_memory_information(&dpmi_info) == 0)
+  {
+    uint32_t dpmi_total = dpmi_info.total_number_of_physical_pages;
+    uint32_t dpmi_free = dpmi_info.total_number_of_free_pages;
+    uint32_t dpmi_largest = dpmi_info.largest_available_free_block_in_bytes;
+    int shown = 0;
+
+    if (dpmi_total != DPMI_UNKNOWN)
+    {
+      print_dpmi_pages("Total DPMI memory", dpmi_total);
+      shown = 1;
+    }
+    if (dpmi_total != DPMI_UNKNOWN && dpmi_free != DPMI_UNKNOWN &&
+        dpmi_free <= dpmi_total)
+      print_dpmi_pages("Used DPMI memory", dpmi_total - dpmi_free);
+    if (dpmi_free != DPMI_UNKNOWN)
+    {
+      print_dpmi_pages("Free DPMI memory", dpmi_free);
+      shown = 1;
+    }
+    if (dpmi_largest != DPMI_UNKNOWN)
+    {
+      print_kb_and_bytes("Largest free DPMI block",
+                         dpmi_largest / 1024, dpmi_largest);
+      shown = 1;
+    }
+    if (shown)
+      print_line("");
   }
 
   print_kb_and_bytes("Largest executable program size",
