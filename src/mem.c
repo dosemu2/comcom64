@@ -53,17 +53,15 @@
 #define CONV_MAX_KB (UMB_START_SEG / PARAS_PER_KB)
 
 /*
- * Above conventional memory, FreeDOS MEM splits the first megabyte the
- * way MS-DOS MEM did: 0xA000-0xDFFF is "Upper", and 0xE000-0xFFFF is
- * "Reserved" - the BIOS and option ROM area, reported as entirely in
- * use. Both are fixed-size regions, not sums of the blocks found in
- * them, and free UMBs count towards upper memory wherever they sit.
- * Report them the same way, so our numbers can be compared with
- * MEM.EXE's directly.
+ * Above conventional memory, FreeDOS MEM splits what it finds in two:
+ * the blocks of the upper memory chain are "Upper", and everything else
+ * below 1 MB is "Reserved" - video memory, option ROMs and the BIOS -
+ * reported as entirely in use. So upper memory is the sum of the blocks
+ * themselves, wherever they sit, and the area the chain does not reach
+ * is reserved rather than used. Report them the same way, so our
+ * numbers can be compared with MEM.EXE's directly.
  */
-#define RESERVED_START_SEG 0xE000
-#define UMB_TOTAL_KB ((RESERVED_START_SEG - UMB_START_SEG) / PARAS_PER_KB)
-#define RESERVED_TOTAL_KB ((0x10000 - RESERVED_START_SEG) / PARAS_PER_KB)
+#define UPPER_AREA_KB ((0x10000 - UMB_START_SEG) / PARAS_PER_KB)
 
 /* Rounds to nearest, as FreeDOS MEM does. */
 static uint32_t paras_to_kb(uint32_t paras)
@@ -572,6 +570,7 @@ void perform_mem(const char *arg)
   uint32_t conv_free_paras = 0;
   uint32_t conv_largest_paras = 0;
 
+  uint32_t umb_total_paras = 0;
   uint32_t umb_free_paras = 0;
   uint32_t umb_largest_paras = 0;
 
@@ -662,7 +661,12 @@ void perform_mem(const char *arg)
 
     /* the MCB header itself belongs to the region it sits in */
     if (!is_umb)
+    {
       conv_total_paras += conv_paras + 1;
+      umb_total_paras += umb_paras;
+    }
+    else
+      umb_total_paras += umb_paras + 1;
 
     if (mcb.owner_psp == 0)
     {
@@ -789,10 +793,13 @@ void perform_mem(const char *arg)
   uint32_t conv_free_kb = paras_to_kb(conv_free_paras);
   uint32_t conv_used_kb = (conv_total_kb > conv_free_kb) ?
     (conv_total_kb - conv_free_kb) : 0;
-  uint32_t umb_total_kb = UMB_TOTAL_KB;
+  uint32_t umb_total_kb = paras_to_kb(umb_total_paras);
   uint32_t umb_free_kb = paras_to_kb(umb_free_paras);
   uint32_t umb_used_kb = (umb_total_kb > umb_free_kb) ?
     (umb_total_kb - umb_free_kb) : 0;
+  /* what the chain never reached is reserved, not used upper memory */
+  uint32_t reserved_total_kb = (UPPER_AREA_KB > umb_total_kb) ?
+    (UPPER_AREA_KB - umb_total_kb) : 0;
 
   if (opt_classify)
   {
@@ -924,7 +931,7 @@ void perform_mem(const char *arg)
            "Upper", str_tot, str_used, str_free);
   print_line(line_buf);
 
-  format_kb(RESERVED_TOTAL_KB, str_tot, sizeof(str_tot));
+  format_kb(reserved_total_kb, str_tot, sizeof(str_tot));
   format_kb(0, str_free, sizeof(str_free));
   snprintf(line_buf, sizeof(line_buf), "%-16s  %8s   %8s   %8s",
            "Reserved", str_tot, str_tot, str_free);
@@ -942,9 +949,9 @@ void perform_mem(const char *arg)
 
   print_line("----------------  --------   --------   --------");
 
-  format_kb(conv_total_kb + umb_total_kb + RESERVED_TOTAL_KB + xms_total_kb,
+  format_kb(conv_total_kb + umb_total_kb + reserved_total_kb + xms_total_kb,
             str_tot, sizeof(str_tot));
-  format_kb(conv_used_kb + umb_used_kb + RESERVED_TOTAL_KB + xms_used_kb,
+  format_kb(conv_used_kb + umb_used_kb + reserved_total_kb + xms_used_kb,
             str_used, sizeof(str_used));
   format_kb(conv_free_kb + umb_free_kb + xms_free_kb, str_free, sizeof(str_free));
   snprintf(line_buf, sizeof(line_buf), "%-16s  %8s   %8s   %8s",
