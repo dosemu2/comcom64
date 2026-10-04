@@ -199,6 +199,7 @@ int djterm_init(void)
       free_term_cb();
     }
 
+  _setcursortype(_SOLIDCURSOR);
   tcdrain(STDOUT_FILENO);
   return ret;
 }
