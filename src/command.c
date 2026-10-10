@@ -1498,8 +1498,8 @@ static void general_file_transfer(int transfer_type, int append)
   strcat(dest_filespec, d_extspec);
   conv_unix_path_to_ms_dos(dest_filespec);
 
-  if (has_wildcard(dest_filespec))
-    expand_wildcard(dest_filespec, s_filespec, s_extspec + 1);
+  /* A wildcard in dest_filespec (e.g. *.* or *.bak) is expanded below,
+   * against each file that the source spec matches. */
   if (has_wildcard(dest_path))
     {
     cputs("Illegal wildcard on destination\r\n");
@@ -1588,8 +1588,19 @@ static void general_file_transfer(int transfer_type, int append)
         strcat(full_dest_dirspec, dir_name[s]);
         }
       strcat(full_source_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
-      if (strcmp(dest_filespec, "*.*") == 0)
-        strcat(full_dest_filespec, FINDDATA_T_FILENAME(ff[subdir_level]));
+      if (has_wildcard(dest_filespec))
+        {
+        /* fill the wildcards of dest from the name of the file found */
+        char found_name[MAXFILE], found_ext[MAXEXT];
+        char dest_name[MAXPATH];
+
+        fnsplit(FINDDATA_T_FILENAME(ff[subdir_level]), NULL, NULL,
+                found_name, found_ext);
+        strcpy(dest_name, dest_filespec);
+        expand_wildcard(dest_name, found_name,
+                        found_ext[0] == '.' ? found_ext + 1 : found_ext);
+        strcat(full_dest_filespec, dest_name);
+        }
       else
         strcat(full_dest_filespec, dest_filespec);
 
